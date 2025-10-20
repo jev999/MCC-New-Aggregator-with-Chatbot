@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot - MCC Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 50%, #94a3b8 75%, #64748b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Chat toggle button */
+        #chat-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #chat-toggle:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Chatbot container */
+        #chatbot-container {
+            position: fixed;
+            bottom: 120px;
+            right: 30px;
+            width: 400px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid #f1f5f9;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        #chatbot-container.visible {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Chatbot header */
+        #chatbot-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #chatbot-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        #minimize-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+
+        #minimize-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Chat area */
+        #chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #chat-area::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-area::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #chat-area::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        /* Message styles */
+        .message {
+            display: flex;
+            gap: 10px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-message .message-avatar {
+            background: linear-gradient(135deg, #10b981, #047857);
+        }
+
+        .bot-message .message-avatar {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .message-content {
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .bot-message .message-content {
+            background: white;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 18px;
+            border-bottom-left-radius: 6px;
+            width: fit-content;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Input area */
+        #input-area {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        #user-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #send-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        #send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        #send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Error message */
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin: 10px 0;
+            border: 1px solid #fecaca;
+            font-size: 14px;
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+
+        .welcome-message i {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .welcome-message h3 {
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        /* Responsive design */
+        @media (max-width: 480px) {
+            #chatbot-container {
+                width: calc(100vw - 20px);
+                height: calc(100vh - 40px);
+                bottom: 10px;
+                right: 10px;
+                border-radius: 15px;
+            }
+
+            #chat-toggle {
+                bottom: 20px;
+                right: 20px;
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Chat toggle button -->
+    <button id="chat-toggle" title="Open AI Assistant">
+        <i class="fas fa-comments"></i>
+    </button>
+
+    <!-- Chatbot container -->
+    <div id="chatbot-container">
+        <div id="chatbot-header">
+            <div id="chatbot-title">
+                <i class="fas fa-robot"></i>
+                MCC AI Assistant
+                <span class="status-indicator"></span>
+            </div>
+            <button id="minimize-btn" title="Minimize">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
+        
+        <div id="chat-area">
+            <div class="welcome-message">
+                <i class="fas fa-robot"></i>
+                <h3>Welcome to MCC AI Assistant</h3>
+                <p>I'm here to help you with information about MCC programs, events, and general questions.</p>
+            </div>
+        </div>
+        
+        <div id="input-area">
+            <div class="input-container">
+                <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
+                <button id="send-btn" title="Send message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
+    const chatToggle = document.getElementById('chat-toggle');
+    const chatbotContainer = document.getElementById('chatbot-container');
+    const minimizeBtn = document.getElementById('minimize-btn');
+    const chatArea = document.getElementById('chat-area');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // Configuration with fallback
+    const CONFIG = {
+        API_KEY: "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",
+        MODEL: "deepseek/deepseek-chat",
+        API_URL: "https://openrouter.ai/api/v1/chat/completions",
+        SITE_URL: window.location.href,
+        SITE_NAME: "MCC Portal AI Assistant",
+        MAX_RETRIES: 2,
+        RETRY_DELAY: 1500
+    };
+
+    // State management
+    let isChatVisible = false;
+    let conversationHistory = [];
+    let isProcessing = false;
+
+    // Fallback responses for when API fails
+    const FALLBACK_RESPONSES = {
+        greeting: [
+            "Hello! I'm here to help you with information about MCC. What would you like to know?",
+            "Hi there! How can I assist you with MCC-related questions today?",
+            "Welcome! I'm your MCC assistant. Feel free to ask me anything about our college."
+        ],
+        programs: [
+            "MCC offers several excellent programs including BSIT (Information Technology), BSBA (Business Administration), BEED (Elementary Education), BSED (Secondary Education), and BSHM (Hospitality Management). Each program is designed to provide comprehensive education in its field.",
+            "Our academic programs include Bachelor's degrees in IT, Business Administration, Elementary Education, Secondary Education, and Hospitality Management. Would you like more details about any specific program?"
+        ],
+        admission: [
+            "For admission information, please contact our admissions office at info@mcc-nac.edu.ph or visit our campus at Bunakan, Madridejos, Cebu. Our staff will guide you through the enrollment process.",
+            "To enroll at MCC, you can reach out to us at info@mcc-nac.edu.ph. We're located at Bunakan, Madridejos, Cebu, and our admissions team is ready to help you get started."
+        ],
+        contact: [
+            "You can contact MCC at info@mcc-nac.edu.ph. Our campus is located at Bunakan, Madridejos, Cebu. Feel free to reach out for any inquiries!",
+            "For more information, email us at info@mcc-nac.edu.ph or visit us at Bunakan, Madridejos, Cebu. We're here to help!"
+        ],
+        events: [
+            "For the latest events and announcements, please check the Events and Announcements sections on your dashboard. We regularly update these with campus activities and important information.",
+            "You can find current events and activities in the Events section above. We host various seminars, workshops, and campus activities throughout the year."
+        ],
+        default: [
+            "Thank you for your question! For specific information about MCC, please contact us at info@mcc-nac.edu.ph or visit our campus at Bunakan, Madridejos, Cebu.",
+            "I'd be happy to help! For detailed information about MCC programs and services, please reach out to our office at info@mcc-nac.edu.ph.",
+            "That's a great question! For the most accurate and up-to-date information, please contact our staff at info@mcc-nac.edu.ph."
+        ]
+    };
+
+    // Get fallback response based on user input
+    function getFallbackResponse(userMessage) {
+        const message = userMessage.toLowerCase();
+        
+        if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+            return getRandomResponse(FALLBACK_RESPONSES.greeting);
+        }
+        
+        if (message.includes('program') || message.includes('course') || message.includes('degree') || message.includes('bsit') || message.includes('bsba') || message.includes('beed') || message.includes('bsed') || message.includes('bshm')) {
+            return getRandomResponse(FALLBACK_RESPONSES.programs);
+        }
+        
+        if (message.includes('admission') || message.includes('enroll') || message.includes('apply') || message.includes('registration')) {
+            return getRandomResponse(FALLBACK_RESPONSES.admission);
+        }
+        
+        if (message.includes('contact') || message.includes('phone') || message.includes('email') || message.includes('address') || message.includes('location')) {
+            return getRandomResponse(FALLBACK_RESPONSES.contact);
+        }
+        
+        if (message.includes('event') || message.includes('activity') || message.includes('announcement')) {
+            return getRandomResponse(FALLBACK_RESPONSES.events);
+        }
+        
+        return getRandomResponse(FALLBACK_RESPONSES.default);
+    }
+
+    function getRandomResponse(responses) {
+        return responses[Math.floor(Math.random() * responses.length)];
+    }
+
+    // Toggle chatbot visibility
+    function toggleChat() {
+        isChatVisible = !isChatVisible;
+        if (isChatVisible) {
+            chatbotContainer.classList.add('visible');
+            userInput.focus();
+            // Add initial greeting if first time opening
+            if (conversationHistory.length === 0) {
+                setTimeout(() => {
+                    addBotMessage("Hello! I'm your MCC AI Assistant. I can help you with information about our programs, events, admissions, and more. What would you like to know?");
+                }, 500);
+            }
+        } else {
+            chatbotContainer.classList.remove('visible');
+        }
+    }
+
+    // Event listeners
+    chatToggle.addEventListener('click', toggleChat);
+    minimizeBtn.addEventListener('click', toggleChat);
+
+    // Auto-resize textarea
+    userInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    // Add message to chat area
+    function addMessage(text, isUser, timestamp = new Date()) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+
+        const avatar = document.createElement('div');
+        avatar.classList.add('message-avatar');
+        avatar.innerHTML = isUser ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+
+        const content = document.createElement('div');
+        content.classList.add('message-content');
+        
+        const messageText = document.createElement('div');
+        messageText.innerHTML = text.replace(/\n/g, '<br>');
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.classList.add('message-time');
+        timeSpan.textContent = timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        content.appendChild(messageText);
+        content.appendChild(timeSpan);
+        
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+        
+        // Remove welcome message if it exists
+        const welcomeMessage = chatArea.querySelector('.welcome-message');
+        if (welcomeMessage) {
+            welcomeMessage.remove();
+        }
+        
+        chatArea.appendChild(messageDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+
+        // Store in conversation history (only for non-error messages)
+        if (!text.includes("I'm sorry, I encountered an error")) {
+            conversationHistory.push({
+                role: isUser ? 'user' : 'assistant',
+                content: text,
+                timestamp: timestamp
+            });
+        }
+    }
+
+    function addBotMessage(text) {
+        addMessage(text, false);
+    }
+
+    function addUserMessage(text) {
+        addMessage(text, true);
+    }
+
+    // Show typing indicator
+    function showTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('message', 'bot-message');
+        typingDiv.id = 'typing-indicator';
+        
+        const avatar = document.createElement('div');
+        avatar.classList.add('message-avatar');
+        avatar.innerHTML = '<i class="fas fa-robot"></i>';
+        
+        const indicator = document.createElement('div');
+        indicator.classList.add('typing-indicator');
+        indicator.innerHTML = `
+            <span>Thinking</span>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+        
+        typingDiv.appendChild(avatar);
+        typingDiv.appendChild(indicator);
+        chatArea.appendChild(typingDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    // Hide typing indicator
+    function hideTypingIndicator() {
+        const typingIndicator = document.getElementById('typing-indicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+
+    // Get bot response with improved error handling
+    async function getBotResponse(userMessage, retryCount = 0) {
+        try {
+            // Check if we're online
+            if (!navigator.onLine) {
+                throw new Error('No internet connection');
+            }
+
+            const messages = [
+                {
+                    role: "system",
+                    content: "You are a helpful AI assistant for Madridejos Community College (MCC) in Cebu, Philippines. You help students and visitors with information about academic programs (BSIT, BSBA, BEED, BSED, BSHM), events, announcements, admissions, and general questions about the college. Be friendly, informative, and concise. If you don't know specific details, suggest contacting the college at info@mcc-nac.edu.ph."
+                },
+                ...conversationHistory.slice(-8), // Keep last 8 messages for context
+                {
+                    role: "user",
+                    content: userMessage
+                }
+            ];
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+            const response = await fetch(CONFIG.API_URL, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${CONFIG.API_KEY}`,
+                    "HTTP-Referer": CONFIG.SITE_URL,
+                    "X-Title": CONFIG.SITE_NAME,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: CONFIG.MODEL,
+                    messages: messages,
+                    temperature: 0.7,
+                    max_tokens: 400,
+                    top_p: 0.9
+                }),
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                throw new Error("Invalid response format");
+            }
+
+            return data.choices[0].message.content.trim();
+
+        } catch (error) {
+            console.error(`API Error (attempt ${retryCount + 1}):`, error);
+            
+            // Retry logic for certain errors
+            if (retryCount < CONFIG.MAX_RETRIES && 
+                (error.name === 'AbortError' || 
+                 error.message.includes('500') || 
+                 error.message.includes('502') || 
+                 error.message.includes('503'))) {
+                
+                console.log(`Retrying... Attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}`);
+                await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY * (retryCount + 1)));
+                return getBotResponse(userMessage, retryCount + 1);
+            }
+            
+            // Use fallback response instead of generic error
+            console.log('Using fallback response');
+            return getFallbackResponse(userMessage);
+        }
+    }
+
+    // Handle user input
+    async function handleUserInput() {
+        const message = userInput.value.trim();
+        if (!message || isProcessing) return;
+
+        // Basic input validation
+        if (message.length > 500) {
+            addBotMessage("Please keep your message under 500 characters for better processing.");
+            return;
+        }
+
+        isProcessing = true;
+        addUserMessage(message);
+        userInput.value = '';
+        userInput.style.height = 'auto';
+        userInput.disabled = true;
+        sendBtn.disabled = true;
+
+        showTypingIndicator();
+
+        try {
+            const botResponse = await getBotResponse(message);
+            hideTypingIndicator();
+            addBotMessage(botResponse);
+        } catch (error) {
+            hideTypingIndicator();
+            console.error('Final error:', error);
+            addBotMessage(getFallbackResponse(message));
+        } finally {
+            isProcessing = false;
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+    }
+
+    // Event listeners for sending messages
+    sendBtn.addEventListener('click', handleUserInput);
+    
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleUserInput();
+        }
+    });
+
+    // Handle connection status
+    window.addEventListener('online', function() {
+        console.log('Connection restored');
+        if (isChatVisible) {
+            addBotMessage("Connection restored! I'm back online and ready to help.");
+        }
+    });
+
+    window.addEventListener('offline', function() {
+        console.log('Connection lost');
+        if (isChatVisible) {
+            addBotMessage("I'm currently offline, but I can still provide basic information about MCC. For detailed inquiries, please contact info@mcc-nac.edu.ph when you're back online.");
+        }
+    });
+
+    // Initialize
+    console.log('MCC AI Assistant initialized with fallback responses');
+});
+    </script>
+</body>
+</html>

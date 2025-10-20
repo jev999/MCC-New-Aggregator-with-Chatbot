@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Debug Test</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9) translateY(30px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active .modal-container {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+        .test-container {
+            padding: 20px;
+            margin: 20px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .test-container:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body x-data="{ activeModal: null, closeModal() { this.activeModal = null; } }">
+    <h1>Modal Debug Test</h1>
+    
+    <div class="test-container" @click="console.log('Clicked test container'); activeModal = { id: 1, title: 'Test Modal', body: 'This is a test modal content.' }">
+        <h3>Click me to test modal</h3>
+        <p>This should open a modal popup</p>
+    </div>
+    
+    <div class="modal-overlay" :class="{ 'active': activeModal }" @click.self="closeModal()">
+        <div class="modal-container" x-show="activeModal">
+            <h2 x-text="activeModal?.title"></h2>
+            <p x-text="activeModal?.body"></p>
+            <button @click="closeModal()">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        console.log('Alpine.js loaded:', typeof Alpine !== 'undefined');
+        document.addEventListener('alpine:init', () => {
+            console.log('Alpine.js initialized');
+        });
+    </script>
+</body>
+</html>
