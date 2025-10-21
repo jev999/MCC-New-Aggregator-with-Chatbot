@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Traits\SecurityValidationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class OfficeAdminAuthController extends Controller
 {
-    use SecurityValidationTrait;
     /**
      * Show the office admin login form
      */

@@ -9,8 +9,6 @@ use App\Http\Controllers\Auth\MS365AuthController;
 use App\Http\Controllers\SuperAdminAuthController;
 use App\Http\Controllers\DepartmentAdminAuthController;
 use App\Http\Controllers\OfficeAdminAuthController;
-use App\Traits\SecurityValidationTrait;
-use App\Services\SecurityService;
 use App\Rules\StrongPassword;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -23,13 +21,14 @@ use App\Models\User;
 use App\Models\Admin;
 class UnifiedAuthController extends Controller
 {
-    use SecurityValidationTrait;
-    
     protected $securityService;
     
-    public function __construct(SecurityService $securityService)
+    public function __construct()
     {
-        $this->securityService = $securityService;
+        // Initialize security service if available, otherwise use fallback methods
+        if (class_exists('\App\Services\SecurityService')) {
+            $this->securityService = app('\App\Services\SecurityService');
+        }
     }
 
     /**
@@ -85,15 +84,17 @@ class UnifiedAuthController extends Controller
     public function login(Request $request)
     {
         // Check rate limiting
-        $rateLimitCheck = $this->securityService->checkRateLimit($request, 'login');
-        if (!$rateLimitCheck['allowed']) {
-            $this->securityService->logSecurityEvent('rate_limit_exceeded', [
-                'ip' => $request->ip(),
-                'endpoint' => 'login'
-            ]);
-            return back()->withErrors([
-                'rate_limit' => 'Too many login attempts. Please try again in ' . ceil($rateLimitCheck['retry_after'] / 60) . ' minutes.'
-            ]);
+        if ($this->securityService) {
+            $rateLimitCheck = $this->securityService->checkRateLimit($request, 'login');
+            if (!$rateLimitCheck['allowed']) {
+                $this->securityService->logSecurityEvent('rate_limit_exceeded', [
+                    'ip' => $request->ip(),
+                    'endpoint' => 'login'
+                ]);
+                return back()->withErrors([
+                    'rate_limit' => 'Too many login attempts. Please try again in ' . ceil($rateLimitCheck['retry_after'] / 60) . ' minutes.'
+                ]);
+            }
         }
 
         // Check if specific account is locked out
@@ -109,8 +110,6 @@ class UnifiedAuthController extends Controller
         // Enhanced security validation
         $this->validateSecureInput($request);
         
-        // Additional security service validation
-        $this->validateWithSecurityService($request);
         
         // Sanitize input data
         $this->sanitizeInputData($request);
@@ -118,15 +117,24 @@ class UnifiedAuthController extends Controller
         $secureRules = $this->getSecureValidationRules();
         $secureMessages = $this->getSecureValidationMessages();
 
-        // Validate basic fields first
-        $request->validate([
-            'login_type' => 'required|in:user,ms365,superadmin,department-admin,office-admin',
-            'ms365_account' => $secureRules['ms365_account'],
-            'username' => $secureRules['username'],
-            'password' => $secureRules['password'],
-        ], $secureMessages);
-
+        // Validate basic fields first - conditional validation based on login type
         $loginType = $request->login_type;
+        
+        $validationRules = [
+            'login_type' => 'required|in:user,ms365,superadmin,department-admin,office-admin',
+            'password' => $secureRules['password'],
+        ];
+        
+        // Add conditional validation based on login type
+        if ($loginType === 'superadmin') {
+            $validationRules['username'] = array_merge(['required'], $secureRules['username']);
+        } elseif (in_array($loginType, ['ms365', 'department-admin', 'office-admin'])) {
+            $validationRules['ms365_account'] = array_merge(['required'], $secureRules['ms365_account']);
+        } elseif ($loginType === 'user') {
+            $validationRules['gmail_account'] = array_merge(['required'], $secureRules['gmail_account']);
+        }
+        
+        $request->validate($validationRules, $secureMessages);
 
         // Store current auth status before login attempt
         $wasAuthenticated = ($loginType === 'superadmin' || $loginType === 'department-admin' || $loginType === 'office-admin') 
@@ -139,20 +147,147 @@ class UnifiedAuthController extends Controller
         
         switch ($loginType) {
             case 'ms365':
-                $ms365Controller = new MS365AuthController();
-                $result = $ms365Controller->login($request);
-                // Check if login was successful by checking if we're now authenticated
-                $loginSuccessful = auth()->check() && !$wasAuthenticated;
+                // Handle MS365 authentication with manual lookup (similar to admin authentication)
+                $credentials = $request->only('ms365_account', 'password');
+                
+                // Enhanced debug logging for MS365 authentication
+                \Log::info('MS365 authentication attempt - ENHANCED DEBUG', [
+                    'all_request_data' => $request->all(),
+                    'extracted_credentials' => $credentials,
+                    'ms365_account' => $credentials['ms365_account'] ?? 'NOT_PROVIDED',
+                    'password_provided' => !empty($credentials['password']),
+                    'password_length' => isset($credentials['password']) ? strlen($credentials['password']) : 0,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+                
+                // Debug: Show all users for troubleshooting
+                $allUsers = User::all();
+                \Log::info('All users in database for MS365 auth', [
+                    'total_users' => $allUsers->count(),
+                    'users' => $allUsers->map(function($user) {
+                        return [
+                            'id' => $user->id,
+                            'ms365_account' => $user->ms365_account,
+                            'gmail_account' => $user->gmail_account,
+                            'role' => $user->role,
+                            'password_hash_start' => substr($user->password ?? 'null', 0, 20)
+                        ];
+                    })->toArray()
+                ]);
+                
+                // Find user by ms365_account - handle potential encryption issues
+                $user = User::all()->first(function ($user) use ($credentials) {
+                    return $user->ms365_account === $credentials['ms365_account'];
+                });
+                
+                if ($user) {
+                    \Log::info('User found for MS365 authentication', [
+                        'user_id' => $user->id,
+                        'ms365_account' => $user->ms365_account,
+                        'role' => $user->role,
+                        'password_check' => Hash::check($credentials['password'], $user->password)
+                    ]);
+                    
+                    // Verify password
+                    if (Hash::check($credentials['password'], $user->password)) {
+                        // Successful MS365 login - manually log in the user
+                        auth()->login($user, $request->filled('remember'));
+                        $request->session()->regenerate();
+                        $result = redirect()->route('user.dashboard')->with('login_success', true);
+                        $loginSuccessful = true;
+                        
+                        \Log::info('MS365 login successful', [
+                            'user_id' => $user->id,
+                            'ms365_account' => $user->ms365_account
+                        ]);
+                    } else {
+                        // Password verification failed
+                        \Log::warning('MS365 password verification failed', [
+                            'ms365_account' => $credentials['ms365_account'],
+                            'user_id' => $user->id
+                        ]);
+                        
+                        $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('ms365_account'));
+                        $loginSuccessful = false;
+                    }
+                } else {
+                    // User not found - Enhanced debugging
+                    \Log::warning('MS365 user not found - ENHANCED DEBUG', [
+                        'ms365_account' => $credentials['ms365_account'] ?? 'NULL',
+                        'all_user_ms365_accounts' => User::all()->pluck('ms365_account')->toArray(),
+                        'total_users_checked' => User::all()->count(),
+                        'search_criteria' => 'exact_match_on_ms365_account_field'
+                    ]);
+                    
+                    $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                ->withInput($request->only('ms365_account'));
+                    $loginSuccessful = false;
+                }
                 break;
 
             case 'user':
-                $gmailController = new GmailAuthController();
-                $result = $gmailController->login($request);
-                $loginSuccessful = auth()->check() && !$wasAuthenticated;
+                // Handle user authentication with manual lookup (similar to admin authentication)
+                $credentials = $request->only('gmail_account', 'password');
+                
+                // Debug logging for user authentication
+                \Log::info('User authentication attempt', [
+                    'gmail_account' => $credentials['gmail_account'],
+                    'password_provided' => !empty($credentials['password']),
+                    'ip' => $request->ip()
+                ]);
+                
+                // Find user by gmail_account - handle potential encryption issues
+                $user = User::all()->first(function ($user) use ($credentials) {
+                    return $user->gmail_account === $credentials['gmail_account'];
+                });
+                
+                if ($user) {
+                    \Log::info('User found for authentication', [
+                        'user_id' => $user->id,
+                        'gmail_account' => $user->gmail_account,
+                        'role' => $user->role,
+                        'password_check' => Hash::check($credentials['password'], $user->password)
+                    ]);
+                    
+                    // Verify password
+                    if (Hash::check($credentials['password'], $user->password)) {
+                        // Successful user login - manually log in the user
+                        auth()->login($user, $request->filled('remember'));
+                        $request->session()->regenerate();
+                        $result = redirect()->route('user.dashboard')->with('login_success', true);
+                        $loginSuccessful = true;
+                        
+                        \Log::info('User login successful', [
+                            'user_id' => $user->id,
+                            'gmail_account' => $user->gmail_account
+                        ]);
+                    } else {
+                        // Password verification failed
+                        \Log::warning('User password verification failed', [
+                            'gmail_account' => $credentials['gmail_account'],
+                            'user_id' => $user->id
+                        ]);
+                        
+                        $result = back()->withErrors(['gmail_account' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('gmail_account'));
+                        $loginSuccessful = false;
+                    }
+                } else {
+                    // User not found
+                    \Log::warning('User not found', [
+                        'gmail_account' => $credentials['gmail_account']
+                    ]);
+                    
+                    $result = back()->withErrors(['gmail_account' => 'The provided credentials do not match our records.'])
+                                ->withInput($request->only('gmail_account'));
+                    $loginSuccessful = false;
+                }
                 break;
 
             case 'superadmin':
-                // Handle superadmin authentication directly here instead of delegating
+                // Handle superadmin authentication with manual lookup (similar to other admin types)
                 $credentials = $request->only('username', 'password');
                 
                 // Debug logging for superadmin authentication
@@ -162,8 +297,11 @@ class UnifiedAuthController extends Controller
                     'ip' => $request->ip()
                 ]);
                 
-                // Find the admin first to debug
-                $admin = Admin::where('username', $credentials['username'])->first();
+                // Find admin by username - handle potential encryption issues
+                $admin = Admin::all()->first(function ($admin) use ($credentials) {
+                    return $admin->username === $credentials['username'];
+                });
+                
                 if ($admin) {
                     \Log::info('Admin found for authentication', [
                         'admin_id' => $admin->id,
@@ -172,82 +310,247 @@ class UnifiedAuthController extends Controller
                         'is_superadmin' => $admin->isSuperAdmin(),
                         'password_check' => Hash::check($credentials['password'], $admin->password)
                     ]);
-                }
-                
-                if (Auth::guard('admin')->attempt($credentials)) {
-                    $admin = Auth::guard('admin')->user();
                     
-                    \Log::info('Authentication successful', [
-                        'admin_id' => $admin->id,
-                        'username' => $admin->username,
-                        'role' => $admin->role,
-                        'is_superadmin' => $admin->isSuperAdmin()
-                    ]);
-                    
-                    // Check if the user is specifically a super admin
-                    if (!$admin->isSuperAdmin()) {
-                        Auth::guard('admin')->logout();
-                        
-                        \Log::warning('Non-superadmin tried to login as superadmin', [
-                            'admin_id' => $admin->id,
-                            'actual_role' => $admin->role
-                        ]);
-                        
-                        // Provide specific error messages based on admin type
-                        if ($admin->isDepartmentAdmin()) {
-                            $result = back()->withErrors(['username' => 'Department admins should use the department admin login.']);
+                    // Verify password and role
+                    if (Hash::check($credentials['password'], $admin->password)) {
+                        // Check if the user is specifically a super admin
+                        if (!$admin->isSuperAdmin()) {
+                            \Log::warning('Non-superadmin tried to login as superadmin', [
+                                'admin_id' => $admin->id,
+                                'actual_role' => $admin->role
+                            ]);
+                            
+                            // Provide specific error messages based on admin type
+                            if ($admin->isDepartmentAdmin()) {
+                                $result = back()->withErrors(['username' => 'Department admins should use the department admin login.']);
+                            } elseif ($admin->isOfficeAdmin()) {
+                                $result = back()->withErrors(['username' => 'Office admins should use the office admin login.']);
+                            } else {
+                                $result = back()->withErrors(['username' => 'You do not have super admin privileges.']);
+                            }
+                            $loginSuccessful = false;
                         } else {
-                            $result = back()->withErrors(['username' => 'You do not have super admin privileges.']);
+                            // Successful super admin login - manually log in the user
+                            Auth::guard('admin')->login($admin);
+                            $request->session()->regenerate();
+                            $result = redirect()->route('superadmin.dashboard')->with('login_success', true);
+                            $loginSuccessful = true;
+                            
+                            \Log::info('Superadmin login successful', [
+                                'admin_id' => $admin->id,
+                                'username' => $admin->username
+                            ]);
                         }
-                        $loginSuccessful = false;
                     } else {
-                        // Successful super admin login
-                        $request->session()->regenerate();
-                        $result = redirect()->route('superadmin.dashboard')->with('login_success', true);
-                        $loginSuccessful = true;
-                        
-                        \Log::info('Superadmin login successful', [
-                            'admin_id' => $admin->id,
-                            'username' => $admin->username
+                        // Password verification failed
+                        \Log::warning('Superadmin password verification failed', [
+                            'username' => $credentials['username'],
+                            'admin_id' => $admin->id
                         ]);
+                        
+                        $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('username'));
+                        $loginSuccessful = false;
                     }
                 } else {
-                    // Authentication failed
-                    \Log::warning('Superadmin authentication failed', [
-                        'username' => $credentials['username'],
-                        'admin_exists' => $admin ? 'yes' : 'no',
-                        'admin_role' => $admin ? $admin->role : 'n/a'
+                    // Admin not found
+                    \Log::warning('Superadmin not found', [
+                        'username' => $credentials['username']
                     ]);
                     
-                    $result = back()->withErrors(['username' => 'Invalid credentials. Please check your username and password.'])
+                    $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
                                 ->withInput($request->only('username'));
                     $loginSuccessful = false;
                 }
                 break;
 
             case 'department-admin':
-                $deptAdminController = new DepartmentAdminAuthController();
-                $result = $deptAdminController->login($request);
-                $loginSuccessful = auth('admin')->check();
-                // If not authenticated, check if the result indicates success (redirect to dashboard)
-                if (!$loginSuccessful && $result instanceof \Illuminate\Http\RedirectResponse) {
-                    $targetUrl = $result->getTargetUrl();
-                    if (strpos($targetUrl, '/department-admin/dashboard') !== false) {
-                        $loginSuccessful = true;
+                // Handle department admin authentication with MS365 account lookup
+                $credentials = $request->only('ms365_account', 'password');
+                
+                // Debug logging for department admin authentication
+                \Log::info('Department admin authentication attempt', [
+                    'ms365_account' => $credentials['ms365_account'],
+                    'password_provided' => !empty($credentials['password']),
+                    'ip' => $request->ip()
+                ]);
+                
+                // Find admin by MS365 account - handle potential encryption issues
+                $admin = Admin::all()->first(function ($admin) use ($credentials) {
+                    return $admin->username === $credentials['ms365_account'];
+                });
+                
+                if ($admin) {
+                    \Log::info('Admin found for department admin authentication', [
+                        'admin_id' => $admin->id,
+                        'username' => $admin->username,
+                        'role' => $admin->role,
+                        'is_department_admin' => $admin->isDepartmentAdmin(),
+                        'password_check' => Hash::check($credentials['password'], $admin->password)
+                    ]);
+                    
+                    // Verify password and role
+                    if (Hash::check($credentials['password'], $admin->password)) {
+                        // Check if the user is specifically a department admin
+                        if (!$admin->isDepartmentAdmin()) {
+                            \Log::warning('Non-department-admin tried to login as department admin', [
+                                'admin_id' => $admin->id,
+                                'actual_role' => $admin->role
+                            ]);
+                            
+                            // Provide specific error messages based on admin type
+                            if ($admin->isSuperAdmin()) {
+                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.']);
+                            } elseif ($admin->isOfficeAdmin()) {
+                                $result = back()->withErrors(['ms365_account' => 'Office admins should use the office admin login.']);
+                            } else {
+                                $result = back()->withErrors(['ms365_account' => 'You do not have department admin privileges.']);
+                            }
+                            $loginSuccessful = false;
+                        } else {
+                            // Successful department admin login - manually log in the user
+                            Auth::guard('admin')->login($admin);
+                            $request->session()->regenerate();
+                            $result = redirect()->route('department-admin.dashboard')->with('login_success', true);
+                            $loginSuccessful = true;
+                            
+                            \Log::info('Department admin login successful', [
+                                'admin_id' => $admin->id,
+                                'username' => $admin->username
+                            ]);
+                        }
+                    } else {
+                        // Password verification failed
+                        \Log::warning('Department admin password verification failed', [
+                            'ms365_account' => $credentials['ms365_account'],
+                            'admin_id' => $admin->id
+                        ]);
+                        
+                        $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('ms365_account'));
+                        $loginSuccessful = false;
                     }
+                } else {
+                    // Admin not found
+                    \Log::warning('Department admin not found', [
+                        'ms365_account' => $credentials['ms365_account']
+                    ]);
+                    
+                    $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                ->withInput($request->only('ms365_account'));
+                    $loginSuccessful = false;
                 }
                 break;
 
             case 'office-admin':
-                $officeAdminController = new OfficeAdminAuthController();
-                $result = $officeAdminController->login($request);
-                $loginSuccessful = auth('admin')->check();
-                // If not authenticated, check if the result indicates success (redirect to dashboard)
-                if (!$loginSuccessful && $result instanceof \Illuminate\Http\RedirectResponse) {
-                    $targetUrl = $result->getTargetUrl();
-                    if (strpos($targetUrl, '/office-admin/dashboard') !== false) {
-                        $loginSuccessful = true;
+                // Handle office admin authentication with MS365 account lookup
+                $credentials = $request->only('ms365_account', 'password');
+                
+                // Enhanced debug logging for office admin authentication
+                \Log::info('Office admin authentication attempt - ENHANCED DEBUG', [
+                    'all_request_data' => $request->all(),
+                    'extracted_credentials' => $credentials,
+                    'ms365_account' => $credentials['ms365_account'] ?? 'NOT_PROVIDED',
+                    'password_provided' => !empty($credentials['password']),
+                    'password_length' => isset($credentials['password']) ? strlen($credentials['password']) : 0,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+                
+                // Debug: Show all admins for troubleshooting
+                $allAdmins = Admin::all();
+                \Log::info('All admins in database', [
+                    'total_admins' => $allAdmins->count(),
+                    'admins' => $allAdmins->map(function($admin) {
+                        return [
+                            'id' => $admin->id,
+                            'username' => $admin->username,
+                            'role' => $admin->role,
+                            'password_hash_start' => substr($admin->password ?? 'null', 0, 20)
+                        ];
+                    })->toArray()
+                ]);
+                
+                // Find admin by MS365 account - handle potential encryption issues
+                \Log::info('Searching for office admin with MS365 account', [
+                    'searching_for' => $credentials['ms365_account'] ?? 'NULL',
+                    'search_method' => 'closure_based_lookup'
+                ]);
+                
+                $admin = Admin::all()->first(function ($admin) use ($credentials) {
+                    $match = $admin->username === $credentials['ms365_account'];
+                    \Log::info('Office admin comparison', [
+                        'admin_id' => $admin->id,
+                        'admin_username' => $admin->username,
+                        'admin_role' => $admin->role,
+                        'searching_for' => $credentials['ms365_account'] ?? 'NULL',
+                        'match' => $match ? 'YES' : 'NO'
+                    ]);
+                    return $match;
+                });
+                
+                if ($admin) {
+                    \Log::info('Admin found for office admin authentication', [
+                        'admin_id' => $admin->id,
+                        'username' => $admin->username,
+                        'role' => $admin->role,
+                        'is_office_admin' => $admin->isOfficeAdmin(),
+                        'password_check' => Hash::check($credentials['password'], $admin->password)
+                    ]);
+                    
+                    // Verify password and role
+                    if (Hash::check($credentials['password'], $admin->password)) {
+                        // Check if the user is specifically an office admin
+                        if (!$admin->isOfficeAdmin()) {
+                            \Log::warning('Non-office-admin tried to login as office admin', [
+                                'admin_id' => $admin->id,
+                                'actual_role' => $admin->role
+                            ]);
+                            
+                            // Provide specific error messages based on admin type
+                            if ($admin->isSuperAdmin()) {
+                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.']);
+                            } elseif ($admin->isDepartmentAdmin()) {
+                                $result = back()->withErrors(['ms365_account' => 'Department admins should use the department admin login.']);
+                            } else {
+                                $result = back()->withErrors(['ms365_account' => 'You do not have office admin privileges.']);
+                            }
+                            $loginSuccessful = false;
+                        } else {
+                            // Successful office admin login - manually log in the user
+                            Auth::guard('admin')->login($admin);
+                            $request->session()->regenerate();
+                            $result = redirect()->route('office-admin.dashboard')->with('login_success', true);
+                            $loginSuccessful = true;
+                            
+                            \Log::info('Office admin login successful', [
+                                'admin_id' => $admin->id,
+                                'username' => $admin->username
+                            ]);
+                        }
+                    } else {
+                        // Password verification failed
+                        \Log::warning('Office admin password verification failed', [
+                            'ms365_account' => $credentials['ms365_account'],
+                            'admin_id' => $admin->id
+                        ]);
+                        
+                        $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('ms365_account'));
+                        $loginSuccessful = false;
                     }
+                } else {
+                    // Admin not found
+                    \Log::warning('Office admin not found - ENHANCED DEBUG', [
+                        'ms365_account' => $credentials['ms365_account'] ?? 'NULL',
+                        'all_admin_usernames' => Admin::all()->pluck('username')->toArray(),
+                        'total_admins_checked' => Admin::all()->count(),
+                        'search_criteria' => 'exact_match_on_username_field'
+                    ]);
+                    
+                    $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                ->withInput($request->only('ms365_account'));
+                    $loginSuccessful = false;
                 }
                 break;
 
@@ -276,28 +579,6 @@ class UnifiedAuthController extends Controller
         return $result;
     }
     
-    /**
-     * Validate request with security service
-     */
-    private function validateWithSecurityService(Request $request)
-    {
-        $allInput = $request->all();
-        
-        foreach ($allInput as $key => $value) {
-            if (is_string($value) && !empty($value)) {
-                // Use less strict validation for login forms
-                $validation = $this->securityService->validateLoginInput($value, $key);
-                if (!$validation['valid']) {
-                    $this->securityService->logSecurityEvent('invalid_input_detected', [
-                        'field' => $key,
-                        'value_length' => strlen($value),
-                        'error' => $validation['error']
-                    ]);
-                    abort(422, $validation['error']);
-                }
-            }
-        }
-    }
     
     /**
      * Sanitize all input data
@@ -309,7 +590,12 @@ class UnifiedAuthController extends Controller
         
         foreach ($allInput as $key => $value) {
             if (is_string($value)) {
-                $sanitized[$key] = $this->securityService->sanitizeInput($value);
+                if ($this->securityService) {
+                    $sanitized[$key] = $this->securityService->sanitizeInput($value);
+                } else {
+                    // Fallback sanitization
+                    $sanitized[$key] = htmlspecialchars(strip_tags(trim($value)), ENT_QUOTES, 'UTF-8');
+                }
             } else {
                 $sanitized[$key] = $value;
             }
@@ -1103,6 +1389,145 @@ class UnifiedAuthController extends Controller
         session()->forget([$attemptsKey, $lockoutKey]);
         
         return back()->with('success', "Login attempts cleared for {$request->login_type} account: " . ($request->username ?: $request->email));
+    }
+
+    /**
+     * Validate secure input - fallback method if SecurityService not available
+     */
+    private function validateSecureInput(Request $request)
+    {
+        if ($this->securityService) {
+            return $this->securityService->validateSecureInput($request);
+        }
+        
+        // Fallback validation
+        $allInput = $request->all();
+        foreach ($allInput as $key => $value) {
+            if (is_string($value) && $this->containsDangerousPatterns($value)) {
+                throw new \Illuminate\Validation\ValidationException(
+                    \Illuminate\Support\Facades\Validator::make([], []),
+                    [$key => ['Invalid characters detected in input.']]
+                );
+            }
+        }
+    }
+
+    /**
+     * Get secure validation rules - fallback method if SecurityService not available
+     */
+    private function getSecureValidationRules()
+    {
+        if ($this->securityService) {
+            return $this->securityService->getSecureValidationRules();
+        }
+        
+        // Fallback rules
+        return [
+            'ms365_account' => [
+                'email',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->containsDangerousPatterns($value)) {
+                        $fail('Invalid characters detected in email address.');
+                    }
+                },
+            ],
+            'gmail_account' => [
+                'email',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->containsDangerousPatterns($value)) {
+                        $fail('Invalid characters detected in email address.');
+                    }
+                },
+            ],
+            'username' => [
+                'string',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._-]+$/',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->containsDangerousPatterns($value)) {
+                        $fail('Invalid characters detected in username.');
+                    }
+                },
+            ],
+            'password' => [
+                'string',
+                'max:255',
+                function ($attribute, $value, $fail) {
+                    if ($value && $this->containsDangerousPatterns($value)) {
+                        $fail('Invalid characters detected in password.');
+                    }
+                },
+            ],
+        ];
+    }
+
+    /**
+     * Get secure validation messages - fallback method if SecurityService not available
+     */
+    private function getSecureValidationMessages()
+    {
+        if ($this->securityService) {
+            return $this->securityService->getSecureValidationMessages();
+        }
+        
+        // Fallback messages
+        return [
+            'ms365_account.email' => 'Please enter a valid MS365 email address.',
+            'ms365_account.regex' => 'MS365 email format is invalid.',
+            'gmail_account.email' => 'Please enter a valid Gmail address.',
+            'gmail_account.regex' => 'Gmail format is invalid.',
+            'username.regex' => 'Username can only contain letters, numbers, dots, underscores, and hyphens.',
+            'password.required' => 'Password is required.',
+        ];
+    }
+
+    /**
+     * Check if input contains dangerous patterns - fallback method if SecurityService not available
+     */
+    private function containsDangerousPatterns($input)
+    {
+        if ($this->securityService) {
+            return $this->securityService->containsDangerousPatterns($input);
+        }
+        
+        // Fallback dangerous patterns check
+        $dangerousPatterns = [
+            // SQL Injection patterns
+            '/(\bUNION\b|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b)/i',
+            '/(\bOR\s+1\s*=\s*1\b|\bAND\s+1\s*=\s*1\b)/i',
+            '/(\'\s*OR\s*\'\s*=\s*\'|\"\s*OR\s*\"\s*=\s*\")/i',
+            
+            // XSS patterns
+            '/<script[^>]*>.*?<\/script>/is',
+            '/javascript:/i',
+            '/on\w+\s*=/i',
+            
+            // Command injection patterns
+            '/(\bsystem\b|\bexec\b|\bshell_exec\b|\bpassthru\b)/i',
+            '/(\|\s*\w+|\&\&\s*\w+|\;\s*\w+)/i',
+            
+            // PHP code injection patterns
+            '/(\beval\b|\binclude\b|\brequire\b|\bfile_get_contents\b)/i',
+            '/<\?php/i',
+            
+            // Path traversal patterns
+            '/(\.\.\/)|(\.\.\\\\)/i',
+            
+            // Control characters and null bytes
+            '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/i',
+        ];
+        
+        foreach ($dangerousPatterns as $pattern) {
+            if (preg_match($pattern, $input)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
 }

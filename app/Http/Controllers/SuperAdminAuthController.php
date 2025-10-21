@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
-use App\Traits\SecurityValidationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,7 +10,6 @@ use Illuminate\Support\Facades\Http;
 
 class SuperAdminAuthController extends Controller
 {
-    use SecurityValidationTrait;
     
     /**
      * Validate reCAPTCHA response

@@ -12,23 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Register security middleware
-        $middleware->alias([
-            'force.https' => \App\Http\Middleware\ForceHttps::class,
-            'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
-        ]);
-        
-        // Apply security middleware globally
-        $middleware->web(append: [
-            \App\Http\Middleware\SecurityHeaders::class,
-        ]);
-        
-        // Apply HTTPS enforcement in production
-        if (env('APP_ENV') === 'production') {
-            $middleware->web(prepend: [
-                \App\Http\Middleware\ForceHttps::class,
-            ]);
-        }
+        // Basic middleware configuration
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

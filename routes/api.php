@@ -18,9 +18,6 @@ Route::post('/chatbot', [ChatbotController::class, 'chat']);
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
 
 // Session heartbeat endpoint
 Route::middleware(['web', 'auth'])->post('/heartbeat', function (Request $request) {

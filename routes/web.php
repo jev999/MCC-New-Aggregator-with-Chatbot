@@ -30,87 +30,6 @@ use App\Http\Controllers\Auth\MS365AuthController;
 use App\Http\Controllers\Auth\MS365OAuthController;
 use Illuminate\Support\Facades\Artisan;
 
-// TEMPORARY STORAGE FIX ROUTES - DELETE AFTER RUNNING ONCE
-Route::get('/fix-storage', function () {
-    try {
-        $target = public_path('storage');
-        $source = storage_path('app/public');
-        
-        // Check if target already exists
-        if (file_exists($target)) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Storage directory already exists',
-                'target' => $target,
-                'source' => $source,
-                'note' => 'Storage is already configured'
-            ]);
-        }
-        
-        // Create storage directory in public folder
-        if (!file_exists($target)) {
-            if (mkdir($target, 0755, true)) {
-                // Create .gitignore to prevent accidental commits
-                file_put_contents($target . '/.gitignore', "*\n!.gitignore\n");
-                
-                // Create a simple index.php to prevent directory listing
-                file_put_contents($target . '/index.php', "<?php\n// Storage directory\n");
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Storage directory created successfully!',
-                    'target' => $target,
-                    'source' => $source,
-                    'note' => 'Files will be served via .htaccess rewrite rules'
-                ]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to create storage directory. Check permissions.'
-                ], 500);
-            }
-        }
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Storage directory already exists',
-            'target' => $target
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error creating storage directory: ' . $e->getMessage()
-        ], 500);
-    }
-})->name('fix.storage');
-
-Route::get('/fix-cache', function () {
-    try {
-        Artisan::call('config:clear');
-        Artisan::call('cache:clear');
-        Artisan::call('route:clear');
-        Artisan::call('view:clear');
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'All caches cleared successfully!',
-            'commands' => [
-                'config:clear' => 'Configuration cache cleared',
-                'cache:clear' => 'Application cache cleared',
-                'route:clear' => 'Route cache cleared',
-                'view:clear' => 'View cache cleared'
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Error clearing caches: ' . $e->getMessage()
-        ], 500);
-    }
-})->name('fix.cache');
-
-
 // Show welcome page at root
 Route::get('/', function () {
     return view('welcome');
@@ -121,6 +40,74 @@ Route::get('/terms-and-conditions', [App\Http\Controllers\LegalController::class
 Route::get('/privacy-policy', [App\Http\Controllers\LegalController::class, 'privacyPolicy'])->name('legal.privacy');
 Route::get('/data-protection-notice', [App\Http\Controllers\LegalController::class, 'dataProtectionNotice'])->name('legal.data-protection');
 Route::get('/cookie-policy', [App\Http\Controllers\LegalController::class, 'cookiePolicy'])->name('legal.cookies');
+
+
+// Debug route to reset user password
+Route::get('/reset-user-password/{email}/{newPassword}', function ($email, $newPassword) {
+    $user = \App\Models\User::all()->first(function ($user) use ($email) {
+        return $user->ms365_account === $email || $user->gmail_account === $email;
+    });
+    
+    if ($user) {
+        $user->password = \Hash::make($newPassword);
+        $user->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully',
+            'user_id' => $user->id,
+            'email' => $email,
+            'new_password' => $newPassword,
+            'password_check' => \Hash::check($newPassword, $user->password)
+        ]);
+    } else {
+        return response()->json([
+            'success' => false,
+            'message' => 'User not found',
+            'searched_email' => $email
+        ]);
+    }
+});
+
+// Debug route for user credentials - test authentication
+Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
+    $users = \App\Models\User::all();
+    $foundUser = null;
+    $allEmails = [];
+    
+    foreach ($users as $user) {
+        $allEmails[] = [
+            'id' => $user->id,
+            'ms365_account' => $user->ms365_account,
+            'gmail_account' => $user->gmail_account,
+            'matches_input' => ($user->ms365_account === $email || $user->gmail_account === $email)
+        ];
+        
+        if ($user->ms365_account === $email || $user->gmail_account === $email) {
+            $foundUser = $user;
+        }
+    }
+    
+    if ($foundUser) {
+        return response()->json([
+            'found' => true,
+            'user_id' => $foundUser->id,
+            'ms365_account' => $foundUser->ms365_account,
+            'gmail_account' => $foundUser->gmail_account,
+            'password_hash' => substr($foundUser->password, 0, 50) . '...',
+            'password_check_provided' => \Hash::check($password, $foundUser->password),
+            'auth_attempt_result' => auth()->attempt(['ms365_account' => $email, 'password' => $password]),
+            'all_users_count' => count($allEmails)
+        ]);
+    } else {
+        return response()->json([
+            'found' => false,
+            'searched_email' => $email,
+            'all_users_count' => count($allEmails),
+            'sample_emails' => array_slice($allEmails, 0, 3)
+        ]);
+    }
+});
 
 // Unified login routes (default login)
 
@@ -332,7 +319,7 @@ Route::get('/force-clear-all-lockouts', function() {
 
 // Route to check what locked accounts are currently being shown
 Route::get('/check-locked-accounts', function() {
-    $unifiedController = new \App\Http\Controllers\UnifiedAuthController(new \App\Services\SecurityService());
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
     
     // Use reflection to access the private method
     $reflection = new \ReflectionClass($unifiedController);
@@ -400,7 +387,7 @@ Route::get('/nuclear-clear-lockouts', function() {
 Route::get('/test-clean-login', function() {
     // Completely fresh request to the login form
     $request = new \Illuminate\Http\Request();
-    $unifiedController = new \App\Http\Controllers\UnifiedAuthController(new \App\Services\SecurityService());
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
     
     try {
         $response = $unifiedController->showLoginForm($request);
@@ -611,7 +598,7 @@ Route::get('/test-logout-fix', function() {
     $request = new \Illuminate\Http\Request();
     $request->setSession(session());
     
-    $unifiedController = new \App\Http\Controllers\UnifiedAuthController(new \App\Services\SecurityService());
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
     $logoutResult = $unifiedController->logout($request);
     
     $afterLogout = [
@@ -1119,13 +1106,16 @@ Route::prefix('admin')->group(function () {
 
 // SuperAdmin Routes
 Route::prefix('superadmin')->group(function () {
-    // Auth routes (dedicated super admin auth)
-    Route::get('login', [SuperAdminAuthController::class, 'showLoginForm'])->name('superadmin.login');
-    Route::post('login', [SuperAdminAuthController::class, 'login']);
+    // Redirect to unified login form - no dedicated superadmin login
+    Route::get('login', function() {
+        return redirect()->route('login')->with('info', 'Please use the unified login form and select "Super Admin" as login type.');
+    })->name('superadmin.login');
+    
+    // Only logout route needed
     Route::post('logout', [SuperAdminAuthController::class, 'logout'])->name('superadmin.logout');
 
     // Protected SuperAdmin routes
-    Route::middleware(['auth:admin', 'can:view-superadmin-dashboard'])->group(function () {
+    Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
 
         // Admin management routes
@@ -1551,3 +1541,217 @@ Route::post('/reset-password', [UnifiedAuthController::class, 'resetPassword'])-
 Auth::routes(['login' => false, 'reset' => false]);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+// Debug route to analyze admins table
+Route::get('/debug-admins', function () {
+    $admins = \App\Models\Admin::all();
+    $output = "<h2>Analyzing Admins Table</h2>";
+    $output .= "Total admins: " . $admins->count() . "<br><br>";
+    
+    if ($admins->count() > 0) {
+        foreach ($admins as $admin) {
+            $output .= "<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>";
+            $output .= "<strong>Admin ID:</strong> " . $admin->id . "<br>";
+            $output .= "<strong>Username:</strong> " . ($admin->username ?? 'null') . "<br>";
+            $output .= "<strong>Role:</strong> " . ($admin->role ?? 'null') . "<br>";
+            $output .= "<strong>Password Hash:</strong> " . substr($admin->password ?? 'null', 0, 50) . "...<br>";
+            $output .= "<strong>Created:</strong> " . ($admin->created_at ?? 'null') . "<br>";
+            $output .= "<strong>Updated:</strong> " . ($admin->updated_at ?? 'null') . "<br>";
+            
+            // Test role methods
+            $output .= "<strong>isSuperAdmin():</strong> " . ($admin->isSuperAdmin() ? 'true' : 'false') . "<br>";
+            $output .= "<strong>isDepartmentAdmin():</strong> " . ($admin->isDepartmentAdmin() ? 'true' : 'false') . "<br>";
+            $output .= "<strong>isOfficeAdmin():</strong> " . ($admin->isOfficeAdmin() ? 'true' : 'false') . "<br>";
+            $output .= "</div>";
+        }
+    }
+    
+    return $output;
+});
+
+// Debug route to test admin authentication
+Route::get('/debug-admin-auth/{username}/{password}', function ($username, $password) {
+    $output = "<h2>Testing Admin Authentication</h2>";
+    $output .= "Testing username: <strong>" . $username . "</strong><br>";
+    $output .= "Testing password: <strong>" . $password . "</strong><br><br>";
+    
+    // Test the same logic as UnifiedAuthController
+    $admin = \App\Models\Admin::all()->first(function ($admin) use ($username) {
+        return $admin->username === $username;
+    });
+    
+    if ($admin) {
+        $output .= "<div style='background: #e8f5e8; padding: 10px; border: 1px solid #4caf50;'>";
+        $output .= "<strong>✓ Admin Found!</strong><br>";
+        $output .= "<strong>Admin ID:</strong> " . $admin->id . "<br>";
+        $output .= "<strong>Username:</strong> " . $admin->username . "<br>";
+        $output .= "<strong>Role:</strong> " . $admin->role . "<br>";
+        $output .= "<strong>Password Hash:</strong> " . substr($admin->password, 0, 50) . "...<br>";
+        
+        // Test password verification
+        $passwordCheck = \Hash::check($password, $admin->password);
+        $output .= "<strong>Password Check:</strong> " . ($passwordCheck ? '✓ PASS' : '✗ FAIL') . "<br>";
+        
+        // Test role methods
+        $output .= "<strong>isSuperAdmin():</strong> " . ($admin->isSuperAdmin() ? 'true' : 'false') . "<br>";
+        $output .= "<strong>isDepartmentAdmin():</strong> " . ($admin->isDepartmentAdmin() ? 'true' : 'false') . "<br>";
+        $output .= "<strong>isOfficeAdmin():</strong> " . ($admin->isOfficeAdmin() ? 'true' : 'false') . "<br>";
+        $output .= "</div>";
+        
+        if (!$passwordCheck) {
+            $output .= "<br><div style='background: #ffe8e8; padding: 10px; border: 1px solid #f44336;'>";
+            $output .= "<strong>Password Issue Detected!</strong><br>";
+            $output .= "The password hash might be corrupted or the password is incorrect.<br>";
+            $output .= "Current hash: " . $admin->password . "<br>";
+            $output .= "</div>";
+        }
+    } else {
+        $output .= "<div style='background: #ffe8e8; padding: 10px; border: 1px solid #f44336;'>";
+        $output .= "<strong>✗ Admin NOT Found!</strong><br>";
+        $output .= "No admin found with username: " . $username . "<br>";
+        $output .= "</div>";
+        
+        // Show all available usernames for debugging
+        $allAdmins = \App\Models\Admin::all();
+        $output .= "<br><strong>Available usernames in database:</strong><br>";
+        foreach ($allAdmins as $a) {
+            $output .= "- " . $a->username . " (Role: " . $a->role . ")<br>";
+        }
+    }
+    
+    return $output;
+});
+
+// Debug route to fix admin password
+Route::get('/debug-fix-admin-password/{username}/{newPassword}', function ($username, $newPassword) {
+    $admin = \App\Models\Admin::all()->first(function ($admin) use ($username) {
+        return $admin->username === $username;
+    });
+    
+    if ($admin) {
+        $oldHash = $admin->password;
+        $admin->password = \Hash::make($newPassword);
+        $admin->save();
+        
+        $output = "<h2>Admin Password Updated</h2>";
+        $output .= "<strong>Username:</strong> " . $admin->username . "<br>";
+        $output .= "<strong>Role:</strong> " . $admin->role . "<br>";
+        $output .= "<strong>Old Hash:</strong> " . substr($oldHash, 0, 50) . "...<br>";
+        $output .= "<strong>New Hash:</strong> " . substr($admin->password, 0, 50) . "...<br>";
+        $output .= "<strong>New Password:</strong> " . $newPassword . "<br>";
+        
+        // Test the new password
+        $passwordCheck = \Hash::check($newPassword, $admin->password);
+        $output .= "<strong>Password Verification:</strong> " . ($passwordCheck ? '✓ PASS' : '✗ FAIL') . "<br>";
+        
+        return $output;
+    } else {
+        return "<h2>Admin Not Found</h2>Username: " . $username . " not found in database.";
+    }
+});
+
+// Quick fix route for admin passwords based on phpMyAdmin data
+Route::get('/quick-fix-admin-passwords', function () {
+    $output = "<h2>Quick Admin Password Fix</h2>";
+    
+    // Get all admins first to see what we're working with
+    $allAdmins = \App\Models\Admin::all();
+    $output .= "<h3>Current Admins in Database:</h3>";
+    foreach ($allAdmins as $admin) {
+        $output .= "<p>ID: {$admin->id}, Username: '{$admin->username}', Role: '{$admin->role}'</p>";
+    }
+    
+    // Fix superadmin (ID 61)
+    $superadmin = \App\Models\Admin::find(61);
+    if ($superadmin) {
+        $oldHash = $superadmin->password;
+        $superadmin->password = \Hash::make('admin123');
+        $superadmin->save();
+        $output .= "<p>✓ Superadmin (ID: 61) password reset to: <strong>admin123</strong></p>";
+        $output .= "<p>Old hash: " . substr($oldHash, 0, 30) . "...</p>";
+        $output .= "<p>New hash: " . substr($superadmin->password, 0, 30) . "...</p>";
+    }
+    
+    // Fix office admin (ID 62) 
+    $officeAdmin = \App\Models\Admin::find(62);
+    if ($officeAdmin) {
+        $oldHash = $officeAdmin->password;
+        $officeAdmin->password = \Hash::make('office123');
+        $officeAdmin->save();
+        $output .= "<p>✓ Office Admin (ID: 62, Username: '" . $officeAdmin->username . "') password reset to: <strong>office123</strong></p>";
+        $output .= "<p>Old hash: " . substr($oldHash, 0, 30) . "...</p>";
+        $output .= "<p>New hash: " . substr($officeAdmin->password, 0, 30) . "...</p>";
+    }
+    
+    $output .= "<br><h3>Test these credentials:</h3>";
+    $output .= "<p><strong>Superadmin:</strong><br>Username: superadmin<br>Password: admin123</p>";
+    $output .= "<p><strong>Office Admin:</strong><br>Username: " . ($officeAdmin ? $officeAdmin->username : 'po.bautro@mccalumni.edu.ph') . "<br>Password: office123</p>";
+    
+    // Test password verification immediately
+    if ($officeAdmin) {
+        $testPassword = \Hash::check('office123', $officeAdmin->password);
+        $output .= "<br><h3>Password Verification Test:</h3>";
+        $output .= "<p>Office Admin Password Check: " . ($testPassword ? '✓ PASS' : '✗ FAIL') . "</p>";
+    }
+    
+    return $output;
+});
+
+// Test office admin authentication logic specifically
+Route::get('/test-office-admin-auth', function () {
+    $output = "<h2>Testing Office Admin Authentication Logic</h2>";
+    
+    // Get the office admin from database
+    $officeAdmin = \App\Models\Admin::find(62);
+    if (!$officeAdmin) {
+        return "<p>❌ Office Admin (ID 62) not found in database</p>";
+    }
+    
+    $output .= "<h3>Office Admin Details:</h3>";
+    $output .= "<p><strong>ID:</strong> {$officeAdmin->id}</p>";
+    $output .= "<p><strong>Username:</strong> '{$officeAdmin->username}'</p>";
+    $output .= "<p><strong>Role:</strong> '{$officeAdmin->role}'</p>";
+    $output .= "<p><strong>Password Hash:</strong> " . substr($officeAdmin->password, 0, 50) . "...</p>";
+    
+    // Test role methods
+    $output .= "<h3>Role Method Tests:</h3>";
+    $output .= "<p><strong>isOfficeAdmin():</strong> " . ($officeAdmin->isOfficeAdmin() ? '✅ TRUE' : '❌ FALSE') . "</p>";
+    $output .= "<p><strong>isSuperAdmin():</strong> " . ($officeAdmin->isSuperAdmin() ? '✅ TRUE' : '❌ FALSE') . "</p>";
+    $output .= "<p><strong>isDepartmentAdmin():</strong> " . ($officeAdmin->isDepartmentAdmin() ? '✅ TRUE' : '❌ FALSE') . "</p>";
+    
+    // Test password with known password
+    $testPassword = 'office123';
+    $passwordCheck = \Hash::check($testPassword, $officeAdmin->password);
+    $output .= "<h3>Password Test:</h3>";
+    $output .= "<p><strong>Testing password 'office123':</strong> " . ($passwordCheck ? '✅ PASS' : '❌ FAIL') . "</p>";
+    
+    // Test the exact lookup logic used in UnifiedAuthController
+    $testUsername = $officeAdmin->username;
+    $foundAdmin = \App\Models\Admin::all()->first(function ($admin) use ($testUsername) {
+        return $admin->username === $testUsername;
+    });
+    
+    $output .= "<h3>Admin Lookup Test:</h3>";
+    $output .= "<p><strong>Looking for username:</strong> '{$testUsername}'</p>";
+    $output .= "<p><strong>Admin found:</strong> " . ($foundAdmin ? '✅ YES (ID: ' . $foundAdmin->id . ')' : '❌ NO') . "</p>";
+    
+    if ($foundAdmin && $passwordCheck && $foundAdmin->isOfficeAdmin()) {
+        $output .= "<br><div style='background: #d4edda; padding: 15px; border: 1px solid #c3e6cb; border-radius: 5px;'>";
+        $output .= "<h3>✅ Authentication Should Work!</h3>";
+        $output .= "<p>All tests passed. The office admin should be able to login with:</p>";
+        $output .= "<p><strong>Username:</strong> {$testUsername}</p>";
+        $output .= "<p><strong>Password:</strong> office123</p>";
+        $output .= "</div>";
+    } else {
+        $output .= "<br><div style='background: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 5px;'>";
+        $output .= "<h3>❌ Authentication Issues Detected!</h3>";
+        $output .= "<p>Issues found:</p>";
+        if (!$foundAdmin) $output .= "<p>- Admin lookup failed</p>";
+        if (!$passwordCheck) $output .= "<p>- Password verification failed</p>";
+        if ($foundAdmin && !$foundAdmin->isOfficeAdmin()) $output .= "<p>- Role check failed</p>";
+        $output .= "</div>";
+    }
+    
+    return $output;
+});
+

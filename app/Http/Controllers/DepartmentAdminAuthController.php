@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin;
-use App\Traits\SecurityValidationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class DepartmentAdminAuthController extends Controller
 {
-    use SecurityValidationTrait;
     /**
      * Show the department admin login form
      */

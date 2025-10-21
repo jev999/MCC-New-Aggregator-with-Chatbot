@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Services\DataEncryptionService;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -44,10 +43,6 @@ class User extends Authenticatable
      *
      * @var array
      */
-    protected $encrypted = [
-        'ms365_account',
-        'gmail_account',
-    ];
 
     public function getFullNameAttribute()
     {
@@ -153,30 +148,6 @@ class User extends Authenticatable
     {
         parent::boot();
 
-        static::saving(function ($model) {
-            foreach ($model->encrypted as $field) {
-                if (isset($model->attributes[$field]) && !empty($model->attributes[$field])) {
-                    $model->attributes[$field] = DataEncryptionService::encrypt($model->attributes[$field]);
-                }
-            }
-        });
-
-        static::retrieved(function ($model) {
-            foreach ($model->encrypted as $field) {
-                if (isset($model->attributes[$field]) && !empty($model->attributes[$field])) {
-                    try {
-                        $model->attributes[$field] = DataEncryptionService::decrypt($model->attributes[$field]);
-                    } catch (\Exception $e) {
-                        // If decryption fails, keep original value (might not be encrypted yet)
-                        \Log::warning('Failed to decrypt field in User model', [
-                            'field' => $field,
-                            'user_id' => $model->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            }
-        });
 
         // Automatically assign role when user is created
         static::created(function ($user) {

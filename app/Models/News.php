@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\CreatesNotifications;
 
 class News extends Model
 {
-    use HasFactory;
+    use HasFactory, CreatesNotifications;
 
     protected $fillable = [
         'title',
@@ -507,5 +508,13 @@ class News extends Model
     public function getAllVideoPathsAttribute()
     {
         return $this->getAllVideoUrlsAttribute();
+    }
+
+    /**
+     * Get the notification type for this content.
+     */
+    public function getNotificationType(): string
+    {
+        return 'news';
     }
 }

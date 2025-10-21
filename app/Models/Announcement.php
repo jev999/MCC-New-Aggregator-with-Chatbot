@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\CreatesNotifications;
 
 class Announcement extends Model
 {
-    use HasFactory;
+    use HasFactory, CreatesNotifications;
 
     protected $fillable = [
         'title',
@@ -674,5 +675,13 @@ class Announcement extends Model
         }
         
         return $paths;
+    }
+
+    /**
+     * Get the notification type for this content.
+     */
+    public function getNotificationType(): string
+    {
+        return 'announcement';
     }
 }

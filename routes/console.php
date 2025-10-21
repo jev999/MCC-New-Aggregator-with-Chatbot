@@ -8,5 +8,3 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Schedule automated data purging
-Schedule::command('data:purge')->daily()->at('02:00');

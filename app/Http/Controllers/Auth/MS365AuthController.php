@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\MicrosoftGraphService;
-use App\Traits\SecurityValidationTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -14,7 +13,6 @@ use Illuminate\Support\Facades\Validator;
 
 class MS365AuthController extends Controller
 {
-    use SecurityValidationTrait;
     public function showSignupForm()
     {
         return view('auth.ms365-signup');
@@ -180,33 +178,72 @@ class MS365AuthController extends Controller
 
     public function login(Request $request)
     {
-        // Enhanced security validation
-        $this->validateSecureInput($request);
-
-        $secureRules = $this->getSecureValidationRules();
-        $secureMessages = $this->getSecureValidationMessages();
-
         $request->validate([
-            'ms365_account' => array_merge($secureRules['ms365_account'], ['required']),
-            'password' => array_merge($secureRules['password'], ['required']),
-        ], $secureMessages);
+            'ms365_account' => [
+                'required',
+                'email',
+                'max:255',
+                'regex:/^[a-zA-Z0-9._%+-]+@.*\.edu\.ph$/'
+            ],
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:255'
+            ],
+        ], [
+            'ms365_account.required' => 'MS365 email address is required',
+            'ms365_account.email' => 'Please enter a valid email address',
+            'ms365_account.regex' => 'Please enter a valid .edu.ph email address',
+            'password.required' => 'Password is required',
+            'password.min' => 'Password must be at least 8 characters long',
+        ]);
 
         // Since ms365_account is encrypted in the database, we need to find the user manually
         // and then verify the password, rather than using auth()->attempt()
         $email = $request->ms365_account;
         $password = $request->password;
 
+        \Log::info('MS365 login attempt', [
+            'email' => $email,
+            'password_provided' => !empty($password),
+            'ip' => $request->ip()
+        ]);
+
         // Find user by checking decrypted ms365_account field
         $user = User::all()->first(function ($user) use ($email) {
             return $user->ms365_account === $email;
         });
 
-        if ($user && Hash::check($password, $user->password)) {
-            // Login the user
-            auth()->login($user, $request->filled('remember'));
-            $request->session()->regenerate();
+        if ($user) {
+            \Log::info('User found for MS365 login', [
+                'user_id' => $user->id,
+                'ms365_account' => $user->ms365_account,
+                'password_check' => Hash::check($password, $user->password)
+            ]);
             
-            return redirect()->intended(route('user.dashboard'));
+            if (Hash::check($password, $user->password)) {
+                // Login the user
+                auth()->login($user, $request->filled('remember'));
+                $request->session()->regenerate();
+                
+                \Log::info('MS365 login successful', [
+                    'user_id' => $user->id,
+                    'email' => $email
+                ]);
+                
+                return redirect()->intended(route('user.dashboard'));
+            } else {
+                \Log::warning('MS365 password verification failed', [
+                    'user_id' => $user->id,
+                    'email' => $email
+                ]);
+            }
+        } else {
+            \Log::warning('MS365 user not found', [
+                'email' => $email,
+                'total_users' => User::count()
+            ]);
         }
 
         return back()->withErrors([

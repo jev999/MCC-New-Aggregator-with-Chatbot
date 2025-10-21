@@ -47,8 +47,8 @@
     </form>
 
     <div class="auth-links">
-        <a href="{{ route('superadmin.login') }}">Super Admin Login</a>
-        <a href="{{ route('user.login') }}">User Login</a>
+        <a href="{{ route('login') }}">Unified Login Form</a>
+        <a href="{{ route('login') }}">User Login</a>
     </div>
 </div>
 

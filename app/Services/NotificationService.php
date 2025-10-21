@@ -102,7 +102,8 @@ class NotificationService
     {
         return match($admin->role) {
             'superadmin' => 'MCC Administration',
-            'department_admin' => $admin->department . ' Department',
+            'department_admin' => ($admin->department ? $admin->department . ' Department' : 'Department Administration'),
+            'office_admin' => ($admin->office ? $admin->office . ' Office' : 'Office Administration'),
             default => $admin->username,
         };
     }

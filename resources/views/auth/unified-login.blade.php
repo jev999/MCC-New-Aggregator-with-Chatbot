@@ -1594,7 +1594,7 @@
                     submitBtn.disabled = false;
                     
                 } else if (selectedType === 'department-admin' || selectedType === 'office-admin') {
-                    // Clear username fields
+                    // Clear other fields
                     clearGroup(['username-field', 'gmail-field']);
                     
                     // Show MS365 fields for department and office admins
@@ -1643,9 +1643,11 @@
                         accountValue = document.getElementById('gmail_account')?.value || '';
                         break;
                     case 'superadmin':
+                        accountValue = document.getElementById('username')?.value || '';
+                        break;
                     case 'department-admin':
                     case 'office-admin':
-                        accountValue = document.getElementById('username')?.value || '';
+                        accountValue = document.getElementById('ms365_account')?.value || '';
                         break;
                 }
                 

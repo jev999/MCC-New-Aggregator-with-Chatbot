@@ -484,7 +484,7 @@
                         if (usernameInput) usernameInput.required = true;
                         if (passwordInput) passwordInput.required = true;
                         if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-crown"></i> Login as Super Admin';
-                        if (unifiedForm) unifiedForm.action = '{{ route("superadmin.login") }}';
+                        if (unifiedForm) unifiedForm.action = '{{ route("login") }}';
                         break;
 
                     case 'department-admin':

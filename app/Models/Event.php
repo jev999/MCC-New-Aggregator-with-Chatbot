@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use App\Traits\CreatesNotifications;
 
 class Event extends Model
 {
-    use HasFactory;
+    use HasFactory, CreatesNotifications;
 
     protected $fillable = [
         'title',
@@ -632,5 +633,13 @@ class Event extends Model
         }
         
         return $paths;
+    }
+
+    /**
+     * Get the notification type for this content.
+     */
+    public function getNotificationType(): string
+    {
+        return 'event';
     }
 }

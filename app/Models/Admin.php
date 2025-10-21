@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Services\DataEncryptionService;
 use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
@@ -35,9 +34,6 @@ class Admin extends Authenticatable
      *
      * @var array
      */
-    protected $encrypted = [
-        // 'username', // Removed for authentication compatibility
-    ];
 
     protected $appends = [
         'department_display',
@@ -227,29 +223,5 @@ class Admin extends Authenticatable
     {
         parent::boot();
 
-        static::saving(function ($model) {
-            foreach ($model->encrypted as $field) {
-                if (isset($model->attributes[$field]) && !empty($model->attributes[$field])) {
-                    $model->attributes[$field] = DataEncryptionService::encrypt($model->attributes[$field]);
-                }
-            }
-        });
-
-        static::retrieved(function ($model) {
-            foreach ($model->encrypted as $field) {
-                if (isset($model->attributes[$field]) && !empty($model->attributes[$field])) {
-                    try {
-                        $model->attributes[$field] = DataEncryptionService::decrypt($model->attributes[$field]);
-                    } catch (\Exception $e) {
-                        // If decryption fails, keep original value (might not be encrypted yet)
-                        \Log::warning('Failed to decrypt field in Admin model', [
-                            'field' => $field,
-                            'admin_id' => $model->id,
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            }
-        });
     }
 }

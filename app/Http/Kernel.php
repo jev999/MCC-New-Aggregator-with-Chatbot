@@ -14,7 +14,6 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \App\Http\Middleware\SecurityHeaders::class,
     ];
 
     protected $middlewareGroups = [
@@ -22,15 +21,12 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
-            \App\Http\Middleware\SessionSecurityMiddleware::class,
-            \App\Http\Middleware\SessionTimeoutMiddleware::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 
         'api' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -51,8 +47,6 @@ class Kernel extends HttpKernel
         'super_admin' => \App\Http\Middleware\SuperAdminAuth::class,
         'department_admin' => \App\Http\Middleware\DepartmentAdminAuth::class,
         'office_admin' => \App\Http\Middleware\OfficeAdminAuth::class,
-        'session.security' => \App\Http\Middleware\SessionSecurityMiddleware::class,
-        'session.timeout' => \App\Http\Middleware\SessionTimeoutMiddleware::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
     ];
