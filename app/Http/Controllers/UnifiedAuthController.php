@@ -70,11 +70,15 @@ class UnifiedAuthController extends Controller
         $lockedAccounts = $this->getLockedAccounts();
         $authenticatedAccounts = $this->getCurrentAuthenticatedAccounts();
         
+        // Get attempts left for warning display
+        $attemptsLeft = $this->getRemainingAttempts($request);
+        
         return view('auth.unified-login', [
             'title' => 'Login - MCC News Aggregator',
             'preselectedType' => $loginType,
             'lockedAccounts' => $lockedAccounts,
-            'authenticatedAccounts' => $authenticatedAccounts
+            'authenticatedAccounts' => $authenticatedAccounts,
+            'attemptsLeft' => $attemptsLeft
         ]);
     }
 
@@ -97,14 +101,49 @@ class UnifiedAuthController extends Controller
             }
         }
 
-        // Check if specific account is locked out
-        if ($this->isLockedOut($request)) {
-            $lockoutTime = $this->getLockoutTimeRemaining($request);
-            $accountIdentifier = $this->getAccountIdentifier($request);
-            return back()->withErrors([
-                'account_lockout' => "This account is temporarily locked due to too many failed login attempts. Please try again in {$lockoutTime} minute" . ($lockoutTime != 1 ? 's' : '') . "."
-            ])->with('lockout_time', $lockoutTime)
-              ->with('locked_account', $accountIdentifier);
+        // Check if specific account is locked out - ENHANCED CHECK
+        $lockoutKey = $this->getLockoutKey($request);
+        $lockoutTime = session($lockoutKey);
+        $accountIdentifier = $this->getAccountIdentifier($request);
+        
+        // Enhanced lockout check with detailed logging
+        if ($lockoutTime) {
+            try {
+                $lockoutTime = is_string($lockoutTime) ? \Carbon\Carbon::parse($lockoutTime) : $lockoutTime;
+                
+                if ($lockoutTime instanceof \Carbon\Carbon && now()->lessThan($lockoutTime)) {
+                    $timeRemaining = $this->getLockoutTimeRemaining($request);
+                    
+                    \Log::warning('LOCKOUT ENFORCED - Account access blocked', [
+                        'account_identifier' => $accountIdentifier,
+                        'lockout_time_remaining' => $timeRemaining,
+                        'lockout_key' => $lockoutKey,
+                        'session_lockout_time' => $lockoutTime->toDateTimeString(),
+                        'current_time' => now()->toDateTimeString(),
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent()
+                    ]);
+                    
+                    // Get remaining seconds for accurate frontend countdown
+                    $remainingSeconds = $this->getLockoutTimeRemainingSeconds($request);
+                    
+                    // Generate user-friendly lockout message based on login type
+                    $loginTypeText = $this->getLoginTypeDisplayName($request->login_type);
+                    $lockoutMessage = "Your {$loginTypeText} account is temporarily locked due to too many failed login attempts. Please wait {$timeRemaining} minute" . ($timeRemaining != 1 ? 's' : '') . " before trying again.";
+                    
+                    // Force return lockout error - NO FURTHER PROCESSING
+                    return back()->withErrors([
+                        'account_lockout' => $lockoutMessage
+                    ])->with('lockout_time', $timeRemaining)
+                      ->with('lockout_seconds', $remainingSeconds)
+                      ->with('locked_account', $accountIdentifier);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Lockout time parsing error', [
+                    'error' => $e->getMessage(),
+                    'lockout_time' => $lockoutTime
+                ]);
+            }
         }
 
         // Enhanced security validation
@@ -209,7 +248,7 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('ms365_account'));
+                                    ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
@@ -222,7 +261,7 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('ms365_account'));
+                                ->withInput($request->only('ms365_account', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -271,7 +310,7 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         $result = back()->withErrors(['gmail_account' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('gmail_account'));
+                                    ->withInput($request->only('gmail_account', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
@@ -281,7 +320,7 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     $result = back()->withErrors(['gmail_account' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('gmail_account'));
+                                ->withInput($request->only('gmail_account', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -322,11 +361,28 @@ class UnifiedAuthController extends Controller
                             
                             // Provide specific error messages based on admin type
                             if ($admin->isDepartmentAdmin()) {
-                                $result = back()->withErrors(['username' => 'Department admins should use the department admin login.']);
+                                $result = back()->withErrors(['username' => 'Department admins should use the department admin login.'])
+                                            ->withInput($request->only('username', 'login_type'));
                             } elseif ($admin->isOfficeAdmin()) {
-                                $result = back()->withErrors(['username' => 'Office admins should use the office admin login.']);
+                                $result = back()->withErrors(['username' => 'Office admins should use the office admin login.'])
+                                            ->withInput($request->only('username', 'login_type'));
                             } else {
-                                $result = back()->withErrors(['username' => 'You do not have super admin privileges.']);
+                                $result = back()->withErrors(['username' => 'You do not have super admin privileges.'])
+                                            ->withInput($request->only('username', 'login_type'));
+                            }
+                            
+                            // Add attempts warning for role validation errors
+                            $attemptsLeft = $this->getRemainingAttempts($request);
+                            if ($attemptsLeft > 0) {
+                                // Set session variable for consistent access in blade template
+                                session(['attempts_left' => $attemptsLeft]);
+                                $result->with('attempts_left', $attemptsLeft);
+
+                                \Log::info('Attempts warning added to role validation error', [
+                                    'attempts_left' => $attemptsLeft,
+                                    'account_identifier' => $this->getAccountIdentifier($request),
+                                    'response_type' => get_class($result)
+                                ]);
                             }
                             $loginSuccessful = false;
                         } else {
@@ -349,7 +405,7 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('username'));
+                                    ->withInput($request->only('username', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
@@ -359,7 +415,7 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('username'));
+                                ->withInput($request->only('username', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -400,11 +456,28 @@ class UnifiedAuthController extends Controller
                             
                             // Provide specific error messages based on admin type
                             if ($admin->isSuperAdmin()) {
-                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.']);
+                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } elseif ($admin->isOfficeAdmin()) {
-                                $result = back()->withErrors(['ms365_account' => 'Office admins should use the office admin login.']);
+                                $result = back()->withErrors(['ms365_account' => 'Office admins should use the office admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } else {
-                                $result = back()->withErrors(['ms365_account' => 'You do not have department admin privileges.']);
+                                $result = back()->withErrors(['ms365_account' => 'You do not have department admin privileges.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
+                            }
+                            
+                            // Add attempts warning for role validation errors
+                            $attemptsLeft = $this->getRemainingAttempts($request);
+                            if ($attemptsLeft > 0) {
+                                // Set session variable for consistent access in blade template
+                                session(['attempts_left' => $attemptsLeft]);
+                                $result->with('attempts_left', $attemptsLeft);
+
+                                \Log::info('Attempts warning added to role validation error', [
+                                    'attempts_left' => $attemptsLeft,
+                                    'account_identifier' => $this->getAccountIdentifier($request),
+                                    'response_type' => get_class($result)
+                                ]);
                             }
                             $loginSuccessful = false;
                         } else {
@@ -427,7 +500,7 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('ms365_account'));
+                                    ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
@@ -437,7 +510,7 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('ms365_account'));
+                                ->withInput($request->only('ms365_account', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -509,11 +582,28 @@ class UnifiedAuthController extends Controller
                             
                             // Provide specific error messages based on admin type
                             if ($admin->isSuperAdmin()) {
-                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.']);
+                                $result = back()->withErrors(['ms365_account' => 'Super admins should use the super admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } elseif ($admin->isDepartmentAdmin()) {
-                                $result = back()->withErrors(['ms365_account' => 'Department admins should use the department admin login.']);
+                                $result = back()->withErrors(['ms365_account' => 'Department admins should use the department admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } else {
-                                $result = back()->withErrors(['ms365_account' => 'You do not have office admin privileges.']);
+                                $result = back()->withErrors(['ms365_account' => 'You do not have office admin privileges.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
+                            }
+                            
+                            // Add attempts warning for role validation errors
+                            $attemptsLeft = $this->getRemainingAttempts($request);
+                            if ($attemptsLeft > 0) {
+                                // Set session variable for consistent access in blade template
+                                session(['attempts_left' => $attemptsLeft]);
+                                $result->with('attempts_left', $attemptsLeft);
+
+                                \Log::info('Attempts warning added to role validation error', [
+                                    'attempts_left' => $attemptsLeft,
+                                    'account_identifier' => $this->getAccountIdentifier($request),
+                                    'response_type' => get_class($result)
+                                ]);
                             }
                             $loginSuccessful = false;
                         } else {
@@ -536,7 +626,7 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('ms365_account'));
+                                    ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
@@ -549,7 +639,7 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('ms365_account'));
+                                ->withInput($request->only('ms365_account', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -565,14 +655,29 @@ class UnifiedAuthController extends Controller
             // Login successful, clear attempts and store account info
             $this->clearLoginAttempts($request);
             $this->storeAccountSession($request, $loginType);
-        } elseif (!$loginSuccessful && empty($currentlyAuthenticated)) {
-            // Login failed and no other accounts logged in, increment attempt counter
+        } elseif (!$loginSuccessful) {
+            // Login failed, increment attempt counter regardless of other authenticated accounts
             $this->incrementLoginAttempts($request);
+            
+            \Log::info('Login attempt failed, incrementing counter', [
+                'account_identifier' => $this->getAccountIdentifier($request),
+                'attempts_after_increment' => session($this->getLoginAttemptsKey($request), 0),
+                'is_locked_out' => $this->isLockedOut($request),
+                'lockout_time_remaining' => $this->getLockoutTimeRemaining($request)
+            ]);
             
             // Add remaining attempts info to the error response
             $attemptsLeft = $this->getRemainingAttempts($request);
-            if ($attemptsLeft > 0 && $result instanceof \Illuminate\Http\RedirectResponse) {
+            if ($attemptsLeft > 0) {
+                // Set session variable for consistent access in blade template
+                session(['attempts_left' => $attemptsLeft]);
                 $result->with('attempts_left', $attemptsLeft);
+
+                \Log::info('Attempts warning added to response', [
+                    'attempts_left' => $attemptsLeft,
+                    'account_identifier' => $this->getAccountIdentifier($request),
+                    'response_type' => get_class($result)
+                ]);
             }
         }
 
@@ -1009,9 +1114,11 @@ class UnifiedAuthController extends Controller
             case 'user':
                 return $loginType . '_' . ($request->gmail_account ?? 'unknown');
             case 'superadmin':
+                return $loginType . '_' . ($request->username ?? 'unknown');
             case 'department-admin':
             case 'office-admin':
-                return $loginType . '_' . ($request->username ?? 'unknown');
+                // Department and office admins now use MS365 accounts
+                return $loginType . '_' . ($request->ms365_account ?? 'unknown');
             default:
                 return 'unknown_' . $request->ip();
         }
@@ -1026,10 +1133,23 @@ class UnifiedAuthController extends Controller
         $attempts = session($key, 0) + 1;
         session([$key => $attempts]);
 
+        \Log::info('Login attempts incremented', [
+            'session_key' => $key,
+            'attempts' => $attempts,
+            'account_identifier' => $this->getAccountIdentifier($request)
+        ]);
+
         // If max attempts reached, set lockout time
         if ($attempts >= 3) {
             $lockoutKey = $this->getLockoutKey($request);
-            session([$lockoutKey => now()->addMinutes(3)]);
+            $lockoutTime = now()->addMinutes(3);
+            session([$lockoutKey => $lockoutTime]);
+            
+            \Log::warning('Account locked out after 3 attempts', [
+                'lockout_key' => $lockoutKey,
+                'lockout_time' => $lockoutTime->toDateTimeString(),
+                'account_identifier' => $this->getAccountIdentifier($request)
+            ]);
         }
     }
 
@@ -1100,10 +1220,54 @@ class UnifiedAuthController extends Controller
                 return 0;
             }
             
-            $remaining = now()->diffInMinutes($lockoutTime, false);
-            return max(0, $remaining);
+            // Calculate remaining time more precisely
+            if (now()->greaterThan($lockoutTime)) {
+                return 0; // Lockout has expired
+            }
+            
+            // Use seconds for more precision, then convert to minutes
+            $remainingSeconds = $lockoutTime->diffInSeconds(now());
+            $remainingMinutes = ceil($remainingSeconds / 60);
+            
+            \Log::info('Lockout time calculation', [
+                'lockout_time' => $lockoutTime->toDateTimeString(),
+                'current_time' => now()->toDateTimeString(),
+                'remaining_seconds' => $remainingSeconds,
+                'remaining_minutes' => $remainingMinutes
+            ]);
+            
+            return max(0, $remainingMinutes);
         } catch (\Exception $e) {
             // If there's an error parsing the date, return 0
+            return 0;
+        }
+    }
+
+    /**
+     * Get remaining lockout time in seconds (for more accurate frontend countdown)
+     */
+    private function getLockoutTimeRemainingSeconds(Request $request)
+    {
+        $lockoutKey = $this->getLockoutKey($request);
+        $lockoutTime = session($lockoutKey);
+        
+        if (!$lockoutTime) {
+            return 0;
+        }
+        
+        try {
+            $lockoutTime = is_string($lockoutTime) ? \Carbon\Carbon::parse($lockoutTime) : $lockoutTime;
+            
+            if (!$lockoutTime instanceof \Carbon\Carbon) {
+                return 0;
+            }
+            
+            if (now()->greaterThan($lockoutTime)) {
+                return 0;
+            }
+            
+            return max(0, $lockoutTime->diffInSeconds(now()));
+        } catch (\Exception $e) {
             return 0;
         }
     }
@@ -1168,6 +1332,27 @@ class UnifiedAuthController extends Controller
                 return $user->username ?? 'Unknown';
             default:
                 return $user->email ?? $user->username ?? 'Unknown';
+        }
+    }
+
+    /**
+     * Get display name for login type
+     */
+    private function getLoginTypeDisplayName($loginType)
+    {
+        switch ($loginType) {
+            case 'ms365':
+                return 'MS365';
+            case 'user':
+                return 'Gmail';
+            case 'superadmin':
+                return 'Super Admin';
+            case 'department-admin':
+                return 'Department Admin';
+            case 'office-admin':
+                return 'Office Admin';
+            default:
+                return 'Account';
         }
     }
 
@@ -1360,6 +1545,52 @@ class UnifiedAuthController extends Controller
         }
         
         return back()->with('success', 'All login attempts and lockouts have been cleared.');
+    }
+
+    /**
+     * Debug lockout status (for troubleshooting)
+     */
+    public function debugLockoutStatus(Request $request)
+    {
+        $sessionData = session()->all();
+        $lockoutData = [];
+        
+        foreach ($sessionData as $key => $value) {
+            if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+                $lockoutData[$key] = $value;
+            }
+        }
+        
+        $currentAccountIdentifier = $this->getAccountIdentifier($request);
+        $isLockedOut = $this->isLockedOut($request);
+        $timeRemaining = $this->getLockoutTimeRemaining($request);
+        $attemptsRemaining = $this->getRemainingAttempts($request);
+        
+        return response()->json([
+            'current_account_identifier' => $currentAccountIdentifier,
+            'is_locked_out' => $isLockedOut,
+            'lockout_time_remaining_minutes' => $timeRemaining,
+            'login_attempts_remaining' => $attemptsRemaining,
+            'session_lockout_data' => $lockoutData,
+            'lockout_key' => $this->getLockoutKey($request),
+            'attempts_key' => $this->getLoginAttemptsKey($request),
+            'current_time' => now()->toDateTimeString()
+        ]);
+    }
+
+    /**
+     * Clear current account lockout (called by frontend after countdown expires)
+     */
+    public function clearCurrentLockout(Request $request)
+    {
+        $this->clearLoginAttempts($request);
+        
+        \Log::info('Lockout cleared by frontend countdown', [
+            'account_identifier' => $this->getAccountIdentifier($request),
+            'ip' => $request->ip()
+        ]);
+        
+        return response()->json(['success' => true]);
     }
 
     /**

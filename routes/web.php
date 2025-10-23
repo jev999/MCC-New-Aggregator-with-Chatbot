@@ -112,7 +112,7 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
 // Unified login routes (default login)
 
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [UnifiedAuthController::class, 'login'])->name('unified.login');
+Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
 
 // Account switching routes
 Route::post('/switch-account', [UnifiedAuthController::class, 'switchAccount'])->name('switch.account');
@@ -121,6 +121,358 @@ Route::post('/remove-account', [UnifiedAuthController::class, 'removeAccount'])-
 // Login attempt management routes (for debugging/admin purposes)
 Route::post('/clear-all-login-attempts', [UnifiedAuthController::class, 'clearAllLoginAttempts'])->name('clear.all.login.attempts');
 Route::post('/clear-login-attempts', [UnifiedAuthController::class, 'clearSpecificLoginAttempts'])->name('clear.login.attempts');
+Route::get('/debug-lockout-status', [UnifiedAuthController::class, 'debugLockoutStatus'])->name('debug.lockout.status');
+Route::post('/clear-current-lockout', [UnifiedAuthController::class, 'clearCurrentLockout'])->name('clear.current.lockout');
+
+// Test lockout functionality for all admin types
+Route::get('/test-lockout-system', function() {
+    $output = "<h2>3-Minute Lockout System Test - All Admin Types</h2>";
+    
+    // Clear any existing lockout data first
+    $sessionData = session()->all();
+    $clearedKeys = [];
+    foreach ($sessionData as $key => $value) {
+        if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+            session()->forget($key);
+            $clearedKeys[] = $key;
+        }
+    }
+    
+    $output .= "<h3>Cleared existing lockout data:</h3>";
+    $output .= "<pre>" . json_encode($clearedKeys, JSON_PRETTY_PRINT) . "</pre>";
+    
+    // Create a test request for MS365 login
+    $request = new \Illuminate\Http\Request();
+    $request->merge([
+        'login_type' => 'ms365',
+        'ms365_account' => 'test@example.com',
+        'password' => 'wrongpassword'
+    ]);
+    $request->setSession(session());
+    
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
+    
+    // Test the lockout methods directly
+    $reflection = new \ReflectionClass($unifiedController);
+    $getAccountIdentifier = $reflection->getMethod('getAccountIdentifier');
+    $getAccountIdentifier->setAccessible(true);
+    
+    $getLoginAttemptsKey = $reflection->getMethod('getLoginAttemptsKey');
+    $getLoginAttemptsKey->setAccessible(true);
+    
+    $getLockoutKey = $reflection->getMethod('getLockoutKey');
+    $getLockoutKey->setAccessible(true);
+    
+    $incrementLoginAttempts = $reflection->getMethod('incrementLoginAttempts');
+    $incrementLoginAttempts->setAccessible(true);
+    
+    $isLockedOut = $reflection->getMethod('isLockedOut');
+    $isLockedOut->setAccessible(true);
+    
+    $getLockoutTimeRemaining = $reflection->getMethod('getLockoutTimeRemaining');
+    $getLockoutTimeRemaining->setAccessible(true);
+    
+    $accountIdentifier = $getAccountIdentifier->invoke($unifiedController, $request);
+    $attemptsKey = $getLoginAttemptsKey->invoke($unifiedController, $request);
+    $lockoutKey = $getLockoutKey->invoke($unifiedController, $request);
+    
+    $output .= "<h3>Account Information:</h3>";
+    $output .= "Account Identifier: <strong>" . $accountIdentifier . "</strong><br>";
+    $output .= "Attempts Key: <strong>" . $attemptsKey . "</strong><br>";
+    $output .= "Lockout Key: <strong>" . $lockoutKey . "</strong><br><br>";
+    
+    // Test 3 failed attempts
+    for ($i = 1; $i <= 3; $i++) {
+        $output .= "<h4>Attempt #{$i}:</h4>";
+        
+        $incrementLoginAttempts->invoke($unifiedController, $request);
+        
+        $attempts = session($attemptsKey, 0);
+        $locked = $isLockedOut->invoke($unifiedController, $request);
+        $timeRemaining = $getLockoutTimeRemaining->invoke($unifiedController, $request);
+        $lockoutTime = session($lockoutKey);
+        
+        $output .= "Attempts in session: <strong>" . $attempts . "</strong><br>";
+        $output .= "Is locked out: <strong>" . ($locked ? 'YES' : 'NO') . "</strong><br>";
+        $output .= "Time remaining: <strong>" . $timeRemaining . " minutes</strong><br>";
+        $output .= "Lockout time in session: <strong>" . ($lockoutTime ? $lockoutTime->toDateTimeString() : 'None') . "</strong><br>";
+        $output .= "Current time: <strong>" . now()->toDateTimeString() . "</strong><br><br>";
+    }
+    
+    // Test the lockout check after 3 attempts
+    $output .= "<h3>Final Lockout Status:</h3>";
+    $finalLocked = $isLockedOut->invoke($unifiedController, $request);
+    $finalTimeRemaining = $getLockoutTimeRemaining->invoke($unifiedController, $request);
+    
+    $output .= "Final locked status: <strong>" . ($finalLocked ? 'LOCKED' : 'NOT LOCKED') . "</strong><br>";
+    $output .= "Final time remaining: <strong>" . $finalTimeRemaining . " minutes</strong><br>";
+    
+    // Show all session data
+    $output .= "<h3>All Session Data:</h3>";
+    $allSessionData = session()->all();
+    $lockoutSessionData = [];
+    foreach ($allSessionData as $key => $value) {
+        if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+            $lockoutSessionData[$key] = $value;
+        }
+    }
+    $output .= "<pre>" . json_encode($lockoutSessionData, JSON_PRETTY_PRINT) . "</pre>";
+    
+    return $output;
+});
+
+// Test lockout for all admin types
+Route::get('/test-admin-lockout', function() {
+    $output = "<h2>Admin Lockout System Test - All Types</h2>";
+    $output .= "<p>Testing 3-attempt lockout for all admin types in the unified login form.</p>";
+    
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
+    $reflection = new \ReflectionClass($unifiedController);
+    $getAccountIdentifier = $reflection->getMethod('getAccountIdentifier');
+    $getAccountIdentifier->setAccessible(true);
+    
+    // Test data for each admin type
+    $adminTypes = [
+        'superadmin' => [
+            'login_type' => 'superadmin',
+            'username' => 'superadmin',
+            'password' => 'wrongpassword',
+            'field' => 'username'
+        ],
+        'department-admin' => [
+            'login_type' => 'department-admin', 
+            'ms365_account' => 'dept.admin@mcc-nac.edu.ph',
+            'password' => 'wrongpassword',
+            'field' => 'ms365_account'
+        ],
+        'office-admin' => [
+            'login_type' => 'office-admin',
+            'ms365_account' => 'office.admin@mcc-nac.edu.ph', 
+            'password' => 'wrongpassword',
+            'field' => 'ms365_account'
+        ]
+    ];
+    
+    foreach ($adminTypes as $type => $data) {
+        $output .= "<h3>Testing {$type} Lockout:</h3>";
+        
+        // Create test request
+        $request = new \Illuminate\Http\Request();
+        $request->merge($data);
+        $request->setSession(session());
+        
+        // Get account identifier
+        $accountIdentifier = $getAccountIdentifier->invoke($unifiedController, $request);
+        $output .= "<strong>Account Identifier:</strong> {$accountIdentifier}<br>";
+        $output .= "<strong>Login Field:</strong> {$data['field']} = {$data[$data['field']]}<br>";
+        $output .= "<strong>Expected Lockout:</strong> After 3 failed attempts, account locked for 3 minutes<br>";
+        $output .= "<strong>Frontend Field:</strong> " . ($data['field'] === 'username' ? 'Username field' : 'MS365 Account field') . "<br><br>";
+    }
+    
+    $output .= "<h3>Manual Testing Instructions:</h3>";
+    $output .= "<ol>";
+    $output .= "<li><strong>Superadmin Test:</strong><br>";
+    $output .= "   - Go to <a href='/login' target='_blank'>Login Page</a><br>";
+    $output .= "   - Select 'Super Admin' login type<br>";
+    $output .= "   - Enter username: 'superadmin' and wrong password (e.g., 'wrongpass')<br>";
+    $output .= "   - <strong>After 1st attempt:</strong> Should see warning '2 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 2nd attempt:</strong> Should see warning '1 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 3rd attempt:</strong> Should see lockout message with countdown timer</li><br>";
+    
+    $output .= "<li><strong>Department Admin Test:</strong><br>";
+    $output .= "   - Go to <a href='/login' target='_blank'>Login Page</a><br>";
+    $output .= "   - Select 'Department Admin' login type<br>";
+    $output .= "   - Enter MS365 account: 'dept.admin@mcc-nac.edu.ph' and wrong password<br>";
+    $output .= "   - <strong>After 1st attempt:</strong> Should see warning '2 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 2nd attempt:</strong> Should see warning '1 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 3rd attempt:</strong> Should see lockout message with countdown timer</li><br>";
+    
+    $output .= "<li><strong>Office Admin Test:</strong><br>";
+    $output .= "   - Go to <a href='/login' target='_blank'>Login Page</a><br>";
+    $output .= "   - Select 'Office Admin' login type<br>";
+    $output .= "   - Enter MS365 account: 'office.admin@mcc-nac.edu.ph' and wrong password<br>";
+    $output .= "   - <strong>After 1st attempt:</strong> Should see warning '2 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 2nd attempt:</strong> Should see warning '1 login attempt(s) remaining'<br>";
+    $output .= "   - <strong>After 3rd attempt:</strong> Should see lockout message with countdown timer</li>";
+    $output .= "</ol>";
+    
+    $output .= "<h3>Expected Behavior:</h3>";
+    $output .= "<ul>";
+    $output .= "<li>✅ Each admin type gets separate lockout tracking</li>";
+    $output .= "<li>✅ Form disables and grays out during lockout</li>";
+    $output .= "<li>✅ Real-time countdown shows MM:SS format</li>";
+    $output .= "<li>✅ Lockout message shows admin type (e.g., 'Your Super Admin account is locked...')</li>";
+    $output .= "<li>✅ Form automatically re-enables after 3 minutes</li>";
+    $output .= "<li>✅ Success message appears when unlocked</li>";
+    $output .= "</ul>";
+    
+    return $output;
+});
+
+// Simple lockout test route
+Route::get('/test-simple-lockout', function() {
+    return '
+    <h2>Simple Lockout Test</h2>
+    <p>This will test the complete lockout flow:</p>
+    <ol>
+        <li>Go to <a href="/login" target="_blank">Login Page</a></li>
+        <li>Select any login type</li>
+        <li>Enter wrong credentials 3 times in a row</li>
+        <li>Form should be locked for 3 minutes</li>
+        <li>After 3 minutes, form should unlock automatically</li>
+    </ol>
+    
+    <h3>Debug Tools:</h3>
+    <ul>
+        <li><a href="/debug-lockout-status" target="_blank">Check Lockout Status</a></li>
+        <li><a href="/debug-superadmin-attempts" target="_blank">Debug Superadmin Attempts</a></li>
+        <li><a href="/debug-all-attempts" target="_blank">Debug All Login Types Attempts</a></li>
+        <li><a href="/test-lockout-system" target="_blank">Detailed Lockout Test</a></li>
+        <li><a href="/test-admin-lockout" target="_blank">Admin Lockout Test</a></li>
+        <li><a href="/clear-all-lockouts" target="_blank">Clear All Lockouts</a></li>
+    </ul>
+    
+    <h3>Expected Behavior:</h3>
+    <ul>
+        <li><strong>Attempt 1-2:</strong> Shows warning with remaining attempts</li>
+        <li><strong>Attempt 3:</strong> Form becomes disabled with lockout message</li>
+        <li><strong>During Lockout:</strong> Form completely unusable, countdown shows remaining time</li>
+        <li><strong>After 3 Minutes:</strong> Form re-enables, success message appears</li>
+    </ul>
+    ';
+});
+
+// Test lockout enforcement
+Route::get('/test-lockout-enforcement', function() {
+    $output = "<h2>Lockout Enforcement Test</h2>";
+    
+    // Create a test lockout
+    $testRequest = new \Illuminate\Http\Request();
+    $testRequest->merge([
+        'login_type' => 'ms365',
+        'ms365_account' => 'test@lockout.com',
+        'password' => 'wrong'
+    ]);
+    $testRequest->setSession(session());
+    
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
+    $reflection = new \ReflectionClass($unifiedController);
+    
+    $getLockoutKey = $reflection->getMethod('getLockoutKey');
+    $getLockoutKey->setAccessible(true);
+    
+    $getAccountIdentifier = $reflection->getMethod('getAccountIdentifier');
+    $getAccountIdentifier->setAccessible(true);
+    
+    $lockoutKey = $getLockoutKey->invoke($unifiedController, $testRequest);
+    $accountId = $getAccountIdentifier->invoke($unifiedController, $testRequest);
+    
+    // Set a lockout manually
+    $lockoutTime = now()->addMinutes(3);
+    session([$lockoutKey => $lockoutTime]);
+    
+    $output .= "<h3>Lockout Created:</h3>";
+    $output .= "Account: <strong>" . $accountId . "</strong><br>";
+    $output .= "Lockout Key: <strong>" . $lockoutKey . "</strong><br>";
+    $output .= "Lockout Until: <strong>" . $lockoutTime->toDateTimeString() . "</strong><br>";
+    $output .= "Current Time: <strong>" . now()->toDateTimeString() . "</strong><br><br>";
+    
+    // Test if lockout is enforced
+    try {
+        $result = $unifiedController->login($testRequest);
+        
+        if ($result instanceof \Illuminate\Http\RedirectResponse) {
+            $errors = session()->get('errors');
+            if ($errors && $errors->has('account_lockout')) {
+                $output .= "<h3 style=\"color: green;\">✅ LOCKOUT WORKING!</h3>";
+                $output .= "Error message: <strong>" . $errors->first('account_lockout') . "</strong><br>";
+            } else {
+                $output .= "<h3 style=\"color: red;\">❌ LOCKOUT NOT WORKING</h3>";
+                $output .= "No lockout error found in session<br>";
+            }
+        } else {
+            $output .= "<h3 style=\"color: red;\">❌ UNEXPECTED RESULT</h3>";
+            $output .= "Result type: " . get_class($result) . "<br>";
+        }
+    } catch (\Exception $e) {
+        $output .= "<h3 style=\"color: red;\">❌ ERROR DURING TEST</h3>";
+        $output .= "Error: " . $e->getMessage() . "<br>";
+    }
+    
+    // Show session data
+    $output .= "<h3>Session Data:</h3>";
+    $sessionData = session()->all();
+    $lockoutData = [];
+    foreach ($sessionData as $key => $value) {
+        if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+            $lockoutData[$key] = $value;
+        }
+    }
+    $output .= "<pre>" . json_encode($lockoutData, JSON_PRETTY_PRINT) . "</pre>";
+    
+    return $output;
+});
+
+// Test timer accuracy
+Route::get('/test-timer-accuracy', function() {
+    // Create a test lockout with exact timing
+    $lockoutTime = now()->addMinutes(3);
+    session(['test_lockout_time' => $lockoutTime]);
+    
+    $output = "<h2>Timer Accuracy Test</h2>";
+    $output .= "<p>Lockout created at: <strong>" . now()->toDateTimeString() . "</strong></p>";
+    $output .= "<p>Lockout expires at: <strong>" . $lockoutTime->toDateTimeString() . "</strong></p>";
+    
+    // Calculate remaining time in different ways
+    $remainingMinutes = $lockoutTime->diffInMinutes(now());
+    $remainingSeconds = $lockoutTime->diffInSeconds(now());
+    
+    $output .= "<p>Remaining minutes (diffInMinutes): <strong>" . $remainingMinutes . "</strong></p>";
+    $output .= "<p>Remaining seconds (diffInSeconds): <strong>" . $remainingSeconds . "</strong></p>";
+    $output .= "<p>Remaining seconds converted to MM:SS: <strong>" . floor($remainingSeconds / 60) . ":" . str_pad($remainingSeconds % 60, 2, '0', STR_PAD_LEFT) . "</strong></p>";
+    
+    // Test the countdown in real-time
+    $output .= "
+    <h3>Real-time Countdown Test:</h3>
+    <div id='countdown' style='font-size: 24px; font-weight: bold; color: red;'></div>
+    
+    <script>
+    let remainingSeconds = " . $remainingSeconds . ";
+    
+    console.log('Timer test started with', remainingSeconds, 'seconds remaining');
+    
+    const countdownElement = document.getElementById('countdown');
+    
+    function updateCountdown() {
+        if (remainingSeconds <= 0) {
+            countdownElement.innerHTML = '⏰ TIMER EXPIRED!';
+            countdownElement.style.color = 'green';
+            return;
+        }
+        
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        const timeText = minutes + ':' + seconds.toString().padStart(2, '0');
+        
+        countdownElement.innerHTML = '⏱️ ' + timeText + ' remaining';
+        remainingSeconds--;
+    }
+    
+    // Update immediately
+    updateCountdown();
+    
+    // Update every second
+    const timer = setInterval(() => {
+        updateCountdown();
+        if (remainingSeconds < 0) {
+            clearInterval(timer);
+        }
+    }, 1000);
+    </script>
+    ";
+    
+    return $output;
+});
 
 // Temporary debug route to clear superadmin login attempts
 Route::get('/debug-clear-superadmin-attempts', function() {
@@ -1755,3 +2107,132 @@ Route::get('/test-office-admin-auth', function () {
     return $output;
 });
 
+// Debug all login types attempts
+Route::get('/debug-all-attempts', function() {
+    $output = "<h2>Debug All Login Types Attempts</h2>";
+    
+    $unifiedController = new \App\Http\Controllers\UnifiedAuthController();
+    $reflection = new \ReflectionClass($unifiedController);
+    
+    $getAccountIdentifier = $reflection->getMethod('getAccountIdentifier');
+    $getAccountIdentifier->setAccessible(true);
+    
+    $getLoginAttemptsKey = $reflection->getMethod('getLoginAttemptsKey');
+    $getLoginAttemptsKey->setAccessible(true);
+    
+    $getRemainingAttempts = $reflection->getMethod('getRemainingAttempts');
+    $getRemainingAttempts->setAccessible(true);
+    
+    // Test data for each login type
+    $loginTypes = [
+        'ms365' => [
+            'login_type' => 'ms365',
+            'ms365_account' => 'student@mcc-nac.edu.ph',
+            'password' => 'wrongpassword',
+            'display_name' => 'MS365 Student/Faculty'
+        ],
+        'user' => [
+            'login_type' => 'user',
+            'gmail_account' => 'student@gmail.com',
+            'password' => 'wrongpassword',
+            'display_name' => 'Gmail User'
+        ],
+        'superadmin' => [
+            'login_type' => 'superadmin',
+            'username' => 'superadmin',
+            'password' => 'wrongpassword',
+            'display_name' => 'Super Admin'
+        ],
+        'department-admin' => [
+            'login_type' => 'department-admin',
+            'ms365_account' => 'dept.admin@mcc-nac.edu.ph',
+            'password' => 'wrongpassword',
+            'display_name' => 'Department Admin'
+        ],
+        'office-admin' => [
+            'login_type' => 'office-admin',
+            'ms365_account' => 'office.admin@mcc-nac.edu.ph',
+            'password' => 'wrongpassword',
+            'display_name' => 'Office Admin'
+        ]
+    ];
+    
+    $output .= "<h3>Attempts Status for All Login Types:</h3>";
+    $output .= "<table border='1' cellpadding='5' cellspacing='0' style='border-collapse: collapse; width: 100%;'>";
+    $output .= "<tr><th>Login Type</th><th>Account Identifier</th><th>Current Attempts</th><th>Remaining Attempts</th><th>Should Show Warning</th></tr>";
+    
+    foreach ($loginTypes as $type => $data) {
+        $request = new \Illuminate\Http\Request();
+        $request->merge($data);
+        $request->setSession(session());
+        
+        $accountIdentifier = $getAccountIdentifier->invoke($unifiedController, $request);
+        $attemptsKey = $getLoginAttemptsKey->invoke($unifiedController, $request);
+        $remainingAttempts = $getRemainingAttempts->invoke($unifiedController, $request);
+        $currentAttempts = session($attemptsKey, 0);
+        $shouldShowWarning = ($remainingAttempts > 0 && $remainingAttempts < 3) ? 'YES' : 'NO';
+        
+        $output .= "<tr>";
+        $output .= "<td><strong>{$data['display_name']}</strong></td>";
+        $output .= "<td>{$accountIdentifier}</td>";
+        $output .= "<td>{$currentAttempts}</td>";
+        $output .= "<td>{$remainingAttempts}</td>";
+        $output .= "<td>" . ($shouldShowWarning === 'YES' ? '<span style="color: green; font-weight: bold;">YES</span>' : '<span style="color: red;">NO</span>') . "</td>";
+        $output .= "</tr>";
+    }
+    
+    $output .= "</table><br>";
+    
+    $output .= "<h3>Session Data (Lockout Related):</h3>";
+    $sessionData = session()->all();
+    $lockoutData = [];
+    foreach ($sessionData as $key => $value) {
+        if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+            $lockoutData[$key] = $value;
+        }
+    }
+    $output .= "<pre>" . json_encode($lockoutData, JSON_PRETTY_PRINT) . "</pre>";
+    
+    $output .= "<h3>Testing Instructions:</h3>";
+    $output .= "<ol>";
+    foreach ($loginTypes as $type => $data) {
+        $output .= "<li><strong>{$data['display_name']}:</strong><br>";
+        $output .= "   - Go to <a href='/login' target='_blank'>Login Page</a><br>";
+        $output .= "   - Select '{$data['display_name']}' login type<br>";
+        $fieldName = isset($data['username']) ? 'username' : (isset($data['ms365_account']) ? 'MS365 account' : 'Gmail account');
+        $fieldValue = $data['username'] ?? $data['ms365_account'] ?? $data['gmail_account'];
+        $output .= "   - Enter {$fieldName}: '{$fieldValue}' and wrong password<br>";
+        $output .= "   - <strong>After 1st attempt:</strong> Should see warning '2 login attempt(s) remaining'<br>";
+        $output .= "   - <strong>After 2nd attempt:</strong> Should see warning '1 login attempt(s) remaining'<br>";
+        $output .= "   - <strong>After 3rd attempt:</strong> Should see lockout message with countdown timer</li><br>";
+    }
+    $output .= "</ol>";
+    
+    $output .= "<p><a href='/login'>Go to Login Page</a> | <a href='/clear-all-lockouts'>Clear All Lockouts</a></p>";
+    
+    return $output;
+});
+
+// Clear all lockouts for testing
+Route::get('/clear-all-lockouts', function() {
+    $sessionData = session()->all();
+    $clearedKeys = [];
+    
+    foreach ($sessionData as $key => $value) {
+        if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+            session()->forget($key);
+            $clearedKeys[] = $key;
+        }
+    }
+    
+    $output = "<h2>All Lockouts Cleared</h2>";
+    $output .= "<p>Cleared " . count($clearedKeys) . " lockout-related session keys:</p>";
+    $output .= "<ul>";
+    foreach ($clearedKeys as $key) {
+        $output .= "<li>{$key}</li>";
+    }
+    $output .= "</ul>";
+    $output .= "<p><a href='/login'>Go to Login Page</a> | <a href='/test-admin-lockout'>Test Admin Lockouts</a></p>";
+    
+    return $output;
+});

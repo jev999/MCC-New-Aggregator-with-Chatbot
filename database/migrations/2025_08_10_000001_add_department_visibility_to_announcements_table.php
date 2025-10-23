@@ -12,8 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('announcements', function (Blueprint $table) {
-            $table->enum('visibility_scope', ['department', 'all'])->default('all')->after('is_published');
-            $table->enum('target_department', ['BSIT', 'BSBA', 'BEED', 'BSHM'])->nullable()->after('visibility_scope');
+            // Only add columns if they don't exist
+            if (!Schema::hasColumn('announcements', 'visibility_scope')) {
+                $table->enum('visibility_scope', ['department', 'all'])->default('all')->after('is_published');
+            }
+            if (!Schema::hasColumn('announcements', 'target_department')) {
+                $table->enum('target_department', ['BSIT', 'BSBA', 'BEED', 'BSHM'])->nullable()->after('visibility_scope');
+            }
         });
     }
 

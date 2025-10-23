@@ -12,14 +12,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('announcements', function (Blueprint $table) {
-            // Add multiple media support
-            $table->json('image_paths')->nullable()->after('image_path');
-            $table->json('video_paths')->nullable()->after('video_path');
+            // Add multiple media support only if they don't exist
+            if (!Schema::hasColumn('announcements', 'image_paths')) {
+                $table->json('image_paths')->nullable()->after('image_path');
+            }
+            if (!Schema::hasColumn('announcements', 'video_paths')) {
+                $table->json('video_paths')->nullable()->after('video_path');
+            }
             
-            // Add visibility and targeting columns
-            $table->enum('visibility_scope', ['department', 'office', 'all'])->default('all')->after('is_published');
-            $table->string('target_department')->nullable()->after('visibility_scope');
-            $table->string('target_office')->nullable()->after('target_department');
+            // Add visibility and targeting columns only if they don't exist
+            if (!Schema::hasColumn('announcements', 'visibility_scope')) {
+                $table->enum('visibility_scope', ['department', 'office', 'all'])->default('all')->after('is_published');
+            }
+            if (!Schema::hasColumn('announcements', 'target_department')) {
+                $table->string('target_department')->nullable()->after('visibility_scope');
+            }
+            if (!Schema::hasColumn('announcements', 'target_office')) {
+                $table->string('target_office')->nullable()->after('target_department');
+            }
         });
     }
 

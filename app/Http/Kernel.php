@@ -47,6 +47,7 @@ class Kernel extends HttpKernel
         'super_admin' => \App\Http\Middleware\SuperAdminAuth::class,
         'department_admin' => \App\Http\Middleware\DepartmentAdminAuth::class,
         'office_admin' => \App\Http\Middleware\OfficeAdminAuth::class,
+        'login_lockout' => \App\Http\Middleware\LoginLockoutMiddleware::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
     ];

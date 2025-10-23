@@ -12,6 +12,7 @@
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - MCC News Aggregator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -414,8 +415,10 @@
 
         .lockout-message {
             background: rgba(220, 38, 38, 0.1);
-            border-color: rgba(220, 38, 38, 0.3);
+            border: 2px solid rgba(220, 38, 38, 0.3);
             color: #dc2626;
+            animation: lockoutPulse 2s ease-in-out infinite;
+            font-weight: 600;
         }
 
         .lockout-message::before {
@@ -425,6 +428,72 @@
         .lockout-message i {
             margin-right: 0.5rem;
             color: #dc2626;
+            animation: lockIconShake 0.5s ease-in-out;
+        }
+
+        @keyframes lockoutPulse {
+            0%, 100% { border-color: rgba(220, 38, 38, 0.3); }
+            50% { border-color: rgba(220, 38, 38, 0.6); }
+        }
+
+        @keyframes lockIconShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+
+        .form-disabled {
+            opacity: 0.6;
+            pointer-events: none;
+            filter: grayscale(50%);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .form-disabled::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 10;
+            cursor: not-allowed;
+        }
+
+        .form-disabled input,
+        .form-disabled select,
+        .form-disabled button,
+        .form-disabled textarea {
+            pointer-events: none !important;
+            cursor: not-allowed !important;
+            background-color: #f5f5f5 !important;
+            color: #999 !important;
+        }
+
+        .form-disabled button {
+            background: #ccc !important;
+            border-color: #ccc !important;
+        }
+
+        .lockout-countdown {
+            font-weight: 700;
+            color: #dc2626;
+            font-size: 1.1em;
+            text-align: center;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(220, 38, 38, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(220, 38, 38, 0.2);
+        }
+        
+        #countdown-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            color: #b91c1c;
+            font-weight: 800;
         }
 
         .attempts-warning {
@@ -1097,9 +1166,12 @@
 
 
             @if($errors->has('account_lockout'))
-                <div class="error-message lockout-message">
+                <div class="error-message lockout-message" id="lockout-message">
                     <i class="fas fa-lock"></i>
-                    {{ $errors->first('account_lockout') }}
+                    <span id="lockout-text">{{ $errors->first('account_lockout') }}</span>
+                    <div class="lockout-countdown" id="lockout-countdown" style="margin-top: 8px; display: block;">
+                        <strong>Time remaining: <span id="countdown-timer">Loading...</span></strong>
+                    </div>
                 </div>
             @elseif($errors->any() && !$errors->has('ms365_account') && !$errors->has('gmail_account') && !$errors->has('username') && !$errors->has('password') && !$errors->has('account_lockout'))
                 <div class="error-message">
@@ -1120,7 +1192,7 @@
 
             <!-- Unified Login Form -->
             <div class="unified-login-form">
-                <form method="POST" action="{{ url('/login') }}" id="unified-form">
+                <form method="POST" action="{{ url('/login') }}" id="unified-form" @if($errors->has('account_lockout')) class="form-disabled" @endif>
                     @csrf
 
                     <!-- Login Type Selector -->
@@ -1131,16 +1203,16 @@
                         </label>
                         <div class="login-type-select">
                             <select name="login_type" id="login_type" class="form-control" required>
-                                <option value="ms365" selected>
+                                <option value="ms365" {{ old('login_type', 'ms365') == 'ms365' ? 'selected' : '' }}>
                                     Student/Faculty (MS365)
                                 </option>
-                                <option value="superadmin">
+                                <option value="superadmin" {{ old('login_type') == 'superadmin' ? 'selected' : '' }}>
                                     Super Admin
                                 </option>
-                                <option value="department-admin">
+                                <option value="department-admin" {{ old('login_type') == 'department-admin' ? 'selected' : '' }}>
                                     Department Admin
                                 </option>
-                                <option value="office-admin">
+                                <option value="office-admin" {{ old('login_type') == 'office-admin' ? 'selected' : '' }}>
                                     Office Admin
                                 </option>
                             </select>
@@ -1676,56 +1748,137 @@
             }, 100);
         });
 
-        // Lockout countdown functionality
+        // Enhanced lockout countdown functionality
         function initializeLockoutCountdown() {
             const lockoutMessage = document.querySelector('.lockout-message');
-            if (!lockoutMessage) return;
+            const lockoutCountdown = document.getElementById('lockout-countdown');
+            const countdownTimer = document.getElementById('countdown-timer');
+            const lockoutText = document.getElementById('lockout-text');
+            const loginForm = document.getElementById('unified-form');
             
-            const messageText = lockoutMessage.textContent;
-            const minutesMatch = messageText.match(/(\d+)\s+minutes?/);
+            if (!lockoutMessage || !lockoutCountdown || !countdownTimer) {
+                console.error('Required lockout elements not found');
+                return;
+            }
             
-            if (minutesMatch) {
-                let remainingSeconds = parseInt(minutesMatch[1]) * 60; // Convert to seconds
+            // Disable the form during lockout
+            if (loginForm && !loginForm.classList.contains('form-disabled')) {
+                loginForm.classList.add('form-disabled');
+            }
+            
+            // Disable all form elements
+            const formElements = loginForm.querySelectorAll('input, select, button, textarea');
+            formElements.forEach(element => {
+                element.disabled = true;
+                element.style.cursor = 'not-allowed';
+            });
+            
+            // Get remaining seconds from backend
+            let remainingSeconds = {{ session('lockout_seconds', 180) }};
+            
+            // Fallback if no backend seconds available
+            if (!remainingSeconds || remainingSeconds <= 0) {
+                remainingSeconds = 180; // Default 3 minutes
+            }
+            
+            // Ensure reasonable bounds (max 5 minutes for safety)
+            if (remainingSeconds > 300 || remainingSeconds < 0) {
+                console.warn('Invalid seconds value detected:', remainingSeconds, 'defaulting to 180 seconds');
+                remainingSeconds = 180;
+            }
+            
+            // Show countdown element
+            lockoutCountdown.style.display = 'block';
+            
+            // Add debug logging
+            console.log('Lockout countdown initialized:', {
+                remainingSeconds: remainingSeconds,
+                backendSeconds: {{ session('lockout_seconds', 0) }},
+                currentTime: new Date().toISOString()
+            });
+            
+            // Update countdown immediately
+            updateCountdownDisplay(remainingSeconds, countdownTimer, lockoutText);
+            
+            const countdown = setInterval(() => {
+                remainingSeconds--;
                 
-                const countdown = setInterval(() => {
-                    remainingSeconds--;
+                // Safety check to prevent infinite countdown
+                if (remainingSeconds < -10) {
+                    console.warn('Countdown went negative, clearing interval');
+                    clearInterval(countdown);
+                    return;
+                }
+                
+                if (remainingSeconds <= 0) {
+                    clearInterval(countdown);
                     
-                    if (remainingSeconds <= 0) {
-                        clearInterval(countdown);
-                        // Hide the lockout message
-                        lockoutMessage.style.display = 'none';
+                    // Re-enable the form
+                    if (loginForm) {
+                        loginForm.classList.remove('form-disabled');
                         
-                        // Show success message that account is unlocked
-                        const successDiv = document.createElement('div');
-                        successDiv.className = 'success-message';
-                        successDiv.innerHTML = '<i class="fas fa-check-circle"></i> Account unlocked! You can now try logging in again.';
-                        lockoutMessage.parentNode.insertBefore(successDiv, lockoutMessage);
-                        
-                        // Remove success message after 5 seconds
-                        setTimeout(() => {
-                            if (successDiv.parentNode) {
-                                successDiv.remove();
-                            }
-                        }, 5000);
-                    } else {
-                        // Update the message with new time
-                        const minutes = Math.floor(remainingSeconds / 60);
-                        const seconds = remainingSeconds % 60;
-                        
-                        let timeText;
-                        if (minutes > 0) {
-                            timeText = minutes + ' minute' + (minutes !== 1 ? 's' : '');
-                            if (seconds > 0) {
-                                timeText += ' and ' + seconds + ' second' + (seconds !== 1 ? 's' : '');
-                            }
-                        } else {
-                            timeText = seconds + ' second' + (seconds !== 1 ? 's' : '');
-                        }
-                        
-                        const newMessage = messageText.replace(/\d+\s+minutes?/, timeText);
-                        lockoutMessage.innerHTML = '<i class="fas fa-lock"></i> ' + newMessage;
+                        // Re-enable all form elements
+                        const formElements = loginForm.querySelectorAll('input, select, button, textarea');
+                        formElements.forEach(element => {
+                            element.disabled = false;
+                            element.style.cursor = '';
+                        });
                     }
-                }, 1000); // Update every second
+                    
+                    // Hide the lockout message
+                    lockoutMessage.style.display = 'none';
+                    
+                    // Show success message that account is unlocked
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'success-message';
+                    successDiv.innerHTML = '<i class="fas fa-unlock"></i> Account unlocked! You can now try logging in again.';
+                    lockoutMessage.parentNode.insertBefore(successDiv, lockoutMessage);
+                    
+                    // Remove success message after 5 seconds
+                    setTimeout(() => {
+                        if (successDiv.parentNode) {
+                            successDiv.remove();
+                        }
+                    }, 5000);
+                    
+                    // Clear the lockout from session (optional - backend handles expiration)
+                    fetch('/clear-current-lockout', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json'
+                        }
+                    }).catch(error => {
+                        console.log('Lockout clear request failed (this is normal):', error);
+                    });
+                    
+                    return;
+                }
+                
+                // Update countdown display
+                updateCountdownDisplay(remainingSeconds, countdownTimer, lockoutText);
+                
+            }, 1000); // Update every second
+        }
+        
+        // Helper function to update countdown display
+        function updateCountdownDisplay(remainingSeconds, countdownTimer, lockoutText) {
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            
+            // Format time as MM:SS
+            const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update countdown timer
+            if (countdownTimer) {
+                countdownTimer.textContent = timeText;
+            }
+            
+            // Update main lockout text with current minutes
+            if (lockoutText) {
+                const originalText = lockoutText.textContent;
+                const updatedText = originalText.replace(/(\d+(?:\.\d+)?)\s+minutes?/, `${Math.ceil(remainingSeconds / 60)} minute${Math.ceil(remainingSeconds / 60) !== 1 ? 's' : ''}`);
+                lockoutText.textContent = updatedText;
             }
         }
 
