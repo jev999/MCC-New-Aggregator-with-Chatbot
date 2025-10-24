@@ -199,7 +199,7 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'strict'), // Strict SameSite for CSRF protection
+    'same_site' => env('SESSION_SAME_SITE', 'lax'), // Lax SameSite for better compatibility
 
     /*
     |--------------------------------------------------------------------------

@@ -1,0 +1,31 @@
+# CRITICAL FIXES FOR YOUR .env FILE
+# Replace these lines in your .env file:
+
+# 1. Fix Environment Settings
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://mcc-nac.com
+
+# 2. Fix Database Host (Update with your actual remote database host)
+DB_HOST=your_remote_database_host_here
+# Keep your existing database credentials:
+# DB_DATABASE=u802714156_mccNac
+# DB_USERNAME=u802714156_MCCnac
+# DB_PASSWORD=1Mccnac2025
+
+# 3. Add Missing Session Security Settings
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=lax
+SESSION_DOMAIN=.mcc-nac.com
+
+# 4. Optional: Add Cache Settings
+CACHE_STORE=database
+CACHE_PREFIX=mcc_nac_cache_
+
+# 5. Keep your existing settings:
+# SESSION_DRIVER=database
+# SESSION_LIFETIME=120
+# SESSION_PATH=/
+# All your mail, Redis, and other settings are fine
