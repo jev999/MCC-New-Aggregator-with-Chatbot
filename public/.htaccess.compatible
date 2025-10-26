@@ -1,27 +1,24 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-
+    
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
+    
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
 
-# Security Headers (only if mod_headers is available)
+# Apache 2.2 Compatible File Protection
+<FilesMatch "\.(env|log|ini|json|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security Headers (test after basic setup works)
 <IfModule mod_headers.c>
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>
-
-# Protect sensitive files
-<FilesMatch "^\.env$">
-    Require all denied
-</FilesMatch>
-
-<FilesMatch "^(composer\.(json|lock)|package\.(json|lock))$">
-    Require all denied
-</FilesMatch>
