@@ -37,7 +37,7 @@
         <div class="hero-content">
             <div class="hero-text">
                 <h1>Welcome to MCC-NAC Portal</h1>
-                <p>Madridejos Community College News Aggregator with Chatbot</p>
+                <p>Madridejos Community College News Aggregator with Gemini AI</p>
                 <p class="hero-subtitle">Access your academic resources and stay connected with campus life</p>
             </div>
         </div>
@@ -270,7 +270,7 @@
                         </div>
                         <span class="logo-text">MCC-NAC</span>
                     </div>
-                    <p>Madridejos Community College<br>News Aggregator with Chatbot</p>
+                    <p>Madridejos Community College<br>News Aggregator with Gemini AI</p>
                 </div>
                 
                 <div class="footer-section">
@@ -295,7 +295,7 @@
         </div>
     </footer>
 
-@include('components.chatbot-widget')
+@include('components.gemini-chatbot-widget')
 </div>
 
 <style @nonce>
@@ -1932,10 +1932,6 @@
         font-size: 0.875rem;
     }
 
-    .chatbot-widget {
-        bottom: 1rem;
-        right: 1rem;
-    }
     
     .chatbot-container {
         width: calc(100vw - 2rem);

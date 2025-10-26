@@ -171,173 +171,185 @@ class ChatbotController extends Controller
 
     private function getFallbackResponse(string $userMessage): string
     {
-        // Simple keyword-based fallback responses
+        // Simple keyword-based fallback responses with accurate information
         $message = strtolower($userMessage);
         
         if (strpos($message, 'hello') !== false || strpos($message, 'hi') !== false || strpos($message, 'hey') !== false) {
-            return "Hello! Welcome to MCC Portal! 👋 I'm here to help you with information about our programs, events, admissions, and more. What would you like to know?";
+            return "Hello! Welcome to MCC-NAC Portal! 👋 I'm your MCC-NAC Assistant. I can help you with information about our academic programs, admissions, campus facilities, and more. What would you like to know about Madridejos Community College?";
         }
         
         if (strpos($message, 'program') !== false || strpos($message, 'course') !== false || strpos($message, 'degree') !== false) {
-            return "🎓 <strong>MCC Academic Programs:</strong><br><br>
+            return "🎓 <strong>MCC Academic Programs (CHED-Accredited):</strong><br><br>
             • <strong>BSIT</strong> - Bachelor of Science in Information Technology<br>
             • <strong>BSBA</strong> - Bachelor of Science in Business Administration<br>
             • <strong>BEED</strong> - Bachelor of Elementary Education<br>
             • <strong>BSED</strong> - Bachelor of Secondary Education<br>
             • <strong>BSHM</strong> - Bachelor of Science in Hospitality Management<br><br>
-            Each program is CHED-accredited and designed for industry readiness. For detailed curriculum, visit MCC or email <strong>registrar@mcc-nac.edu.ph</strong>.";
+            All programs are tuition-free as MCC is a public community college. For detailed curriculum information, contact <strong>registrar@mcc-nac.edu.ph</strong> or call <strong>(032) 394-2234</strong>.";
         }
         
         if (strpos($message, 'admission') !== false || strpos($message, 'enroll') !== false || strpos($message, 'apply') !== false) {
-            return "📚 <strong>Admission Process:</strong><br><br>
-            1. Submit completed application form<br>
-            2. Provide Form 138 (Report Card)<br>
-            3. Submit 2x2 ID pictures<br>
-            4. Present PSA Birth Certificate<br>
-            5. Pay registration fee<br><br>
-            For inquiries, contact <strong>admissions@mcc-nac.edu.ph</strong> or visit MCC Campus at Bunakan, Madridejos, Cebu.";
+            return "📚 <strong>MCC Admission Requirements:</strong><br><br>
+            1. Completed application form<br>
+            2. Form 138 (Report Card/Transcript)<br>
+            3. PSA Birth Certificate (original & photocopy)<br>
+            4. 2x2 ID pictures (recent)<br>
+            5. Good Moral Certificate<br>
+            6. Registration fee: ₱100 (SSC fee for first-year students)<br><br>
+            For enrollment assistance, contact <strong>admissions@mcc-nac.edu.ph</strong> or visit our campus at Bunakan, Madridejos, Cebu.";
         }
         
         if (strpos($message, 'location') !== false || strpos($message, 'address') !== false || strpos($message, 'where') !== false) {
-            return "📍 <strong>Madridejos Community College located:</strong><br><br>
+            return "📍 <strong>Madridejos Community College Location:</strong><br><br>
             <strong>Bunakan, Madridejos, Cebu, Philippines</strong><br>
-            Near Madridejos Public Market and Municipal Hall.<br><br>
-            Landmark:Brgy. Bunakan, Madridejos,cebu .<br><br>
-            Open from <strong>8:00 AM to 5:00 PM</strong> (Monday to Friday).";
+            Near Madridejos Public Market and Municipal Hall<br><br>
+            <strong>Office Hours:</strong> 8:00 AM - 5:00 PM (Monday to Friday)<br>
+            <strong>Phone:</strong> (032) 394-2234";
         }
         
         if (strpos($message, 'contact') !== false || strpos($message, 'phone') !== false || strpos($message, 'email') !== false) {
-            return "📞 <strong>Contact MCC:</strong><br><br>
-            • <strong>Email:</strong> info@mcc-nac.edu.ph<br>
+            return "📞 <strong>MCC Contact Information:</strong><br><br>
+            • <strong>Main Email:</strong> info@mcc-nac.edu.ph<br>
             • <strong>Registrar:</strong> registrar@mcc-nac.edu.ph<br>
             • <strong>Admissions:</strong> admissions@mcc-nac.edu.ph<br>
-            • <strong>Landline:</strong> (032) 123-4567<br><br>
-            Visit us at <strong>Bunakan, Madridejos, Cebu</strong>.";
+            • <strong>Phone:</strong> (032) 394-2234<br>
+            • <strong>Address:</strong> Bunakan, Madridejos, Cebu<br>
+            • <strong>Hours:</strong> 8:00 AM - 5:00 PM (Mon-Fri)";
         }
         
         if (strpos($message, 'event') !== false || strpos($message, 'activity') !== false || strpos($message, 'announcement') !== false) {
             return "📅 <strong>MCC Events & Activities:</strong><br><br>
-            • <strong>Foundation Month</strong> (Annual celebration every March)<br>
-            • <strong>Intramurals</strong> (Sports competitions among departments)<br>
-            • <strong>IT Days</strong> (BSIT department and other departments)<br>
-            • <strong>Teacher’s Day</strong> (Honoring educators)<br><br>
-            Check the <strong>MCC-NAC Portal</strong> for updates or email <strong>events@mcc-nac.edu.ph</strong>.";
+            • <strong>Foundation Day</strong> - Annual college celebration<br>
+            • <strong>Intramurals</strong> - Inter-department sports competitions<br>
+            • <strong>IT Days</strong> - Technology showcase for BSIT students<br>
+            • <strong>Teachers' Day</strong> - Honoring educators<br>
+            • <strong>Graduation Ceremonies</strong> - Commencement exercises<br><br>
+            Check the <strong>MCC-NAC Portal</strong> for current events or contact <strong>info@mcc-nac.edu.ph</strong>.";
         }
         
         if (strpos($message, 'fee') !== false || strpos($message, 'tuition') !== false || strpos($message, 'cost') !== false || strpos($message, 'price') !== false) {
-            return "💰 <strong>Offers no tuition fee :</strong><br><br>
-            • <strong>The registration fee is exclusive only for incoming first year cost (100 peso) for SSC for courses BSIT/BSBA/BSHM/BEED/BSED:</strong>
-            <em>Note: for more information visit us <strong>infog@mcc-nac.edu.ph</strong>.</em>";
+            return "💰 <strong>MCC Tuition and Fees:</strong><br><br>
+            <strong>Good news!</strong> MCC offers <strong>tuition-free education</strong> as a public community college.<br><br>
+            <strong>Only fee required:</strong><br>
+            • Registration fee for first-year students: <strong>₱100</strong> (SSC fee)<br><br>
+            For detailed fee information, contact <strong>registrar@mcc-nac.edu.ph</strong> or call <strong>(032) 394-2234</strong>.";
         }
         
         if (strpos($message, 'facility') !== false || strpos($message, 'library') !== false || strpos($message, 'lab') !== false) {
             return "🏫 <strong>MCC Campus Facilities:</strong><br><br>
-            • <strong>Library</strong> (Open 8AM-5PM)<br>
-            • <strong>Computer Labs</strong> (For BSIT students)<br>
-            • <strong>Educ</strong> (For education students)<br>
-            • <strong>Gymnasium</strong> (Sports & events)<br>
-            • <strong>Cafeteria</strong> (Affordable meals)<br><br>
-            Visit MCC to explore our facilities!";
+            • <strong>Library</strong> - Study areas and research resources (8AM-5PM)<br>
+            • <strong>Computer Laboratories</strong> - Modern equipment for all programs<br>
+            • <strong>Science Laboratories</strong> - For education and science courses<br>
+            • <strong>Gymnasium</strong> - Sports activities and events<br>
+            • <strong>Cafeteria</strong> - Affordable meals and snacks<br>
+            • <strong>Audio-Visual Rooms</strong> - Multimedia learning spaces<br><br>
+            Visit MCC to explore our modern facilities!";
         }
         
         if (strpos($message, 'scholarship') !== false || strpos($message, 'discount') !== false) {
-            return "🎗️ <strong>Scholarships & Financial Aid:</strong><br><br>
-            MCC offers:<br>
-            • <strong>Academic Scholarships</strong> (For TED graant)<br>
-            • <strong>CHED Grants</strong> (For qualified applicants)<br>
-            • <strong>LGU Scholarships</strong> (Madridejos residents)<br><br>
-            Inquire at the <strong>Registrars Office</strong> or email <strong>scholarships@mcc-nac.edu.ph</strong>.";
+            return "🎗️ <strong>MCC Scholarships & Financial Aid:</strong><br><br>
+            Available scholarships:<br>
+            • <strong>CHED Grants</strong> - Government financial assistance<br>
+            • <strong>TES (Tertiary Education Subsidy)</strong> - For qualified students<br>
+            • <strong>LGU Scholarships</strong> - For Madridejos residents<br>
+            • <strong>Academic Scholarships</strong> - Merit-based awards<br>
+            • <strong>IP Scholarships</strong> - For Indigenous Peoples<br><br>
+            Contact the <strong>Registrar's Office</strong> at <strong>registrar@mcc-nac.edu.ph</strong> for application procedures.";
         }
         
         if (strpos($message, 'calendar') !== false || strpos($message, 'semester') !== false) {
-            return "📆 <strong>Academic Calendar 2024-2025:</strong><br><br>
-            • <strong>1st Semester:</strong> June - October<br>
-            • <strong>2nd Semester:</strong> November - March<br>
-            • <strong>Summer Term:</strong> April - May (optional)<br><br>
-            Exact dates vary yearly. Check the <strong>MCC-NAC Portal</strong> for updates.";
+            return "📆 <strong>MCC Academic Calendar:</strong><br><br>
+            • <strong>First Semester:</strong> August - December<br>
+            • <strong>Second Semester:</strong> January - May<br>
+            • <strong>Summer Term:</strong> June - July (optional)<br><br>
+            Enrollment periods are announced before each semester. Check the <strong>MCC-NAC Portal</strong> or contact <strong>registrar@mcc-nac.edu.ph</strong> for exact dates.";
         }
-        if (strpos($message, 'bsit') !== false || strpos($message, 'bsit instructor') !== false) {
-            return " <strong>Bachelor of Science Information Technology:</strong><br><br>
-            • <strong>BSIT Head:</strong>Mr.Dino ilustrisimo<br>
-            • <strong>Instructor:</strong> Mr.Alvin Billones <br>
-            • <strong>Instructor:</strong>Mr. Juniel Marfa<br><br>
-            • <strong>Instructor:</strong>Mr. Danilo Villarino<br><br>
-            • <strong>Instructor:</strong>Mr. Richard Bracero<br><br>
-            • <strong>Instructor:</strong>Mr. Jered Cueva<br><br>
-            • <strong>Instructor:</strong>Mrs. Jessica Alcazar<br><br>
-            • <strong>Instructor:</strong>Mrs. Emily Ilustrisimo<br><br>
-            Exact dates vary yearly. Check the <strong>MCC-NAC Portal</strong> for updates.";
+        
+        if (strpos($message, 'bsit') !== false || strpos($message, 'faculty') !== false || strpos($message, 'instructor') !== false) {
+            return "👨‍🏫 <strong>BSIT Department Faculty:</strong><br><br>
+            • <strong>Mr. Dino Ilustrisimo</strong> - Department Head<br>
+            • <strong>Mr. Alvin Billones</strong> - Instructor<br>
+            • <strong>Mr. Juniel Marfa</strong> - Instructor<br>
+            • <strong>Mr. Danilo Villarino</strong> - Instructor<br>
+            • <strong>Mr. Richard Bracero</strong> - Instructor<br>
+            • <strong>Mr. Jered Cueva</strong> - Instructor<br>
+            • <strong>Mrs. Jessica Alcazar</strong> - Instructor<br>
+            • <strong>Mrs. Emily Ilustrisimo</strong> - Instructor<br><br>
+            For more information about the BSIT program, contact <strong>info@mcc-nac.edu.ph</strong> or call <strong>(032) 394-2234</strong>.";
         }
         
         if (strpos($message, 'thank') !== false) {
-            return "You're very welcome! 😊 If you have more questions, feel free to ask or email <strong>info@mcc-nac.edu.ph</strong>. Have a great day at MCC!";
+            return "You're very welcome! 😊 I'm here to help with any questions about MCC. Feel free to ask more or contact us directly at <strong>info@mcc-nac.edu.ph</strong> or <strong>(032) 394-2234</strong>. Have a great day!";
         }
         
         // Default response
-        return "Thank you for your question! 😊 For detailed information, please contact:<br><br>
+        return "Thank you for your question about MCC! 😊 I'm currently experiencing technical difficulties with my AI service, but you can get immediate assistance by contacting:<br><br>
         📧 <strong>info@mcc-nac.edu.ph</strong><br>
+        📞 <strong>(032) 394-2234</strong><br>
         📍 <strong>Bunakan, Madridejos, Cebu</strong><br><br>
-        How else can I assist you with MCC?";
+        How else can I help you with information about Madridejos Community College?";
     }
 
     private function getSystemPrompt(): string
     {
-        return "You are an AI assistant for **Madridejos Community College (MCC-NAC Portal System)**. Provide accurate, friendly, and professional responses about MCC. Key details:
+        return "You are MCC-NAC Assistant, an AI chatbot for **Madridejos Community College (MCC-NAC Portal System)**. Provide accurate, friendly, and professional responses about MCC based on verified information.
 
-### **COLLEGE INFORMATION**
+### **CORE MCC INFORMATION**
 - **Full Name:** Madridejos Community College (MCC)
 - **Location:** Bunakan, Madridejos, Cebu, Philippines
-- **Email:** info@mcc-nac.edu.ph
-- **Contact:** (032) 123-4567
-- **Operating Hours:** 8:00 AM - 5:00 PM (Mon-Fri)
+- **Main Email:** info@mcc-nac.edu.ph
+- **Phone:** (032) 394-2234
+- **Office Hours:** 8:00 AM - 5:00 PM (Monday to Friday)
 
-### **ACADEMIC PROGRAMS**
-1. **BSIT** (Bachelor of Science in Information Technology)  
-   - Focus: Programming, Networking, AI, and Software Development  
-   - Career Paths: Software Engineer, IT Specialist, Data Analyst  
+### **ACADEMIC PROGRAMS (CHED-Accredited)**
+1. **BSIT** - Bachelor of Science in Information Technology
+   - Focus: Programming, Networking, AI, Software Development
+   - Faculty Head: Mr. Dino Ilustrisimo
 
-2. **BSBA** (Bachelor of Science in Business Administration)  
-   - Specializations: Marketing, Finance, Entrepreneurship  
-   - Career Paths: Business Manager, Financial Analyst  
+2. **BSBA** - Bachelor of Science in Business Administration
+   - Specializations: Marketing, Finance, Entrepreneurship
 
-3. **BEED/BSED** (Bachelor of Elementary/Secondary Education)  
-   - Specializations: English, Math, Science  
-   - Career Paths: Teacher, Education Consultant  
+3. **BEED** - Bachelor of Elementary Education
+   - Prepares future elementary school teachers
 
-4. **BSHM** (Bachelor of Science in Hospitality Management)  
-   - Focus: Hotel Operations, Tourism, Event Management  
+4. **BSED** - Bachelor of Secondary Education
+   - Specializations: English, Math, Science
+
+5. **BSHM** - Bachelor of Science in Hospitality Management
+   - Focus: Hotel Operations, tourism, Event Management
+
+### **TUITION & FEES**
+- **MCC is a PUBLIC community college offering TUITION-FREE education**
+- Only registration fee: ₱100 (SSC fee for first-year students)
+- All programs are CHED-accredited
 
 ### **ADMISSION REQUIREMENTS**
-- Form 138 (Report Card)  
-- PSA Birth Certificate  
-- 2x2 ID Pictures  
-- Good Moral Certificate  
+- Completed application form
+- Form 138 (Report Card/Transcript)
+- PSA Birth Certificate (original & photocopy)
+- 2x2 ID pictures (recent)
+- Good Moral Certificate
+- Registration fee payment
+
+### **KEY CONTACTS**
+- **Registrar:** registrar@mcc-nac.edu.ph
+- **Admissions:** admissions@mcc-nac.edu.ph
+- **General Info:** info@mcc-nac.edu.ph
 
 ### **CAMPUS FACILITIES**
-- Library (Open 8AM-5PM)  
-- Computer Labs (24/7 Access for BSIT)  
-- Gymnasium (Sports & Events)  
-- Cafeteria (Affordable Meals)  
-
-### **STUDENT SERVICES**
-- **Registrar’s Office:** Handles enrollment, grades  
-- **Guidance Office:** Counseling & career advice  
-- **Scholarships:** Academic, CHED, LGU-funded  
-
-### **PORTAL FEATURES**
-- **Announcements:** Exam schedules, events  
-- **Grades Viewing:** Check academic performance  
-- **Event Registration:** Sign up for seminars  
+- Library (8AM-5PM with study areas)
+- Computer Laboratories (modern equipment)
+- Science Laboratories
+- Gymnasium (sports & events)
+- Cafeteria (affordable meals)
+- Audio-Visual Rooms
 
 ### **RESPONSE GUIDELINES**
-- Be concise but helpful (2-3 sentences for simple queries).  
-- For fees, deadlines, or specific policies, direct users to official contacts.  
-- Use **bold** for important details (e.g., deadlines, emails).  
-- Maintain a **friendly but professional** tone.  
-
-Example Responses:  
-- *“MCC’s BSIT program covers programming, databases, and AI. Email admissions@mcc-nac.edu.ph for the full curriculum.”*  
-- *“The library is open weekdays from 8AM-5PM. Bring your student ID for access.”*  
-- *“For scholarship applications, visit the Registrar’s Office or email scholarships@mcc-nac.edu.ph.”*";
+- Be concise but helpful (2-4 sentences for simple queries)
+- Use **bold** for important details (contact info, deadlines, program names)
+- Maintain a **friendly but professional** tone
+- For specific policies or detailed information, direct users to official contacts
+- Always emphasize that MCC offers tuition-free education as a public college
+- Provide accurate contact information: (032) 394-2234 and info@mcc-nac.edu.ph";
     }
 }

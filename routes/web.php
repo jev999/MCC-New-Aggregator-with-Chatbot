@@ -35,6 +35,11 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// Test chatbot page
+Route::get('/test-chatbot', function () {
+    return view('test-chatbot');
+})->name('test.chatbot');
+
 // Legal pages routes
 Route::get('/terms-and-conditions', [App\Http\Controllers\LegalController::class, 'termsAndConditions'])->name('legal.terms');
 Route::get('/privacy-policy', [App\Http\Controllers\LegalController::class, 'privacyPolicy'])->name('legal.privacy');
@@ -1356,6 +1361,11 @@ Route::get('/test-images', function () {
     return view('test-images');
 })->name('test.images');
 
+// Test route for chatbot comparison (remove in production)
+Route::get('/test-chatbots', function () {
+    return view('test-chatbots');
+})->name('test.chatbots');
+
 // Public content routes (no authentication required)
 Route::get('/announcements', [PublicContentController::class, 'announcements'])->name('public.announcements.index');
 Route::get('/announcements/{announcement}', [PublicContentController::class, 'showAnnouncement'])->name('public.announcements.show');
@@ -1777,6 +1787,11 @@ Route::get('/test-deepseek', function () {
 })->name('test.deepseek');
 // Chatbot API route (accessible from welcome page and dashboard)
 Route::post('/api/chatbot', [ChatbotController::class, 'chat'])->name('api.chatbot');
+
+// Gemini Chatbot API routes
+Route::post('/api/gemini-chatbot', [App\Http\Controllers\GeminiChatbotController::class, 'chat'])->name('api.gemini.chatbot');
+Route::get('/api/gemini-test', [App\Http\Controllers\GeminiChatbotController::class, 'testConnection'])->name('api.gemini.test');
+Route::get('/api/gemini-faq', [App\Http\Controllers\GeminiChatbotController::class, 'getFaqContent'])->name('api.gemini.faq');
 Route::put('/user/update-settings', [UserAuthController::class, 'updateSettings'])->name('user.update-settings');
 
 });

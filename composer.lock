@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b2e64e412516dab197db9ea6b20b31e0",
+    "content-hash": "099720cf7266d2f7e20f2e5dbccfec24",
     "packages": [
         {
             "name": "anhskohbo/no-captcha",
@@ -859,6 +859,142 @@
                 }
             ],
             "time": "2023-10-12T05:21:21+00:00"
+        },
+        {
+            "name": "google-gemini-php/client",
+            "version": "2.6.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/google-gemini-php/client.git",
+                "reference": "c90c43a53d85715984752928628760df9c01b682"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/google-gemini-php/client/zipball/c90c43a53d85715984752928628760df9c01b682",
+                "reference": "c90c43a53d85715984752928628760df9c01b682",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.1.0",
+                "php-http/discovery": "^1.19.2",
+                "psr/http-client-implementation": "*",
+                "psr/http-factory-implementation": "*"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "^7.8.1",
+                "guzzlehttp/psr7": "^2.6.2",
+                "laravel/pint": "^1.18.1",
+                "mockery/mockery": "^1.6.7",
+                "pestphp/pest": "^2.30",
+                "phpstan/phpstan": "^1.10"
+            },
+            "suggest": {
+                "ext-fileinfo": "Reads upload file size and mime type if not provided"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Gemini.php"
+                ],
+                "psr-4": {
+                    "Gemini\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fatih AYDIN",
+                    "email": "aydinfatih52@gmail.com"
+                }
+            ],
+            "description": "Gemini API is a supercharged PHP API client that allows you to interact with the Gemini API",
+            "keywords": [
+                "Gemini",
+                "client",
+                "gemini-pro",
+                "language",
+                "natural",
+                "nlp",
+                "php",
+                "processing",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/google-gemini-php/client/issues",
+                "source": "https://github.com/google-gemini-php/client/tree/2.6.0"
+            },
+            "time": "2025-09-12T13:29:29+00:00"
+        },
+        {
+            "name": "google-gemini-php/laravel",
+            "version": "2.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/google-gemini-php/laravel.git",
+                "reference": "561c3921f449ede58ab89ad3e8017f2eef16aca7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/google-gemini-php/laravel/zipball/561c3921f449ede58ab89ad3e8017f2eef16aca7",
+                "reference": "561c3921f449ede58ab89ad3e8017f2eef16aca7",
+                "shasum": ""
+            },
+            "require": {
+                "google-gemini-php/client": "^2.0",
+                "laravel/framework": "^9.0|^10.0|^11.0|^12.0",
+                "php": "^8.1.0"
+            },
+            "require-dev": {
+                "guzzlehttp/guzzle": "^7.8.1",
+                "laravel/pint": "^1.13.6",
+                "pestphp/pest": "^2.27.0",
+                "pestphp/pest-plugin-arch": "^2.4.1",
+                "phpstan/phpstan": "^1.10.47",
+                "symfony/var-dumper": "^6.4.0|^7.0.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Gemini\\Laravel\\ServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Gemini\\Laravel\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fatih AYDIN",
+                    "email": "aydinfatih52@gmail.com"
+                }
+            ],
+            "description": "Google Gemini PHP for Laravel is a supercharged PHP API client that allows you to interact with the Google Gemini AI API",
+            "keywords": [
+                "Gemini",
+                "api",
+                "client",
+                "language",
+                "laravel",
+                "natural",
+                "php",
+                "processing",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/google-gemini-php/laravel/issues",
+                "source": "https://github.com/google-gemini-php/laravel/tree/2.0.1"
+            },
+            "time": "2025-05-12T15:56:40+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -8478,69 +8614,6 @@
             "time": "2025-07-10T18:09:32+00:00"
         },
         {
-            "name": "laravel/sail",
-            "version": "v1.44.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/laravel/sail.git",
-                "reference": "a09097bd2a8a38e23ac472fa6a6cf5b0d1c1d3fe"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/laravel/sail/zipball/a09097bd2a8a38e23ac472fa6a6cf5b0d1c1d3fe",
-                "reference": "a09097bd2a8a38e23ac472fa6a6cf5b0d1c1d3fe",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/console": "^9.52.16|^10.0|^11.0|^12.0",
-                "illuminate/contracts": "^9.52.16|^10.0|^11.0|^12.0",
-                "illuminate/support": "^9.52.16|^10.0|^11.0|^12.0",
-                "php": "^8.0",
-                "symfony/console": "^6.0|^7.0",
-                "symfony/yaml": "^6.0|^7.0"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0",
-                "phpstan/phpstan": "^1.10"
-            },
-            "bin": [
-                "bin/sail"
-            ],
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Laravel\\Sail\\SailServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Laravel\\Sail\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Taylor Otwell",
-                    "email": "taylor@laravel.com"
-                }
-            ],
-            "description": "Docker files for running a basic Laravel application.",
-            "keywords": [
-                "docker",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/laravel/sail/issues",
-                "source": "https://github.com/laravel/sail"
-            },
-            "time": "2025-07-04T16:17:06+00:00"
-        },
-        {
             "name": "mockery/mockery",
             "version": "1.6.12",
             "source": {
@@ -10369,82 +10442,6 @@
                 }
             ],
             "time": "2024-10-20T05:08:20+00:00"
-        },
-        {
-            "name": "symfony/yaml",
-            "version": "v7.3.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/symfony/yaml.git",
-                "reference": "b8d7d868da9eb0919e99c8830431ea087d6aae30"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/symfony/yaml/zipball/b8d7d868da9eb0919e99c8830431ea087d6aae30",
-                "reference": "b8d7d868da9eb0919e99c8830431ea087d6aae30",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=8.2",
-                "symfony/deprecation-contracts": "^2.5|^3.0",
-                "symfony/polyfill-ctype": "^1.8"
-            },
-            "conflict": {
-                "symfony/console": "<6.4"
-            },
-            "require-dev": {
-                "symfony/console": "^6.4|^7.0"
-            },
-            "bin": [
-                "Resources/bin/yaml-lint"
-            ],
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Symfony\\Component\\Yaml\\": ""
-                },
-                "exclude-from-classmap": [
-                    "/Tests/"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Fabien Potencier",
-                    "email": "fabien@symfony.com"
-                },
-                {
-                    "name": "Symfony Community",
-                    "homepage": "https://symfony.com/contributors"
-                }
-            ],
-            "description": "Loads and dumps YAML files",
-            "homepage": "https://symfony.com",
-            "support": {
-                "source": "https://github.com/symfony/yaml/tree/v7.3.2"
-            },
-            "funding": [
-                {
-                    "url": "https://symfony.com/sponsor",
-                    "type": "custom"
-                },
-                {
-                    "url": "https://github.com/fabpot",
-                    "type": "github"
-                },
-                {
-                    "url": "https://github.com/nicolas-grekas",
-                    "type": "github"
-                },
-                {
-                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
-                    "type": "tidelift"
-                }
-            ],
-            "time": "2025-07-10T08:47:49+00:00"
         },
         {
             "name": "theseer/tokenizer",

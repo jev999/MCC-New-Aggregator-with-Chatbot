@@ -3,10 +3,17 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\GeminiChatbotController;
 
 
 
 Route::post('/chatbot', [ChatbotController::class, 'chat']);
+
+// Gemini Chatbot Routes
+Route::post('/gemini-chatbot', [GeminiChatbotController::class, 'chat'])->name('api.gemini.chatbot');
+Route::get('/gemini-test', [GeminiChatbotController::class, 'testConnection']);
+Route::get('/gemini-faq', [GeminiChatbotController::class, 'getFaqContent']);
+Route::post('/test-faq-responses', [GeminiChatbotController::class, 'testFaqResponses']);
 /*
 |--------------------------------------------------------------------------
 | API Routes
