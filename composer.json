@@ -16,6 +16,7 @@
         "laravel/ui": "^4.6",
         "microsoft/microsoft-graph": "^2.46",
         "socialiteproviders/microsoft": "^4.7",
+        "spatie/laravel-backup": "^9.3",
         "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {

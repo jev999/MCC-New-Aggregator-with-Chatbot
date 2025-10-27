@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\Admin;
 use App\Models\AdminAccessLog;
+use App\Models\PasswordReset;
 use App\Services\GeolocationService;
 use Carbon\Carbon;
 class UnifiedAuthController extends Controller
@@ -1102,14 +1103,7 @@ class UnifiedAuthController extends Controller
         $token = Str::random(64);
         
         // Store token in password_resets table
-        DB::table('password_resets')->updateOrInsert(
-            ['email' => $request->ms365_account],
-            [
-                'email' => $request->ms365_account,
-                'token' => Hash::make($token),
-                'created_at' => now()
-            ]
-        );
+        PasswordReset::updateOrCreateToken($request->ms365_account, $token);
 
         // Send reset email
         try {
@@ -1144,18 +1138,16 @@ class UnifiedAuthController extends Controller
         }
 
         // Verify token exists and is valid
-        $resetRecord = DB::table('password_resets')
-            ->where('email', $email)
-            ->first();
+        $resetRecord = PasswordReset::where('email', $email)->first();
 
-        if (!$resetRecord || !Hash::check($token, $resetRecord->token)) {
+        if (!$resetRecord || !PasswordReset::verifyToken($email, $token)) {
             return redirect()->route('password.request')
                            ->withErrors(['email' => 'Invalid or expired reset link.']);
         }
 
         // Check if token is expired (60 minutes)
-        if (now()->diffInMinutes($resetRecord->created_at) > 60) {
-            DB::table('password_resets')->where('email', $email)->delete();
+        if ($resetRecord->isExpired(60)) {
+            PasswordReset::deleteToken($email);
             return redirect()->route('password.request')
                            ->withErrors(['email' => 'Reset link has expired. Please request a new one.']);
         }
@@ -1189,17 +1181,15 @@ class UnifiedAuthController extends Controller
         ], $secureMessages);
 
         // Verify token
-        $resetRecord = DB::table('password_resets')
-            ->where('email', $request->email)
-            ->first();
+        $resetRecord = PasswordReset::where('email', $request->email)->first();
 
-        if (!$resetRecord || !Hash::check($request->token, $resetRecord->token)) {
+        if (!$resetRecord || !PasswordReset::verifyToken($request->email, $request->token)) {
             return back()->withErrors(['email' => 'Invalid reset token.']);
         }
 
         // Check if token is expired
-        if (now()->diffInMinutes($resetRecord->created_at) > 60) {
-            DB::table('password_resets')->where('email', $request->email)->delete();
+        if ($resetRecord->isExpired(60)) {
+            PasswordReset::deleteToken($request->email);
             return back()->withErrors(['email' => 'Reset link has expired.']);
         }
 
@@ -1219,7 +1209,7 @@ class UnifiedAuthController extends Controller
         ]);
 
         // Delete the reset token
-        DB::table('password_resets')->where('email', $request->email)->delete();
+        PasswordReset::deleteToken($request->email);
 
         return redirect()->route('login')
                         ->with('success', 'Your password has been successfully reset. You can now log in with your new password.');

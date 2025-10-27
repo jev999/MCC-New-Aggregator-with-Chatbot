@@ -60,6 +60,16 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
+            'dump' => [
+                // Configure mysqldump path for XAMPP on Windows
+                'dump_binary_path' => env('MYSQL_DUMP_PATH', 'C:/xampp/mysql/bin/'),
+                // Add common mysqldump options
+                'dump_options' => [
+                    '--single-transaction',
+                    '--quick',
+                    '--lock-tables=false',
+                ],
+            ],
         ],
 
         'mariadb' => [

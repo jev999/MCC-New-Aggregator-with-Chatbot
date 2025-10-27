@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Ms365Account;
 use App\Models\User;
+use App\Models\RegistrationToken;
 use App\Services\MicrosoftGraphService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -71,15 +72,7 @@ class MS365OAuthController extends Controller
         $expiresAt = now()->addMinutes(30);
 
         // Store registration token
-        DB::table('registration_tokens')->updateOrInsert(
-            ['email' => $email],
-            [
-                'token' => $token,
-                'expires_at' => $expiresAt,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]
-        );
+        RegistrationToken::createToken($email, $token, $expiresAt);
 
         // Prepare registration link
         $registrationUrl = URL::to("/register/{$token}");
@@ -145,10 +138,7 @@ class MS365OAuthController extends Controller
      */
     public function showRegisterForm($token)
     {
-        $tokenRecord = DB::table('registration_tokens')
-            ->where('token', $token)
-            ->where('expires_at', '>', now())
-            ->first();
+        $tokenRecord = RegistrationToken::findValidToken($token);
 
         if (!$tokenRecord) {
             return redirect()->route('login')->withErrors('This registration link has expired or is invalid.');
@@ -216,13 +206,9 @@ class MS365OAuthController extends Controller
         ]);
 
         // Validate token
-        $tokenRecord = DB::table('registration_tokens')
-            ->where('token', $request->token)
-            ->where('email', $request->ms365_account)
-            ->where('expires_at', '>', now())
-            ->first();
+        $tokenRecord = RegistrationToken::findValidToken($request->token);
 
-        if (!$tokenRecord) {
+        if (!$tokenRecord || $tokenRecord->email !== $request->ms365_account) {
             return back()->withErrors(['ms365_account' => 'Invalid or expired registration token.'])->withInput();
         }
 
@@ -259,7 +245,7 @@ class MS365OAuthController extends Controller
             $user = User::create($userData);
 
             // Delete used token
-            DB::table('registration_tokens')->where('token', $request->token)->delete();
+            RegistrationToken::deleteToken($request->token);
 
             // Redirect back to unified login with success message
             return redirect()->route('login')
