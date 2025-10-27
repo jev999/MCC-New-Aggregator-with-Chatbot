@@ -126,6 +126,7 @@ class MS365AuthController extends Controller
             'department' => 'required_if:role,student,faculty|in:Bachelor of Science in Information Technology,Bachelor of Science in Business Administration,Bachelor of Elementary Education,Bachelor of Secondary Education,Bachelor of Science in Hospitality Management',
             'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
             'password' => 'required|string|min:8|confirmed',
+            'terms_and_privacy' => 'required|accepted',
         ], [
             'email.regex' => 'Please enter a valid .edu.ph email address',
             'email.unique' => 'This email address is already registered.',
@@ -139,6 +140,8 @@ class MS365AuthController extends Controller
             'year_level.required_if' => 'Year level is required for students',
             'year_level.in' => 'Please select a valid year level',
             'password.min' => 'Password must be at least 8 characters long',
+            'terms_and_privacy.required' => 'You must accept the Terms and Conditions and Privacy Policy to register',
+            'terms_and_privacy.accepted' => 'You must accept the Terms and Conditions and Privacy Policy',
         ]);
 
         if ($validator->fails()) {

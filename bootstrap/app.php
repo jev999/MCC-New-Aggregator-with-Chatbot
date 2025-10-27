@@ -12,6 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Register HTTPS enforcement middleware
+        $middleware->web(append: [
+            \App\Http\Middleware\ForceHttps::class,
+        ]);
+        
         // Basic middleware configuration
     })
     ->withExceptions(function (Exceptions $exceptions): void {

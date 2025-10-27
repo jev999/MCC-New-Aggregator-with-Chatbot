@@ -46,6 +46,14 @@ Route::get('/privacy-policy', [App\Http\Controllers\LegalController::class, 'pri
 Route::get('/data-protection-notice', [App\Http\Controllers\LegalController::class, 'dataProtectionNotice'])->name('legal.data-protection');
 Route::get('/cookie-policy', [App\Http\Controllers\LegalController::class, 'cookiePolicy'])->name('legal.cookies');
 
+// Simple policy routes for registration forms
+Route::get('/terms', function () {
+    return view('policies.terms');
+})->name('terms');
+Route::get('/privacy', function () {
+    return view('policies.privacy-policy');
+})->name('privacy');
+
 
 // Debug route to reset user password
 Route::get('/reset-user-password/{email}/{newPassword}', function ($email, $newPassword) {

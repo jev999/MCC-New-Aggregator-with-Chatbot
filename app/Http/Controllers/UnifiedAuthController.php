@@ -971,12 +971,15 @@ class UnifiedAuthController extends Controller
                 'confirmed',
                 new StrongPassword(),
             ]),
+            'terms_and_privacy' => 'required|accepted',
         ], array_merge($secureMessages, [
             'first_name.regex' => 'First name should only contain letters, spaces, and apostrophes',
             'middle_name.regex' => 'Middle name should only contain letters, spaces, and apostrophes',
             'surname.regex' => 'Surname should only contain letters, spaces, and apostrophes',
             'department.required_if' => 'Department is required for your selected role',
             'year_level.required_if' => 'Year level is required for students',
+            'terms_and_privacy.required' => 'You must accept the Terms and Conditions and Privacy Policy to register',
+            'terms_and_privacy.accepted' => 'You must accept the Terms and Conditions and Privacy Policy',
         ]));
 
         if ($validator->fails()) {

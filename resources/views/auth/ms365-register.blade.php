@@ -256,6 +256,31 @@
         </div>
 
 
+        <!-- Terms and Conditions & Privacy Policy -->
+        <div class="form-group">
+            <div class="checkbox-container">
+                <label class="checkbox-label">
+                    <input type="checkbox" 
+                           id="terms_and_privacy" 
+                           name="terms_and_privacy" 
+                           required>
+                    <span class="checkmark"></span>
+                    <span class="checkbox-text">
+                        I agree to the <a href="#" onclick="openModal('termsModal'); return false;" class="policy-link">Terms and Conditions</a> and <a href="#" onclick="openModal('privacyModal'); return false;" class="policy-link">Privacy Policy</a>, and consent to the processing of my personal data in accordance with the Data Privacy Act of 2012
+                    </span>
+                </label>
+                @error('terms_and_privacy')
+                    <div class="error-message">{{ $message }}</div>
+                @enderror
+                @error('terms_conditions')
+                    <div class="error-message">{{ $message }}</div>
+                @enderror
+                @error('privacy_policy')
+                    <div class="error-message">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary">
             <i class="fab fa-microsoft"></i>
             Complete MS365 Registration
@@ -1452,7 +1477,296 @@
         opacity: 1;
     }
 
+    /* Checkbox Styles for Terms and Privacy Policy */
+    .checkbox-container {
+        margin: 10px 0;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        user-select: none;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .checkbox-text {
+        flex: 1;
+        color: #333;
+    }
+
+    .policy-link {
+        color: #0078d4;
+        text-decoration: underline;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .policy-link:hover {
+        color: #005a9e;
+        text-decoration: none;
+    }
+
+    .policy-link:focus {
+        outline: 2px solid #0078d4;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .modal-container {
+        background: white;
+        border-radius: 12px;
+        max-width: 90%;
+        max-height: 90vh;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transform: scale(0.9) translateY(20px);
+        transition: transform 0.3s ease;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-overlay.active .modal-container {
+        transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #0078d4, #005a9e);
+        color: white;
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .modal-header.bg-secondary {
+        background: linear-gradient(135deg, #6c757d, #5a6268);
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .modal-close {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s ease;
+    }
+
+    .modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-body {
+        padding: 2rem;
+        overflow-y: auto;
+        flex: 1;
+        font-size: 0.95rem;
+        line-height: 1.8;
+    }
+
+    .modal-body h3 {
+        color: #0078d4;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .modal-body h3:first-of-type {
+        margin-top: 0;
+    }
+
+    .modal-body ul {
+        padding-left: 1.5rem;
+        margin: 1rem 0;
+    }
+
+    .modal-body ul li {
+        margin-bottom: 0.5rem;
+    }
+
+    .modal-body ul li strong {
+        color: #0078d4;
+    }
+
+    .modal-body .alert {
+        margin: 1rem 0;
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .modal-container {
+            max-width: 95%;
+            max-height: 95vh;
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .modal-overlay.active {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .modal-container {
+            max-width: 100%;
+            max-height: 100vh;
+            border-radius: 0;
+        }
+
+        .modal-header {
+            padding: 1rem;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            font-size: 0.85rem;
+        }
+    }
+
+    /* Smooth scroll for modal content */
+    .modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+        background: #0078d4;
+        border-radius: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb:hover {
+        background: #005a9e;
+    }
+
 </style>
 
+<!-- Privacy Policy Modal -->
+<div id="privacyModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header bg-primary">
+            <h2><i class="fas fa-shield-alt"></i> Privacy Policy</h2>
+            <button class="modal-close" onclick="closeModal('privacyModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            @include('policies.privacy-policy-content')
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div id="termsModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header bg-secondary">
+            <h2><i class="fas fa-file-contract"></i> Terms and Conditions</h2>
+            <button class="modal-close" onclick="closeModal('termsModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            @include('policies.terms-content')
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent background scroll
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scroll
+        }
+    }
+
+    // Close modal on overlay click
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            closeModal(e.target.id);
+        }
+    });
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                closeModal(modal.id);
+            });
+        }
+    });
+</script>
 
 @endsection
