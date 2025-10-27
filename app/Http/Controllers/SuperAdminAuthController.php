@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Admin;
 use App\Models\AdminAccessLog;
+use App\Services\GeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -12,6 +13,17 @@ use Illuminate\Support\Facades\Http;
 
 class SuperAdminAuthController extends Controller
 {
+    protected $geolocationService;
+    
+    public function __construct()
+    {
+        $this->geolocationService = new GeolocationService();
+    }
+
+    protected function getGeolocationData($ip)
+    {
+        return $this->geolocationService->getLocationFromIp($ip);
+    }
     
     /**
      * Validate reCAPTCHA response
@@ -78,12 +90,16 @@ class SuperAdminAuthController extends Controller
             // Successful super admin login
             $request->session()->regenerate();
 
-            // Log admin access
+            // Log admin access with geolocation
+            $geoData = $this->getGeolocationData($request->ip());
             AdminAccessLog::create([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',
                 'ip_address' => $request->ip(),
+                'latitude' => $geoData['latitude'] ?? null,
+                'longitude' => $geoData['longitude'] ?? null,
+                'location_details' => $geoData['location_details'] ?? null,
                 'time_in' => Carbon::now(),
             ]);
 

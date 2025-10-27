@@ -917,6 +917,7 @@
                                     <th>Admin Name</th>
                                     <th>Role</th>
                                     <th>IP Address</th>
+                                    <th>Location</th>
                                     <th>Time In</th>
                                     <th>Time Out</th>
                                     <th>Duration</th>
@@ -942,6 +943,19 @@
                                         </span>
                                     </td>
                                     <td><span class="ip-address">{{ $log->ip_address ?? 'N/A' }}</span></td>
+                                    <td>
+                                        @if($log->latitude && $log->longitude)
+                                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                <span style="color: #059669; font-size: 0.875rem;">{{ $log->location_details ?? 'N/A' }}</span>
+                                                <button onclick="showLocationMap({{ $log->latitude }}, {{ $log->longitude }}, '{{ $log->location_details }}', '{{ $log->status === 'failed' ? ($log->username_attempted ?? 'Unknown') : ($log->admin->username ?? 'Unknown') }}')" 
+                                                        style="background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; padding: 0.375rem 0.75rem; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                                    <i class="fas fa-map-marker-alt"></i> View Map
+                                                </button>
+                                            </div>
+                                        @else
+                                            <span style="color: #64748b; font-size: 0.875rem;">Location unavailable</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="time-display">
                                             @if($log->status === 'failed')
@@ -1033,6 +1047,33 @@
             </div>
         </div>
     </div>
+
+    <!-- Location Map Modal -->
+    <div id="locationMapModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 16px; width: 90%; max-width: 800px; max-height: 90vh; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);">
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 1.5rem; color: white; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700;" id="mapModalTitle">
+                        <i class="fas fa-map-marker-alt"></i> Admin Location
+                    </h3>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; opacity: 0.9;" id="mapModalSubtitle">Location details</p>
+                </div>
+                <button onclick="closeLocationMap()" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; font-size: 1.25rem; font-weight: 700;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="padding: 1.5rem;">
+                <div id="locationMap" style="width: 100%; height: 400px; border-radius: 12px; overflow: hidden;"></div>
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 8px; color: #475569;">
+                    <strong>Coordinates:</strong> <span id="mapCoordinates"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet CSS and JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
 
@@ -1128,6 +1169,59 @@
                 !mobileMenuBtn.contains(event.target) &&
                 sidebar.classList.contains('open')) {
                 sidebar.classList.remove('open');
+            }
+        });
+
+        // Location Map Functions
+        let map = null;
+
+        function showLocationMap(lat, lng, locationDetails, adminName) {
+            // Update modal content
+            document.getElementById('mapModalTitle').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${adminName}`;
+            document.getElementById('mapModalSubtitle').textContent = locationDetails;
+            document.getElementById('mapCoordinates').textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+            // Show modal
+            const modal = document.getElementById('locationMapModal');
+            modal.style.display = 'flex';
+
+            // Initialize map after a short delay to ensure DOM is ready
+            setTimeout(() => {
+                if (map) {
+                    map.remove();
+                }
+
+                map = L.map('locationMap').setView([lat, lng], 13);
+
+                // Add tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+
+                // Add marker
+                const marker = L.marker([lat, lng]).addTo(map);
+                marker.bindPopup(`
+                    <div style="text-align: center;">
+                        <strong>${adminName}</strong><br>
+                        <small>${locationDetails}</small>
+                    </div>
+                `).openPopup();
+            }, 100);
+        }
+
+        function closeLocationMap() {
+            document.getElementById('locationMapModal').style.display = 'none';
+            if (map) {
+                map.remove();
+                map = null;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('locationMapModal').addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeLocationMap();
             }
         });
     </script>

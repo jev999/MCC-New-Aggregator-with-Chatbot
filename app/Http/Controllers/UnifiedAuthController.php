@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\Admin;
 use App\Models\AdminAccessLog;
+use App\Services\GeolocationService;
 use Carbon\Carbon;
 class UnifiedAuthController extends Controller
 {
     protected $securityService;
+    protected $geolocationService;
     
     public function __construct()
     {
@@ -31,6 +33,15 @@ class UnifiedAuthController extends Controller
         if (class_exists('\App\Services\SecurityService')) {
             $this->securityService = app('\App\Services\SecurityService');
         }
+        $this->geolocationService = new GeolocationService();
+    }
+
+    /**
+     * Get geolocation data for logging
+     */
+    protected function getGeolocationData($ip)
+    {
+        return $this->geolocationService->getLocationFromIp($ip);
     }
 
     /**
@@ -392,12 +403,16 @@ class UnifiedAuthController extends Controller
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
                             
-                            // Log admin access
+                            // Log admin access with geolocation
+                            $geoData = $this->getGeolocationData($request->ip());
                             AdminAccessLog::create([
                                 'admin_id' => $admin->id,
                                 'role' => $admin->role,
                                 'status' => 'success',
                                 'ip_address' => $request->ip(),
+                                'latitude' => $geoData['latitude'] ?? null,
+                                'longitude' => $geoData['longitude'] ?? null,
+                                'location_details' => $geoData['location_details'] ?? null,
                                 'time_in' => Carbon::now(),
                             ]);
                             
@@ -416,13 +431,17 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
-                        // Log failed login attempt
+                        // Log failed login attempt with geolocation
+                        $geoData = $this->getGeolocationData($request->ip());
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'superadmin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['username'],
                             'ip_address' => $request->ip(),
+                            'latitude' => $geoData['latitude'] ?? null,
+                            'longitude' => $geoData['longitude'] ?? null,
+                            'location_details' => $geoData['location_details'] ?? null,
                             'time_in' => null,
                         ]);
                         
@@ -436,13 +455,17 @@ class UnifiedAuthController extends Controller
                         'username' => $credentials['username']
                     ]);
                     
-                    // Log failed login attempt
+                    // Log failed login attempt with geolocation
+                    $geoData = $this->getGeolocationData($request->ip());
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'superadmin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['username'],
                         'ip_address' => $request->ip(),
+                        'latitude' => $geoData['latitude'] ?? null,
+                        'longitude' => $geoData['longitude'] ?? null,
+                        'location_details' => $geoData['location_details'] ?? null,
                         'time_in' => null,
                     ]);
                     
@@ -517,12 +540,16 @@ class UnifiedAuthController extends Controller
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
                             
-                            // Log admin access
+                            // Log admin access with geolocation
+                            $geoData = $this->getGeolocationData($request->ip());
                             AdminAccessLog::create([
                                 'admin_id' => $admin->id,
                                 'role' => $admin->role,
                                 'status' => 'success',
                                 'ip_address' => $request->ip(),
+                                'latitude' => $geoData['latitude'] ?? null,
+                                'longitude' => $geoData['longitude'] ?? null,
+                                'location_details' => $geoData['location_details'] ?? null,
                                 'time_in' => Carbon::now(),
                             ]);
                             
@@ -541,13 +568,17 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
-                        // Log failed login attempt
+                        // Log failed login attempt with geolocation
+                        $geoData = $this->getGeolocationData($request->ip());
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'department_admin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['ms365_account'],
                             'ip_address' => $request->ip(),
+                            'latitude' => $geoData['latitude'] ?? null,
+                            'longitude' => $geoData['longitude'] ?? null,
+                            'location_details' => $geoData['location_details'] ?? null,
                             'time_in' => null,
                         ]);
                         
@@ -561,13 +592,17 @@ class UnifiedAuthController extends Controller
                         'ms365_account' => $credentials['ms365_account']
                     ]);
                     
-                    // Log failed login attempt
+                    // Log failed login attempt with geolocation
+                    $geoData = $this->getGeolocationData($request->ip());
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'department_admin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['ms365_account'],
                         'ip_address' => $request->ip(),
+                        'latitude' => $geoData['latitude'] ?? null,
+                        'longitude' => $geoData['longitude'] ?? null,
+                        'location_details' => $geoData['location_details'] ?? null,
                         'time_in' => null,
                     ]);
                     
@@ -673,12 +708,16 @@ class UnifiedAuthController extends Controller
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
                             
-                            // Log admin access
+                            // Log admin access with geolocation
+                            $geoData = $this->getGeolocationData($request->ip());
                             AdminAccessLog::create([
                                 'admin_id' => $admin->id,
                                 'role' => $admin->role,
                                 'status' => 'success',
                                 'ip_address' => $request->ip(),
+                                'latitude' => $geoData['latitude'] ?? null,
+                                'longitude' => $geoData['longitude'] ?? null,
+                                'location_details' => $geoData['location_details'] ?? null,
                                 'time_in' => Carbon::now(),
                             ]);
                             
@@ -697,13 +736,17 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
-                        // Log failed login attempt
+                        // Log failed login attempt with geolocation
+                        $geoData = $this->getGeolocationData($request->ip());
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'office_admin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['ms365_account'],
                             'ip_address' => $request->ip(),
+                            'latitude' => $geoData['latitude'] ?? null,
+                            'longitude' => $geoData['longitude'] ?? null,
+                            'location_details' => $geoData['location_details'] ?? null,
                             'time_in' => null,
                         ]);
                         
@@ -720,13 +763,17 @@ class UnifiedAuthController extends Controller
                         'search_criteria' => 'exact_match_on_username_field'
                     ]);
                     
-                    // Log failed login attempt
+                    // Log failed login attempt with geolocation
+                    $geoData = $this->getGeolocationData($request->ip());
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'office_admin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['ms365_account'] ?? 'NULL',
                         'ip_address' => $request->ip(),
+                        'latitude' => $geoData['latitude'] ?? null,
+                        'longitude' => $geoData['longitude'] ?? null,
+                        'location_details' => $geoData['location_details'] ?? null,
                         'time_in' => null,
                     ]);
                     

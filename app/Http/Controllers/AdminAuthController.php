@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Admin;
 use App\Models\AdminAccessLog;
+use App\Services\GeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,17 @@ use Carbon\Carbon;
 
 class AdminAuthController extends Controller
 {
+    protected $geolocationService;
+    
+    public function __construct()
+    {
+        $this->geolocationService = new GeolocationService();
+    }
+
+    protected function getGeolocationData($ip)
+    {
+        return $this->geolocationService->getLocationFromIp($ip);
+    }
     public function showLoginForm()
     {
         return view('admin.auth.login');
@@ -43,12 +55,16 @@ class AdminAuthController extends Controller
             // Successful department admin login
             $request->session()->regenerate();
 
-            // Log admin access
+            // Log admin access with geolocation
+            $geoData = $this->getGeolocationData($request->ip());
             AdminAccessLog::create([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',
                 'ip_address' => $request->ip(),
+                'latitude' => $geoData['latitude'] ?? null,
+                'longitude' => $geoData['longitude'] ?? null,
+                'location_details' => $geoData['location_details'] ?? null,
                 'time_in' => Carbon::now(),
             ]);
 
