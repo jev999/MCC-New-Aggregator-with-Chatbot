@@ -19,6 +19,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
 use App\Models\User;
 use App\Models\Admin;
+use App\Models\AdminAccessLog;
+use Carbon\Carbon;
 class UnifiedAuthController extends Controller
 {
     protected $securityService;
@@ -389,6 +391,16 @@ class UnifiedAuthController extends Controller
                             // Successful super admin login - manually log in the user
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
+                            
+                            // Log admin access
+                            AdminAccessLog::create([
+                                'admin_id' => $admin->id,
+                                'role' => $admin->role,
+                                'status' => 'success',
+                                'ip_address' => $request->ip(),
+                                'time_in' => Carbon::now(),
+                            ]);
+                            
                             $result = redirect()->route('superadmin.dashboard')->with('login_success', true);
                             $loginSuccessful = true;
                             
@@ -404,6 +416,16 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
+                        // Log failed login attempt
+                        AdminAccessLog::create([
+                            'admin_id' => null,
+                            'role' => 'superadmin',
+                            'status' => 'failed',
+                            'username_attempted' => $credentials['username'],
+                            'ip_address' => $request->ip(),
+                            'time_in' => null,
+                        ]);
+                        
                         $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
                                     ->withInput($request->only('username', 'login_type'));
                         $loginSuccessful = false;
@@ -412,6 +434,16 @@ class UnifiedAuthController extends Controller
                     // Admin not found
                     \Log::warning('Superadmin not found', [
                         'username' => $credentials['username']
+                    ]);
+                    
+                    // Log failed login attempt
+                    AdminAccessLog::create([
+                        'admin_id' => null,
+                        'role' => 'superadmin',
+                        'status' => 'failed',
+                        'username_attempted' => $credentials['username'],
+                        'ip_address' => $request->ip(),
+                        'time_in' => null,
                     ]);
                     
                     $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
@@ -484,6 +516,16 @@ class UnifiedAuthController extends Controller
                             // Successful department admin login - manually log in the user
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
+                            
+                            // Log admin access
+                            AdminAccessLog::create([
+                                'admin_id' => $admin->id,
+                                'role' => $admin->role,
+                                'status' => 'success',
+                                'ip_address' => $request->ip(),
+                                'time_in' => Carbon::now(),
+                            ]);
+                            
                             $result = redirect()->route('department-admin.dashboard')->with('login_success', true);
                             $loginSuccessful = true;
                             
@@ -499,6 +541,16 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
+                        // Log failed login attempt
+                        AdminAccessLog::create([
+                            'admin_id' => null,
+                            'role' => 'department_admin',
+                            'status' => 'failed',
+                            'username_attempted' => $credentials['ms365_account'],
+                            'ip_address' => $request->ip(),
+                            'time_in' => null,
+                        ]);
+                        
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
                                     ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
@@ -507,6 +559,16 @@ class UnifiedAuthController extends Controller
                     // Admin not found
                     \Log::warning('Department admin not found', [
                         'ms365_account' => $credentials['ms365_account']
+                    ]);
+                    
+                    // Log failed login attempt
+                    AdminAccessLog::create([
+                        'admin_id' => null,
+                        'role' => 'department_admin',
+                        'status' => 'failed',
+                        'username_attempted' => $credentials['ms365_account'],
+                        'ip_address' => $request->ip(),
+                        'time_in' => null,
                     ]);
                     
                     $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
@@ -610,6 +672,16 @@ class UnifiedAuthController extends Controller
                             // Successful office admin login - manually log in the user
                             Auth::guard('admin')->login($admin);
                             $request->session()->regenerate();
+                            
+                            // Log admin access
+                            AdminAccessLog::create([
+                                'admin_id' => $admin->id,
+                                'role' => $admin->role,
+                                'status' => 'success',
+                                'ip_address' => $request->ip(),
+                                'time_in' => Carbon::now(),
+                            ]);
+                            
                             $result = redirect()->route('office-admin.dashboard')->with('login_success', true);
                             $loginSuccessful = true;
                             
@@ -625,6 +697,16 @@ class UnifiedAuthController extends Controller
                             'admin_id' => $admin->id
                         ]);
                         
+                        // Log failed login attempt
+                        AdminAccessLog::create([
+                            'admin_id' => null,
+                            'role' => 'office_admin',
+                            'status' => 'failed',
+                            'username_attempted' => $credentials['ms365_account'],
+                            'ip_address' => $request->ip(),
+                            'time_in' => null,
+                        ]);
+                        
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
                                     ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
@@ -636,6 +718,16 @@ class UnifiedAuthController extends Controller
                         'all_admin_usernames' => Admin::all()->pluck('username')->toArray(),
                         'total_admins_checked' => Admin::all()->count(),
                         'search_criteria' => 'exact_match_on_username_field'
+                    ]);
+                    
+                    // Log failed login attempt
+                    AdminAccessLog::create([
+                        'admin_id' => null,
+                        'role' => 'office_admin',
+                        'status' => 'failed',
+                        'username_attempted' => $credentials['ms365_account'] ?? 'NULL',
+                        'ip_address' => $request->ip(),
+                        'time_in' => null,
                     ]);
                     
                     $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])

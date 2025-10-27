@@ -38,6 +38,11 @@
             <li><a href="{{ route('superadmin.students.index') }}" class="active">
                 <i class="fas fa-user-graduate"></i> Students
             </a></li>
+            @if(auth('admin')->user()->isSuperAdmin())
+            <li><a href="{{ route('superadmin.admin-access') }}">
+                <i class="fas fa-clipboard-list"></i> Admin Access Logs
+            </a></li>
+            @endif
             <li>
                 <form method="POST" action="{{ route('superadmin.logout') }}" style="display: inline; width: 100%;">
                     @csrf

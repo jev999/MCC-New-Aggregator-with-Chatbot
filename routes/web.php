@@ -1479,6 +1479,10 @@ Route::prefix('superadmin')->group(function () {
     // Protected SuperAdmin routes
     Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
+        
+        // Admin access logs route
+        Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
+        Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
 
         // Admin management routes
         Route::resource('admins', SuperAdminController::class, [
@@ -2251,3 +2255,4 @@ Route::get('/clear-all-lockouts', function() {
     
     return $output;
 });
+

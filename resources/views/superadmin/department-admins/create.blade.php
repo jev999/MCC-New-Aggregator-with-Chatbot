@@ -28,65 +28,57 @@
 
         .sidebar {
             width: 280px;
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            background: #1a1a1a;
             color: white;
             position: fixed;
             height: 100vh;
             left: 0;
             top: 0;
-            overflow-y: auto;
             z-index: 1000;
-            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
+            overflow-y: auto;
         }
 
         .sidebar-header {
-            padding: 2rem 1.5rem;
+            padding: 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
+            text-align: left;
         }
 
         .sidebar-header h3 {
-            color: white;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 600;
             margin: 0;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 0.5rem;
-        }
-
-        .sidebar-header h3 i {
-            color: #ffd700;
-            font-size: 1.5rem;
+            color: white;
         }
 
         .sidebar-menu {
             list-style: none;
-            padding: 1rem 0;
+            padding: 0.5rem 0;
         }
 
         .sidebar-menu li {
-            margin: 0.5rem 0;
+            margin: 0.25rem 0;
         }
 
         .sidebar-menu a {
             display: flex;
             align-items: center;
-            padding: 0.875rem 1.5rem;
-            color: #cbd5e1;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: white;
             text-decoration: none;
             font-weight: 500;
-            transition: all 0.3s ease;
-            gap: 0.75rem;
+            transition: all 0.2s ease;
         }
 
         .sidebar-menu a:hover,
         .sidebar-menu a.active {
-            background: rgba(255, 255, 255, 0.1);
+            background: #333333;
             color: white;
-            transform: translateX(5px);
         }
 
         .sidebar-menu a i {
@@ -470,13 +462,13 @@
         <div class="main-content">
             <div class="header">
                 <h1><i class="fas fa-building"></i> Create Department Admin</h1>
-                <a href="{{ route('superadmin.admins.index') }}" class="btn btn-secondary">
+                <a href="{{ route('superadmin.department-admins.index') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
             </div>
 
             <div class="form-container">
-                <form action="{{ route('superadmin.admins.store') }}" method="POST">
+                <form action="{{ route('superadmin.department-admins.store') }}" method="POST">
                     @csrf
                     
                     <div class="form-group">
@@ -601,7 +593,7 @@
 
 
                     <div class="form-actions">
-                        <a href="{{ route('superadmin.admins.index') }}" class="btn btn-secondary">
+                        <a href="{{ route('superadmin.department-admins.index') }}" class="btn btn-secondary">
                             <i class="fas fa-times"></i> Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">

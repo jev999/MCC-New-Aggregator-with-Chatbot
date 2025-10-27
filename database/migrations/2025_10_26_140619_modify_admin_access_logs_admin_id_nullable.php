@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // This migration was created to fix registration tokens table
-        // but the table already exists and is working correctly
-        // No changes needed
+        Schema::table('admin_access_logs', function (Blueprint $table) {
+            $table->unsignedBigInteger('admin_id')->nullable()->change();
+        });
     }
 
     /**
@@ -21,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // No changes to reverse
+        Schema::table('admin_access_logs', function (Blueprint $table) {
+            $table->unsignedBigInteger('admin_id')->nullable(false)->change();
+        });
     }
 };

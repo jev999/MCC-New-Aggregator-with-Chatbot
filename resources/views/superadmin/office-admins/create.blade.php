@@ -427,6 +427,9 @@
                 <li><a href="{{ route('superadmin.students.index') }}">
                     <i class="fas fa-user-graduate"></i> Students
                 </a></li>
+                <li><a href="{{ route('superadmin.admin-access') }}">
+                    <i class="fas fa-clipboard-list"></i> Admin Access Logs
+                </a></li>
                 <li>
                    
                 </li>

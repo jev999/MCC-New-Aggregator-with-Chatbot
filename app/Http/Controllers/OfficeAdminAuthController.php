@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminAccessLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class OfficeAdminAuthController extends Controller
 {
@@ -57,6 +59,15 @@ class OfficeAdminAuthController extends Controller
             // Successful office admin login
             $request->session()->regenerate();
 
+            // Log admin access
+            AdminAccessLog::create([
+                'admin_id' => $admin->id,
+                'role' => $admin->role,
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'time_in' => Carbon::now(),
+            ]);
+
             return redirect()->route('office-admin.dashboard')
                            ->with('login_success', true);
         }
@@ -71,6 +82,25 @@ class OfficeAdminAuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::guard('admin')->user();
+
+        // Log time out and duration for admin access log
+        if ($user && in_array($user->role, ['superadmin', 'department_admin', 'office_admin'])) {
+            $log = AdminAccessLog::where('admin_id', $user->id)
+                ->whereNull('time_out')
+                ->latest()
+                ->first();
+
+            if ($log) {
+                $timeOut = Carbon::now();
+                $duration = $timeOut->diffForHumans(Carbon::parse($log->time_in), true);
+                $log->update([
+                    'time_out' => $timeOut,
+                    'duration' => $duration,
+                ]);
+            }
+        }
+
         Auth::guard('admin')->logout();
 
         $request->session()->invalidate();
