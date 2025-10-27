@@ -1,0 +1,9 @@
+﻿{
+    "domain":  "https://mcc-nac.com",
+    "timestamp":  "20251027_145404",
+    "hsts_present":  false,
+    "debug_files_found":  true,
+    "x_frame_options_present":  false,
+    "csp_present":  true,
+    "x_content_type_options_present":  false
+}

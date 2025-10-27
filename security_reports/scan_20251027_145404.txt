@@ -1,0 +1,28 @@
+﻿Security Scan Report - 20251027_145404
+Domain: https://mcc-nac.com
+Timestamp: 10/27/2025 14:54:04
+========================================
+
+=== SECURITY HEADERS ===
+[OK] Content-Security-Policy: Present
+[WARNING] Strict-Transport-Security: MISSING
+[MISSING] X-Frame-Options: MISSING
+[MISSING] X-Content-Type-Options: MISSING
+
+=== DEBUG FILES CHECK ===
+[FOUND] public\debug.php (should be removed in production)
+[WARNING] Found test files:
+C:\xampp\htdocs\MCC-News-Aggregator-with-Chatbot-main\public\test_media.php
+C:\xampp\htdocs\MCC-News-Aggregator-with-Chatbot-main\public\test_news_display.php
+
+=== CONFIGURATION CHECK ===
+[WARNING] APP_DEBUG=true (should be false in production)
+[WARNING] APP_ENV not set to production
+
+=== SUMMARY ===
+CSP Present: True
+HSTS Present: False
+X-Frame-Options: False
+X-Content-Type-Options: False
+Debug Files Found: True
+

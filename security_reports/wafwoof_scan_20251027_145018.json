@@ -1,0 +1,6 @@
+{
+  "success": true,
+  "output": "\n                   ______\n                  /      \\\n                 (  Woof! )\n                  \\  ____/                      )\n                  ,,                           ) (_\n             .-. -    _______                 ( |__|\n            ()``; |==|_______)                .)|__|\n            / ('        /|\\                  (  |__|\n        (  /  )        / | \\                  . |__|\n         \\(_)_))      /  |  \\                   |__|\n\n                    ~ WAFW00F : v2.3.2 ~\n    The Web Application Firewall Fingerprinting Toolkit\n    \n[*] Checking https://mcc-nac.com\n[+] Generic Detection results:\n[-] No WAF detected by the generic detection\n[~] Number of requests: 7\n",
+  "timestamp": "2025-10-27T14:50:18.737702",
+  "domain": "https://mcc-nac.com"
+}
