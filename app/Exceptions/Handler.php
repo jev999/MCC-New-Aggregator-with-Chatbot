@@ -40,6 +40,9 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e)
     {
+        // Log all exceptions without sensitive data
+        $this->logException($request, $e);
+
         // Handle security-related exceptions
         if ($this->isSecurityException($e)) {
             return $this->handleSecurityException($request, $e);
@@ -48,9 +51,70 @@ class Handler extends ExceptionHandler
         // Handle validation exceptions with security logging
         if ($e instanceof ValidationException) {
             $this->logValidationException($request, $e);
+            return $this->handleValidationException($request, $e);
+        }
+
+        // Return parent render with user-friendly error
+        return $this->handleGenericException($request, $e);
+    }
+
+    /**
+     * Handle generic exceptions with user-friendly messages
+     */
+    private function handleGenericException(Request $request, Throwable $e)
+    {
+        // Hide stack traces in production
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An unexpected error occurred. Please try again later.',
+                'error' => config('app.debug') ? $e->getMessage() : 'INTERNAL_ERROR'
+            ], 500);
+        }
+
+        // For web requests, return a redirect with friendly message
+        return redirect()->back()->with([
+            'error' => true,
+            'error_title' => 'Oops! Something went wrong',
+            'error_message' => 'We encountered an issue processing your request. Please try again.',
+            'error_type' => 'generic_error'
+        ]);
+    }
+
+    /**
+     * Handle validation exceptions with user-friendly messages
+     */
+    private function handleValidationException(Request $request, ValidationException $e)
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed. Please check your input.',
+                'errors' => $e->errors()
+            ], 422);
         }
 
         return parent::render($request, $e);
+    }
+
+    /**
+     * Log exception without exposing sensitive information
+     */
+    private function logException(Request $request, Throwable $e): void
+    {
+        Log::channel('single')->error('Exception occurred', [
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'ip' => $request->ip(),
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'user_id' => auth()->id() ?? 'guest',
+            'timestamp' => now()->toISOString(),
+            // Don't log full trace in production
+            'trace' => config('app.debug') ? $e->getTraceAsString() : 'Trace hidden in production'
+        ]);
     }
 
     /**

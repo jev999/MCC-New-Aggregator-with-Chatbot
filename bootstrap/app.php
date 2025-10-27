@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register HTTPS enforcement middleware
         $middleware->web(append: [
             \App\Http\Middleware\ForceHttps::class,
+            \App\Http\Middleware\MonitoringMiddleware::class,
         ]);
         
         // Basic middleware configuration
