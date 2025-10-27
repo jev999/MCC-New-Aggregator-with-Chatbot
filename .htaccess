@@ -1,3 +1,23 @@
+# Directory Listing Protection
+Options -Indexes
+
+# Prevent access to sensitive files
+<FilesMatch "\.(env|ini|conf|config|log|sql|bak|backup|old|tmp|temp)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Block access to version control directories
+<IfModule mod_rewrite.c>
+    RewriteRule ^(\.git|\.svn|\.hg|\.bzr) - [F,L]
+</IfModule>
+
+# Prevent access to hidden files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
 # Redirect to public directory if not already there
 <IfModule mod_rewrite.c>
     RewriteEngine On

@@ -22,3 +22,36 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /vendor
+
+# Security: Prevent sensitive files from being committed
+*.sql
+*.bak
+*.backup
+*.old
+*.tmp
+*.temp
+*.cache
+config.php
+database.php
+
+# Security: Test and debug files
+test_*.php
+debug_*.php
+check_*.php
+create_*.php
+fix_*.php
+final_*.php
+quick_*.php
+session_*.php
+reset_*.php
+update_*.php
+
+# Security: Documentation with sensitive info
+*_IMPLEMENTATION*.md
+*_FIX*.md
+*_SETUP*.md
+*_GUIDE*.md
+*_SUMMARY*.md
+ADMIN_REGISTRATION*.md
+adm.txt
+env.txt
