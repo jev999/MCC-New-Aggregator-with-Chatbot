@@ -28,16 +28,18 @@ class SecurityHeaders
         // ============================================
         // 1. HTTP Strict Transport Security (HSTS)
         // ============================================
-        // Recommended: max-age=31536000; includeSubDomains; preload
+        // Recommended: max-age=31536000; includeSubDomains
         // Forces browsers to use HTTPS connections only
         if (isset($securityConfig['hsts']) && $securityConfig['hsts']['enabled']) {
             $hstsMaxAge = $securityConfig['hsts']['max-age'] ?? 31536000;
             $includeSubdomains = isset($securityConfig['hsts']['include_subdomains']) && $securityConfig['hsts']['include_subdomains'] ? '; includeSubDomains' : '';
             $preload = isset($securityConfig['hsts']['preload']) && $securityConfig['hsts']['preload'] ? '; preload' : '';
             
-            // Only send HSTS in production with HTTPS
-            if (config('app.env') === 'production' && $request->secure()) {
-                $response->headers->set('Strict-Transport-Security', "max-age={$hstsMaxAge}{$includeSubdomains}{$preload}");
+            // Only send HSTS over HTTPS (required by specification)
+            // HSTS must never be sent over HTTP as it can cause lockout issues
+            if ($request->secure()) {
+                $hstsValue = "max-age={$hstsMaxAge}{$includeSubdomains}{$preload}";
+                $response->headers->set('Strict-Transport-Security', $hstsValue);
             }
         }
 
