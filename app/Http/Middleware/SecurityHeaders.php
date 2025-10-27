@@ -13,6 +13,11 @@ class SecurityHeaders
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
+    /**
+     * Handle an incoming request and apply security headers.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -20,9 +25,69 @@ class SecurityHeaders
         // Get security configuration
         $securityConfig = config('security.headers');
 
-        // Content Security Policy (CSP) - Build from configuration
+        // ============================================
+        // 1. HTTP Strict Transport Security (HSTS)
+        // ============================================
+        // Recommended: max-age=31536000; includeSubDomains; preload
+        // Forces browsers to use HTTPS connections only
+        if (isset($securityConfig['hsts']) && $securityConfig['hsts']['enabled']) {
+            $hstsMaxAge = $securityConfig['hsts']['max-age'] ?? 31536000;
+            $includeSubdomains = isset($securityConfig['hsts']['include_subdomains']) && $securityConfig['hsts']['include_subdomains'] ? '; includeSubDomains' : '';
+            $preload = isset($securityConfig['hsts']['preload']) && $securityConfig['hsts']['preload'] ? '; preload' : '';
+            
+            // Only send HSTS in production with HTTPS
+            if (config('app.env') === 'production' && $request->secure()) {
+                $response->headers->set('Strict-Transport-Security', "max-age={$hstsMaxAge}{$includeSubdomains}{$preload}");
+            }
+        }
+
+        // ============================================
+        // 2. X-Frame-Options
+        // ============================================
+        // Recommended: SAMEORIGIN
+        // Prevents clickjacking by controlling if site can be framed
+        if (isset($securityConfig['frame_options'])) {
+            $response->headers->set('X-Frame-Options', $securityConfig['frame_options']);
+        }
+
+        // ============================================
+        // 3. X-Content-Type-Options
+        // ============================================
+        // Recommended: nosniff
+        // Prevents MIME-sniffing and forces declared content-type
+        if (isset($securityConfig['content_type_options'])) {
+            $response->headers->set('X-Content-Type-Options', $securityConfig['content_type_options']);
+        }
+
+        // ============================================
+        // 4. Referrer-Policy
+        // ============================================
+        // Recommended: strict-origin-when-cross-origin
+        // Controls how much referrer information is sent with requests
+        if (isset($securityConfig['referrer_policy'])) {
+            $response->headers->set('Referrer-Policy', $securityConfig['referrer_policy']);
+        }
+
+        // ============================================
+        // 5. Permissions-Policy
+        // ============================================
+        // Controls which browser features and APIs can be used
+        if (isset($securityConfig['permissions_policy'])) {
+            $permissions = [];
+            foreach ($securityConfig['permissions_policy'] as $feature => $allowed) {
+                // Format: feature=(self) for allowed, feature=() for blocked
+                $permissions[] = $feature . '=' . ($allowed ? '(self)' : '()');
+            }
+            if (!empty($permissions)) {
+                $response->headers->set('Permissions-Policy', implode(', ', $permissions));
+            }
+        }
+
+        // ============================================
+        // 6. Content Security Policy (CSP)
+        // ============================================
+        // Controls which resources can be loaded by your application
         $csp = [];
-        
         if (isset($securityConfig['csp'])) {
             foreach ($securityConfig['csp'] as $directive => $values) {
                 if (is_bool($values) && $values) {
@@ -32,56 +97,43 @@ class SecurityHeaders
                 }
             }
         }
-
-        // HTTP Strict Transport Security (HSTS)
-        if (isset($securityConfig['hsts']) && $securityConfig['hsts']['enabled']) {
-            $hstsMaxAge = $securityConfig['hsts']['max-age'] ?? 31536000;
-            $includeSubdomains = isset($securityConfig['hsts']['include_subdomains']) && $securityConfig['hsts']['include_subdomains'] ? '; includeSubDomains' : '';
-            $preload = isset($securityConfig['hsts']['preload']) && $securityConfig['hsts']['preload'] ? '; preload' : '';
-            
-            if (config('app.env') === 'production' && $request->secure()) {
-                $response->headers->set('Strict-Transport-Security', "max-age={$hstsMaxAge}{$includeSubdomains}{$preload}");
-            }
+        if (!empty($csp)) {
+            $response->headers->set('Content-Security-Policy', implode('; ', $csp));
         }
 
-        // Content Security Policy
-        $response->headers->set('Content-Security-Policy', implode('; ', $csp));
-
-        // X-Content-Type-Options
-        if (isset($securityConfig['content_type_options'])) {
-            $response->headers->set('X-Content-Type-Options', $securityConfig['content_type_options']);
-        }
-
-        // Additional security headers from configuration
-        if (isset($securityConfig['frame_options'])) {
-            $response->headers->set('X-Frame-Options', $securityConfig['frame_options']);
-        }
-
+        // ============================================
+        // 7. X-XSS-Protection (Legacy)
+        // ============================================
+        // Legacy header for older browsers (IE, Chrome, Safari)
+        // Modern browsers rely on CSP instead
         if (isset($securityConfig['xss_protection']) && $securityConfig['xss_protection']) {
             $response->headers->set('X-XSS-Protection', '1; mode=block');
         }
 
-        if (isset($securityConfig['referrer_policy'])) {
-            $response->headers->set('Referrer-Policy', $securityConfig['referrer_policy']);
-        }
-
-        if (isset($securityConfig['permissions_policy'])) {
-            $permissions = [];
-            foreach ($securityConfig['permissions_policy'] as $feature => $allowed) {
-                $permissions[] = $feature . '=' . ($allowed ? 'self' : '()');
-            }
-            $response->headers->set('Permissions-Policy', implode(', ', $permissions));
-        }
+        // ============================================
+        // Additional Security Headers
+        // ============================================
 
         // X-Permitted-Cross-Domain-Policies
+        // Restricts Adobe Flash and PDF cross-domain policies
         $response->headers->set('X-Permitted-Cross-Domain-Policies', 'none');
 
+        // X-Download-Options
+        // Prevents IE from executing downloads in site's context
+        $response->headers->set('X-Download-Options', 'noopen');
+
         // Clear-Site-Data (for logout/clear session scenarios)
-        if ($request->routeIs('logout')) {
+        // Clears browser data when logging out
+        if ($request->routeIs('logout') || 
+            $request->routeIs('*.logout') || 
+            str_contains($request->path(), 'logout')) {
             $response->headers->set('Clear-Site-Data', '"cache", "cookies", "storage"');
         }
 
-        // Remove server information
+        // ============================================
+        // Remove Information Disclosure Headers
+        // ============================================
+        // Remove headers that reveal server information
         $response->headers->remove('X-Powered-By');
         $response->headers->remove('Server');
 

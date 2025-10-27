@@ -45,14 +45,19 @@ return [
         |--------------------------------------------------------------------------
         |
         | Configure HSTS to force browsers to use HTTPS connections.
+        | Recommended: max-age=31536000; includeSubDomains; preload
+        |
+        | max-age: Time in seconds browsers should remember to only use HTTPS (1 year = 31536000)
+        | include_subdomains: Apply to all subdomains
+        | preload: Include in browser HSTS preload lists
         |
         */
 
         'hsts' => [
-            'enabled' => env('FORCE_HTTPS', true),
-            'max-age' => 31536000,
-            'include_subdomains' => true,
-            'preload' => true,
+            'enabled' => env('SECURITY_HSTS_ENABLED', true),
+            'max-age' => env('SECURITY_HSTS_MAX_AGE', 31536000), // 1 year
+            'include_subdomains' => env('SECURITY_HSTS_INCLUDE_SUBDOMAINS', true),
+            'preload' => env('SECURITY_HSTS_PRELOAD', true),
         ],
 
         /*
@@ -64,16 +69,64 @@ return [
         |
         */
 
-        'frame_options' => env('X_FRAME_OPTIONS', 'SAMEORIGIN'), // SAMEORIGIN, DENY, or ALLOW-FROM
-        'content_type_options' => 'nosniff',
-        'xss_protection' => true,
-        'referrer_policy' => 'strict-origin-when-cross-origin',
+        /*
+        | X-Frame-Options
+        | Prevents clickjacking attacks by controlling if site can be framed
+        | Values: DENY (no framing), SAMEORIGIN (same origin only), ALLOW-FROM uri
+        | Recommended: SAMEORIGIN
+        */
+        'frame_options' => env('SECURITY_X_FRAME_OPTIONS', 'SAMEORIGIN'),
+
+        /*
+        | X-Content-Type-Options
+        | Prevents MIME-sniffing and forces declared content-type
+        | Value: nosniff (only valid value)
+        | Recommended: nosniff
+        */
+        'content_type_options' => env('SECURITY_X_CONTENT_TYPE_OPTIONS', 'nosniff'),
+
+        /*
+        | X-XSS-Protection
+        | Legacy header for older browsers (IE, Chrome, Safari)
+        | Modern browsers rely on CSP instead
+        | Value: 1; mode=block
+        */
+        'xss_protection' => env('SECURITY_XSS_PROTECTION', true),
+
+        /*
+        | Referrer-Policy
+        | Controls how much referrer information is included with requests
+        | Values:
+        |   - no-referrer: Never send referrer
+        |   - no-referrer-when-downgrade: Send only for same security level
+        |   - origin: Send only origin
+        |   - origin-when-cross-origin: Full URL for same origin, origin only for cross-origin
+        |   - same-origin: Send only for same origin
+        |   - strict-origin: Send origin only for same security level
+        |   - strict-origin-when-cross-origin: Full URL for same origin, origin for cross-origin (same security)
+        |   - unsafe-url: Always send full URL (not recommended)
+        | Recommended: strict-origin-when-cross-origin or no-referrer-when-downgrade
+        */
+        'referrer_policy' => env('SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
+
+        /*
+        | Permissions-Policy (formerly Feature-Policy)
+        | Controls which browser features and APIs can be used
+        | Format: feature=(self origin1 origin2) or feature=() to disable
+        | Common features: geolocation, microphone, camera, payment, usb, accelerometer,
+        |                  gyroscope, magnetometer, fullscreen, picture-in-picture
+        */
         'permissions_policy' => [
-            'geolocation' => false,
-            'microphone' => false,
-            'camera' => false,
-            'payment' => false,
-            'usb' => false,
+            'geolocation' => env('SECURITY_PERMISSIONS_GEOLOCATION', false),
+            'microphone' => env('SECURITY_PERMISSIONS_MICROPHONE', false),
+            'camera' => env('SECURITY_PERMISSIONS_CAMERA', false),
+            'payment' => env('SECURITY_PERMISSIONS_PAYMENT', false),
+            'usb' => env('SECURITY_PERMISSIONS_USB', false),
+            'accelerometer' => env('SECURITY_PERMISSIONS_ACCELEROMETER', false),
+            'gyroscope' => env('SECURITY_PERMISSIONS_GYROSCOPE', false),
+            'magnetometer' => env('SECURITY_PERMISSIONS_MAGNETOMETER', false),
+            'fullscreen' => env('SECURITY_PERMISSIONS_FULLSCREEN', true), // Allow fullscreen for videos
+            'picture-in-picture' => env('SECURITY_PERMISSIONS_PICTURE_IN_PICTURE', true), // Allow PIP
         ],
     ],
 
