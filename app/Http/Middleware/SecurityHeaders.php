@@ -30,7 +30,14 @@ class SecurityHeaders
         $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
 
         // Optional: Content Security Policy (CSP) for stronger protection
-        $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+        // Allow reCAPTCHA and other necessary external resources
+        $csp = "default-src 'self'; " .
+               "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
+               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " .
+               "img-src 'self' data: https:; " .
+               "frame-src https://www.google.com/recaptcha/; " .
+               "connect-src 'self' https://www.google.com/recaptcha/;";
+        $response->headers->set('Content-Security-Policy', $csp);
 
         return $response;
     }
