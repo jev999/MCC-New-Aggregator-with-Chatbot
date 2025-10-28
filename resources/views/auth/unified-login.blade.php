@@ -1862,32 +1862,39 @@
                 const updatedText = originalText.replace(/(\d+(?:\.\d+)?)\s+minutes?/, `${Math.ceil(remainingSeconds / 60)} minute${Math.ceil(remainingSeconds / 60) !== 1 ? 's' : ''}`);
                 lockoutText.textContent = updatedText;
             }
-            // Ensure the script runs after the DOM is ready
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('login-form'); // Ensure your login form has this ID
+        // reCAPTCHA v3 Integration
+        // Ensure the script runs after the DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('unified-form'); // Correct form ID
 
-        form.addEventListener('submit', function (e) {
-            e.preventDefault(); // Stop the form submission
+            if (!form) {
+                console.error('Login form not found');
+                return;
+            }
 
-            // Use grecaptcha.ready() to ensure the library is loaded
-            grecaptcha.ready(function() {
-                // Execute reCAPTCHA for the 'login' action
-                grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
-                    // Create a hidden input field for the token and append it to the form
-                    const tokenInput = document.createElement('input');
-                    tokenInput.type = 'hidden';
-                    tokenInput.name = 'g-recaptcha-response';
-                    tokenInput.value = token;
-                    form.appendChild(tokenInput);
+            form.addEventListener('submit', function (e) {
+                e.preventDefault(); // Stop the form submission
 
-                    // Now submit the form with the token
-                    form.submit();
+                // Use grecaptcha.ready() to ensure the library is loaded
+                grecaptcha.ready(function() {
+                    // Execute reCAPTCHA for the 'login' action
+                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
+                        // Create a hidden input field for the token and append it to the form
+                        const tokenInput = document.createElement('input');
+                        tokenInput.type = 'hidden';
+                        tokenInput.name = 'g-recaptcha-response';
+                        tokenInput.value = token;
+                        form.appendChild(tokenInput);
+
+                        // Now submit the form with the token
+                        form.submit();
+                    }).catch(function(error) {
+                        console.error('reCAPTCHA execution failed:', error);
+                        alert('Security verification failed. Please try again.');
+                    });
                 });
             });
         });
-    });
-        }
-
     </script>
 
 </body>
