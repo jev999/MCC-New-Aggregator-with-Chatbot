@@ -1329,7 +1329,16 @@
                         </label>
                     </div>
 
-                    <!-- reCAPTCHA removed -->
+                    <!-- reCAPTCHA v3 Field -->
+                    @if(config('services.recaptcha.site_key'))
+                    <div class="form-group recaptcha-container" id="recaptcha-field" style="display: none; margin: 1rem 0;">
+                        <p style="font-size: 0.75rem; color: #999; text-align: center;">
+                            This site is protected by reCAPTCHA and the Google
+                            <a href="https://policies.google.com/privacy" target="_blank" style="color: #666;">Privacy Policy</a> and
+                            <a href="https://policies.google.com/terms" target="_blank" style="color: #666;">Terms of Service</a> apply.
+                        </p>
+                    </div>
+                    @endif
 
                     <!-- Submit Button -->
                     <button type="submit" class="btn" id="submit-btn">
