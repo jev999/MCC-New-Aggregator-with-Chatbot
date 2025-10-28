@@ -54,10 +54,10 @@ return [
         */
 
         'hsts' => [
-            'enabled' => env('SECURITY_HSTS_ENABLED', true),
+            'enabled' => env('SECURITY_HSTS_ENABLED', false),
             'max-age' => env('SECURITY_HSTS_MAX_AGE', 31536000), // 1 year
-            'include_subdomains' => env('SECURITY_HSTS_INCLUDE_SUBDOMAINS', true),
-            'preload' => env('SECURITY_HSTS_PRELOAD', true),
+            'include_subdomains' => env('SECURITY_HSTS_INCLUDE_SUBDOMAINS', false),
+            'preload' => env('SECURITY_HSTS_PRELOAD', false),
         ],
 
         /*
@@ -75,7 +75,7 @@ return [
         | Values: DENY (no framing), SAMEORIGIN (same origin only), ALLOW-FROM uri
         | Recommended: SAMEORIGIN
         */
-        'frame_options' => env('SECURITY_X_FRAME_OPTIONS', 'SAMEORIGIN'),
+        'frame_options' => null,
 
         /*
         | X-Content-Type-Options
@@ -83,7 +83,7 @@ return [
         | Value: nosniff (only valid value)
         | Recommended: nosniff
         */
-        'content_type_options' => env('SECURITY_X_CONTENT_TYPE_OPTIONS', 'nosniff'),
+        'content_type_options' => null,
 
         /*
         | X-XSS-Protection
@@ -107,7 +107,7 @@ return [
         |   - unsafe-url: Always send full URL (not recommended)
         | Recommended: strict-origin-when-cross-origin or no-referrer-when-downgrade
         */
-        'referrer_policy' => env('SECURITY_REFERRER_POLICY', 'strict-origin-when-cross-origin'),
+        'referrer_policy' => null,
 
         /*
         | Permissions-Policy (formerly Feature-Policy)
@@ -116,18 +116,7 @@ return [
         | Common features: geolocation, microphone, camera, payment, usb, accelerometer,
         |                  gyroscope, magnetometer, fullscreen, picture-in-picture
         */
-        'permissions_policy' => [
-            'geolocation' => env('SECURITY_PERMISSIONS_GEOLOCATION', false),
-            'microphone' => env('SECURITY_PERMISSIONS_MICROPHONE', false),
-            'camera' => env('SECURITY_PERMISSIONS_CAMERA', false),
-            'payment' => env('SECURITY_PERMISSIONS_PAYMENT', false),
-            'usb' => env('SECURITY_PERMISSIONS_USB', false),
-            'accelerometer' => env('SECURITY_PERMISSIONS_ACCELEROMETER', false),
-            'gyroscope' => env('SECURITY_PERMISSIONS_GYROSCOPE', false),
-            'magnetometer' => env('SECURITY_PERMISSIONS_MAGNETOMETER', false),
-            'fullscreen' => env('SECURITY_PERMISSIONS_FULLSCREEN', true), // Allow fullscreen for videos
-            'picture-in-picture' => env('SECURITY_PERMISSIONS_PICTURE_IN_PICTURE', true), // Allow PIP
-        ],
+        'permissions_policy' => null,
     ],
 
     /*

@@ -25,65 +25,7 @@ class SecurityHeaders
         // Get security configuration
         $securityConfig = config('security.headers');
 
-        // ============================================
-        // 1. HTTP Strict Transport Security (HSTS)
-        // ============================================
-        // Recommended: max-age=31536000; includeSubDomains
-        // Forces browsers to use HTTPS connections only
-        if (isset($securityConfig['hsts']) && $securityConfig['hsts']['enabled']) {
-            $hstsMaxAge = $securityConfig['hsts']['max-age'] ?? 31536000;
-            $includeSubdomains = isset($securityConfig['hsts']['include_subdomains']) && $securityConfig['hsts']['include_subdomains'] ? '; includeSubDomains' : '';
-            $preload = isset($securityConfig['hsts']['preload']) && $securityConfig['hsts']['preload'] ? '; preload' : '';
-            
-            // Only send HSTS over HTTPS (required by specification)
-            // HSTS must never be sent over HTTP as it can cause lockout issues
-            if ($request->secure()) {
-                $hstsValue = "max-age={$hstsMaxAge}{$includeSubdomains}{$preload}";
-                $response->headers->set('Strict-Transport-Security', $hstsValue);
-            }
-        }
-
-        // ============================================
-        // 2. X-Frame-Options
-        // ============================================
-        // Recommended: SAMEORIGIN
-        // Prevents clickjacking by controlling if site can be framed
-        if (isset($securityConfig['frame_options'])) {
-            $response->headers->set('X-Frame-Options', $securityConfig['frame_options']);
-        }
-
-        // ============================================
-        // 3. X-Content-Type-Options
-        // ============================================
-        // Recommended: nosniff
-        // Prevents MIME-sniffing and forces declared content-type
-        if (isset($securityConfig['content_type_options'])) {
-            $response->headers->set('X-Content-Type-Options', $securityConfig['content_type_options']);
-        }
-
-        // ============================================
-        // 4. Referrer-Policy
-        // ============================================
-        // Recommended: strict-origin-when-cross-origin
-        // Controls how much referrer information is sent with requests
-        if (isset($securityConfig['referrer_policy'])) {
-            $response->headers->set('Referrer-Policy', $securityConfig['referrer_policy']);
-        }
-
-        // ============================================
-        // 5. Permissions-Policy
-        // ============================================
-        // Controls which browser features and APIs can be used
-        if (isset($securityConfig['permissions_policy'])) {
-            $permissions = [];
-            foreach ($securityConfig['permissions_policy'] as $feature => $allowed) {
-                // Format: feature=(self) for allowed, feature=() for blocked
-                $permissions[] = $feature . '=' . ($allowed ? '(self)' : '()');
-            }
-            if (!empty($permissions)) {
-                $response->headers->set('Permissions-Policy', implode(', ', $permissions));
-            }
-        }
+        // Security headers have been removed
 
         // ============================================
         // 6. Content Security Policy (CSP)
