@@ -19,8 +19,8 @@ class StrongPassword implements Rule
             return false;
         }
 
-        // Check minimum length (8 characters)
-        if (strlen($value) < 8) {
+        // Check minimum length (12 characters for enhanced security)
+        if (strlen($value) < 12) {
             return false;
         }
 
@@ -44,6 +44,16 @@ class StrongPassword implements Rule
             return false;
         }
 
+        // Check for at least two special characters (enhanced security)
+        if (preg_match_all('/[^a-zA-Z0-9]/', $value) < 2) {
+            return false;
+        }
+
+        // Check for at least two numbers (enhanced security)
+        if (preg_match_all('/[0-9]/', $value) < 2) {
+            return false;
+        }
+
         // Check against common weak passwords
         $weakPasswords = [
             'password', '123456', '123456789', 'qwerty', 'abc123',
@@ -63,9 +73,21 @@ class StrongPassword implements Rule
             return false;
         }
 
-        // Check for repeated characters (more than 3 in a row)
-        if (preg_match('/(.)\1{3,}/', $value)) {
+        // Check for repeated characters (more than 2 in a row)
+        if (preg_match('/(.)\1{2,}/', $value)) {
             return false;
+        }
+
+        // Check for keyboard patterns
+        $keyboardPatterns = [
+            'qwerty', 'asdfgh', 'zxcvbn', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm',
+            '1234567890', '0987654321', 'qazwsx', 'edcrfv', 'tgbyhn'
+        ];
+        
+        foreach ($keyboardPatterns as $pattern) {
+            if (stripos($value, $pattern) !== false) {
+                return false;
+            }
         }
 
         // Check for sequential characters (like 123, abc, etc.) - but allow if mixed with other characters
@@ -89,6 +111,6 @@ class StrongPassword implements Rule
      */
     public function message()
     {
-        return 'The :attribute must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character. It cannot be a common weak password or contain repeated or sequential characters.';
+        return 'The :attribute must be at least 12 characters long and contain at least one uppercase letter, one lowercase letter, two numbers, and two special characters. It cannot be a common weak password, contain repeated characters, keyboard patterns, or sequential characters.';
     }
 }

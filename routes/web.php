@@ -127,6 +127,12 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
 
+// Password change routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/password/change', [App\Http\Controllers\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
+    Route::post('/password/change', [App\Http\Controllers\PasswordChangeController::class, 'changePassword'])->name('password.change');
+});
+
 // Account switching routes
 Route::post('/switch-account', [UnifiedAuthController::class, 'switchAccount'])->name('switch.account');
 Route::post('/remove-account', [UnifiedAuthController::class, 'removeAccount'])->name('remove.account');
@@ -1654,7 +1660,7 @@ Route::prefix('user')->group(function () {
     Route::post('register', [UserAuthController::class, 'register']);
     
     // Protected routes
-    Route::middleware(['auth', 'can:view-user-dashboard'])->group(function () {
+    Route::middleware(['auth', 'password.expiration', 'can:view-user-dashboard'])->group(function () {
         Route::get('dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::post('logout', [UserAuthController::class, 'logout'])->name('user.logout');
 

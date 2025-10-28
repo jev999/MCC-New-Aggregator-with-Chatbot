@@ -191,7 +191,7 @@ class UserAuthController extends Controller
         // Only validate password if provided
         if ($request->filled('new_password')) {
             $rules['current_password'] = 'required';
-            $rules['new_password'] = ['required', 'string', 'min:8', new StrongPassword()];
+            $rules['new_password'] = ['required', 'string', 'min:12', new StrongPassword(), new \App\Rules\PasswordNotRecentlyUsed($user)];
             $rules['new_password_confirmation'] = 'required|string|same:new_password';
         }
 
@@ -202,7 +202,7 @@ class UserAuthController extends Controller
             if (!Hash::check($request->current_password, $user->password)) {
                 return back()->withErrors(['current_password' => 'Current password is incorrect.']);
             }
-            $user->password = Hash::make($request->new_password);
+            $user->updatePassword($request->new_password);
         }
 
         // Update profile information

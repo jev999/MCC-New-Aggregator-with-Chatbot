@@ -242,23 +242,65 @@ class UnifiedAuthController extends Controller
                         'password_check' => Hash::check($credentials['password'], $user->password)
                     ]);
                     
-                    // Verify password
-                    if (Hash::check($credentials['password'], $user->password)) {
-                        // Successful MS365 login - manually log in the user
-                        auth()->login($user, $request->filled('remember'));
-                        $request->session()->regenerate();
-                        $result = redirect()->route('user.dashboard')->with('login_success', true);
-                        $loginSuccessful = true;
-                        
-                        \Log::info('MS365 login successful', [
+                    // Check if account is locked
+                    if ($user->isLocked()) {
+                        $lockTimeRemaining = $user->getLockTimeRemaining();
+                        \Log::warning('MS365 login attempt on locked account', [
+                            'ms365_account' => $credentials['ms365_account'],
                             'user_id' => $user->id,
-                            'ms365_account' => $user->ms365_account
+                            'lock_time_remaining' => $lockTimeRemaining
                         ]);
+                        
+                        $result = back()->withErrors(['ms365_account' => "Account is locked. Please try again in {$lockTimeRemaining} minutes."])
+                                    ->withInput($request->only('ms365_account', 'login_type'));
+                        $loginSuccessful = false;
+                    }
+                    // Check if password has expired
+                    elseif ($user->isPasswordExpired()) {
+                        \Log::warning('MS365 login attempt with expired password', [
+                            'ms365_account' => $credentials['ms365_account'],
+                            'user_id' => $user->id,
+                            'password_expires_at' => $user->password_expires_at
+                        ]);
+                        
+                        $result = back()->withErrors(['ms365_account' => 'Your password has expired. Please reset your password.'])
+                                    ->withInput($request->only('ms365_account', 'login_type'));
+                        $loginSuccessful = false;
+                    }
+                    // Verify password
+                    elseif (Hash::check($credentials['password'], $user->password)) {
+                        // Check if password must be changed
+                        if ($user->mustChangePassword()) {
+                            \Log::info('MS365 login successful but password must be changed', [
+                                'user_id' => $user->id,
+                                'ms365_account' => $user->ms365_account
+                            ]);
+                            
+                            // Log in user but redirect to password change
+                            auth()->login($user, $request->filled('remember'));
+                            $request->session()->regenerate();
+                            $result = redirect()->route('password.change')->with('warning', 'You must change your password before continuing.');
+                            $loginSuccessful = true;
+                        } else {
+                            // Successful MS365 login - manually log in the user
+                            auth()->login($user, $request->filled('remember'));
+                            $request->session()->regenerate();
+                            $user->resetFailedLoginAttempts(); // Reset failed attempts on successful login
+                            $result = redirect()->route('user.dashboard')->with('login_success', true);
+                            $loginSuccessful = true;
+                            
+                            \Log::info('MS365 login successful', [
+                                'user_id' => $user->id,
+                                'ms365_account' => $user->ms365_account
+                            ]);
+                        }
                     } else {
-                        // Password verification failed
+                        // Password verification failed - increment failed attempts
+                        $user->incrementFailedLoginAttempts();
                         \Log::warning('MS365 password verification failed', [
                             'ms365_account' => $credentials['ms365_account'],
-                            'user_id' => $user->id
+                            'user_id' => $user->id,
+                            'failed_attempts' => $user->failed_login_attempts
                         ]);
                         
                         $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
@@ -304,23 +346,65 @@ class UnifiedAuthController extends Controller
                         'password_check' => Hash::check($credentials['password'], $user->password)
                     ]);
                     
-                    // Verify password
-                    if (Hash::check($credentials['password'], $user->password)) {
-                        // Successful user login - manually log in the user
-                        auth()->login($user, $request->filled('remember'));
-                        $request->session()->regenerate();
-                        $result = redirect()->route('user.dashboard')->with('login_success', true);
-                        $loginSuccessful = true;
-                        
-                        \Log::info('User login successful', [
+                    // Check if account is locked
+                    if ($user->isLocked()) {
+                        $lockTimeRemaining = $user->getLockTimeRemaining();
+                        \Log::warning('User login attempt on locked account', [
+                            'gmail_account' => $credentials['gmail_account'],
                             'user_id' => $user->id,
-                            'gmail_account' => $user->gmail_account
+                            'lock_time_remaining' => $lockTimeRemaining
                         ]);
+                        
+                        $result = back()->withErrors(['gmail_account' => "Account is locked. Please try again in {$lockTimeRemaining} minutes."])
+                                    ->withInput($request->only('gmail_account', 'login_type'));
+                        $loginSuccessful = false;
+                    }
+                    // Check if password has expired
+                    elseif ($user->isPasswordExpired()) {
+                        \Log::warning('User login attempt with expired password', [
+                            'gmail_account' => $credentials['gmail_account'],
+                            'user_id' => $user->id,
+                            'password_expires_at' => $user->password_expires_at
+                        ]);
+                        
+                        $result = back()->withErrors(['gmail_account' => 'Your password has expired. Please reset your password.'])
+                                    ->withInput($request->only('gmail_account', 'login_type'));
+                        $loginSuccessful = false;
+                    }
+                    // Verify password
+                    elseif (Hash::check($credentials['password'], $user->password)) {
+                        // Check if password must be changed
+                        if ($user->mustChangePassword()) {
+                            \Log::info('User login successful but password must be changed', [
+                                'user_id' => $user->id,
+                                'gmail_account' => $user->gmail_account
+                            ]);
+                            
+                            // Log in user but redirect to password change
+                            auth()->login($user, $request->filled('remember'));
+                            $request->session()->regenerate();
+                            $result = redirect()->route('password.change')->with('warning', 'You must change your password before continuing.');
+                            $loginSuccessful = true;
+                        } else {
+                            // Successful user login - manually log in the user
+                            auth()->login($user, $request->filled('remember'));
+                            $request->session()->regenerate();
+                            $user->resetFailedLoginAttempts(); // Reset failed attempts on successful login
+                            $result = redirect()->route('user.dashboard')->with('login_success', true);
+                            $loginSuccessful = true;
+                            
+                            \Log::info('User login successful', [
+                                'user_id' => $user->id,
+                                'gmail_account' => $user->gmail_account
+                            ]);
+                        }
                     } else {
-                        // Password verification failed
+                        // Password verification failed - increment failed attempts
+                        $user->incrementFailedLoginAttempts();
                         \Log::warning('User password verification failed', [
                             'gmail_account' => $credentials['gmail_account'],
-                            'user_id' => $user->id
+                            'user_id' => $user->id,
+                            'failed_attempts' => $user->failed_login_attempts
                         ]);
                         
                         $result = back()->withErrors(['gmail_account' => 'The provided credentials do not match our records.'])
@@ -968,7 +1052,7 @@ class UnifiedAuthController extends Controller
             'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
             'password' => array_merge($secureRules['password'], [
                 'required',
-                'min:8',
+                'min:12',
                 'confirmed',
                 new StrongPassword(),
             ]),
@@ -997,6 +1081,10 @@ class UnifiedAuthController extends Controller
                 'department' => $request->department,
                 'password' => \Hash::make($request->password),
                 'email_verified_at' => now(),
+                'password_changed_at' => now(),
+                'password_expires_at' => now()->addDays(90), // 90 days expiration
+                'password_history' => [],
+                'failed_login_attempts' => 0,
             ];
 
             // Only set year_level for students
@@ -1174,7 +1262,7 @@ class UnifiedAuthController extends Controller
             'email' => array_merge($secureRules['ms365_account'], ['required']),
             'password' => array_merge($secureRules['password'], [
                 'required',
-                'min:8',
+                'min:12',
                 'confirmed',
                 new StrongPassword(),
             ]),
@@ -1203,10 +1291,8 @@ class UnifiedAuthController extends Controller
             return back()->withErrors(['email' => 'User not found.']);
         }
 
-        // Update password
-        $user->update([
-            'password' => Hash::make($request->password)
-        ]);
+        // Update password with security checks
+        $user->updatePassword($request->password);
 
         // Delete the reset token
         PasswordReset::deleteToken($request->email);
