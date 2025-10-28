@@ -714,17 +714,6 @@
             color: var(--secondary);
         }
 
-        /* reCAPTCHA Styling */
-        .recaptcha-container {
-            display: flex;
-            justify-content: center;
-            margin: 0.5rem 0;
-        }
-
-        .recaptcha-container .g-recaptcha {
-            transform: scale(1);
-            transform-origin: 0 0;
-        }
 
         /* Animation for form fields */
         @keyframes fadeIn {
@@ -820,12 +809,6 @@
             
             .auth-content {
                 padding: 1rem;
-            }
-            
-            /* reCAPTCHA v2 scaling for small screens */
-            .recaptcha-container .g-recaptcha {
-                transform: scale(0.77);
-                transform-origin: center center;
             }
             
             .form-group {
@@ -936,17 +919,6 @@
                 font-size: 0.8125rem;
             }
             
-            /* Mobile reCAPTCHA v2 scaling */
-            .recaptcha-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-            
-            .recaptcha-container .g-recaptcha {
-                transform: scale(0.85);
-                transform-origin: center center;
-            }
         }
         
         /* Small devices (phones, 481px to 576px) */
@@ -1341,17 +1313,6 @@
                         </label>
                     </div>
 
-                    <!-- reCAPTCHA v2 Field -->
-                    @if(config('services.recaptcha.site_key'))
-                    <div class="form-group recaptcha-container" id="recaptcha-field" style="display: none; margin: 1rem 0;">
-                        <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
-                        <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 0.5rem;">
-                            This site is protected by reCAPTCHA and the Google
-                            <a href="https://policies.google.com/privacy" target="_blank" style="color: #666;">Privacy Policy</a> and
-                            <a href="https://policies.google.com/terms" target="_blank" style="color: #666;">Terms of Service</a> apply.
-                        </p>
-                    </div>
-                    @endif
 
                     <!-- Submit Button -->
                     <button type="submit" class="btn" id="submit-btn">
@@ -1371,19 +1332,6 @@
         </div>
     </div>
 
-    <!-- reCAPTCHA v2 Library -->
-    @if(config('services.recaptcha.site_key'))
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    <script>
-        // Debug: Log when reCAPTCHA is loaded
-        console.log('reCAPTCHA v2 Site Key:', '{{ config('services.recaptcha.site_key') }}');
-        console.log('reCAPTCHA v2 library loading...');
-    </script>
-    @else
-    <script>
-        console.warn('reCAPTCHA v2 is not configured. Please set GOOGLE_RECAPTCHA_SITE_KEY in .env file');
-    </script>
-    @endif
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -1587,7 +1535,7 @@
                 });
             });
 
-            // Enhanced form submission validation with reCAPTCHA v2
+            // Enhanced form submission validation
             document.getElementById('unified-form').addEventListener('submit', function(e) {
                 const form = this;
                 const formData = new FormData(form);
@@ -1610,19 +1558,6 @@
                     e.preventDefault();
                     return false;
                 }
-                
-                // Validate reCAPTCHA v2 response
-                @if(config('services.recaptcha.site_key'))
-                const recaptchaResponse = grecaptcha && grecaptcha.getResponse ? grecaptcha.getResponse() : '';
-                if (!recaptchaResponse) {
-                    e.preventDefault();
-                    showSecurityError('Please complete the reCAPTCHA verification.');
-                    return false;
-                }
-                console.log('reCAPTCHA v2 verified, submitting form...');
-                @else
-                console.log('reCAPTCHA not configured, submitting form...');
-                @endif
                 
                 // Form will submit normally if validation passes
             });
@@ -1683,12 +1618,6 @@
                     authLinks.style.display = 'block';
                     forgotPassword.style.display = 'block';
                     
-                    // Show reCAPTCHA
-                    const recaptchaField = document.getElementById('recaptcha-field');
-                    if (recaptchaField) {
-                        recaptchaField.style.display = 'block';
-                    }
-                    
                     console.log('Forgot password should now be visible'); // Debug log
                     
                     // Set required fields
@@ -1708,12 +1637,6 @@
                     passwordField.style.display = 'block';
                     rememberField.style.display = 'block';
                     
-                    // Show reCAPTCHA
-                    const recaptchaField = document.getElementById('recaptcha-field');
-                    if (recaptchaField) {
-                        recaptchaField.style.display = 'block';
-                    }
-                    
                     // Set required fields
                     setRequired('username', true);
                     setRequired('password', true);
@@ -1730,12 +1653,6 @@
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
                     rememberField.style.display = 'block';
-                    
-                    // Show reCAPTCHA
-                    const recaptchaField = document.getElementById('recaptcha-field');
-                    if (recaptchaField) {
-                        recaptchaField.style.display = 'block';
-                    }
                     
                     // Set required fields
                     setRequired('ms365_account', true);
