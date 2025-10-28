@@ -43,10 +43,7 @@ return [
         'sender_upn' => env('MS_GRAPH_SENDER_UPN'),
     ],
     
-    'nocaptcha' => [
-        'sitekey' => env('NOCAPTCHA_SITEKEY'),
-        'secret'  => env('NOCAPTCHA_SECRET'),
-    ],
+    
 
     'recaptcha' => [
         'site_key' => env('GOOGLE_RECAPTCHA_SITE_KEY', env('NOCAPTCHA_SITEKEY')),

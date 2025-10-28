@@ -46,27 +46,17 @@ class UnifiedAuthController extends Controller
         return $this->geolocationService->getLocationFromIp($ip);
     }
 
-    /**
-     * Validate reCAPTCHA response
-     */
-    private function validateRecaptcha(Request $request)
-    {
-        $recaptchaResponse = $request->input('g-recaptcha-response');
-        
-        if (!$recaptchaResponse) {
-            return false;
-        }
-
-        $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-            'secret' => config('services.recaptcha.secret'),
-            'response' => $recaptchaResponse,
-            'remoteip' => $request->ip(),
-        ]);
-
-        $result = $response->json();
-        
-        return isset($result['success']) && $result['success'] === true;
-    }
+    // app/Http/Requests/LoginRequest.php (or Controller validation)
+public function rules(): array
+{
+    return [
+        // Your existing login validation rules
+        'email' => ['required', 'email'],
+        'password' => ['required'],
+        // Apply the custom rule to the token
+        'g-recaptcha-response' => ['required', new RecaptchaV3()],
+    ];
+}
     
     /**
      * Show the unified login form
