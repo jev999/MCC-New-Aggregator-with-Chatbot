@@ -14,7 +14,7 @@
     <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - MCC News Aggregator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -78,6 +78,8 @@
             box-shadow: var(--shadow-md);
             overflow: hidden;
             transition: var(--transition);
+            position: relative;
+            z-index: 10;
         }
 
         .logo-container {
@@ -180,6 +182,9 @@
         .form-group {
             margin-bottom: 1.5rem;
             position: relative;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
 
         .form-group label {
@@ -227,8 +232,8 @@
         }
 
         .login-type-select::after {
-            content: '\f0dd';
-            font-family: 'Font Awesome 6 Free';
+            content: '\f0c0';
+            font-family: 'Font Awesome 6 Free', 'FontAwesome', sans-serif;
             font-weight: 900;
             position: absolute;
             left: 1rem;
@@ -236,6 +241,10 @@
             transform: translateY(-50%);
             color: var(--secondary);
             z-index: 1;
+            font-size: 1rem;
+            display: inline-block;
+            text-rendering: auto;
+            -webkit-font-smoothing: antialiased;
         }
 
         .login-type-select select:focus {
@@ -1191,7 +1200,7 @@
             
 
             <!-- Unified Login Form -->
-            <div class="unified-login-form">
+            <div class="unified-login-form" style="opacity: 1; visibility: visible;">
                 <form method="POST" action="{{ url('/login') }}" id="unified-form" @if($errors->has('account_lockout')) class="form-disabled" @endif>
                     @csrf
 
@@ -1239,7 +1248,7 @@
                     </div>
 
                     <!-- MS365 Account Field -->
-                    <div class="form-group" id="ms365-field" style="display: none;">
+                    <div class="form-group" id="ms365-field" style="display: block;">
                         <label for="ms365_account">
                             <i class="fab fa-microsoft"></i>
                             MS365 Account
@@ -1287,7 +1296,7 @@
                     </div>
 
                     <!-- Password Field -->
-                    <div class="form-group" id="password-field" style="display: none;">
+                    <div class="form-group" id="password-field" style="display: block;">
                         <label for="password">
                             <i class="fas fa-lock"></i>
                             Password
@@ -1313,12 +1322,12 @@
                     </div>
 
                     <!-- Forgot Password (MS365) -->
-                    <div class="forgot-password" id="forgot-password" style="display:none;">
+                    <div class="forgot-password" id="forgot-password" style="display:block;">
                         <a href="{{ route('password.request') }}">Forgot Password?</a>
                     </div>
 
                     <!-- Remember Me -->
-                    <div class="form-group" id="remember-field" style="display: none;">
+                    <div class="form-group" id="remember-field" style="display: block;">
                         <label class="checkbox-label">
                             <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}>
                             <span class="checkbox-text">Remember me</span>
@@ -1328,14 +1337,14 @@
                     <!-- reCAPTCHA removed -->
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn" id="submit-btn" disabled>
+                    <button type="submit" class="btn" id="submit-btn">
                         <i class="fas fa-sign-in-alt"></i>
-                        Select Login Type
+                        Login with MS365
                     </button>
                 </form>
 
                 <!-- Auth Links -->
-                <div class="auth-links" id="auth-links" style="display: none;">
+                <div class="auth-links" id="auth-links" style="display: block;">
                     <a href="{{ route('ms365.signup') }}">
                         <i class="fas fa-user-plus"></i>
                         Don't have an MS365 account? Sign up
@@ -1697,7 +1706,15 @@
 
             // Initial call to set the correct state
             console.log('Initializing form fields...'); // Debug log
-            toggleFields();
+            
+            // Set default login type to ms365 and show appropriate fields
+            if (loginTypeSelect.value === 'ms365') {
+                toggleFields();
+            } else {
+                // Force show MS365 fields by default
+                loginTypeSelect.value = 'ms365';
+                toggleFields();
+            }
 
             // Add event listener for changes
             loginTypeSelect.addEventListener('change', toggleFields);
