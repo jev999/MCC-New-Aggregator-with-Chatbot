@@ -1847,21 +1847,26 @@
         function updateCountdownDisplay(remainingSeconds, countdownTimer, lockoutText) {
             const minutes = Math.floor(remainingSeconds / 60);
             const seconds = remainingSeconds % 60;
-            
+
             // Format time as MM:SS
             const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            
+
             // Update countdown timer
             if (countdownTimer) {
                 countdownTimer.textContent = timeText;
             }
-            
+
             // Update main lockout text with current minutes
             if (lockoutText) {
                 const originalText = lockoutText.textContent;
                 const updatedText = originalText.replace(/(\d+(?:\.\d+)?)\s+minutes?/, `${Math.ceil(remainingSeconds / 60)} minute${Math.ceil(remainingSeconds / 60) !== 1 ? 's' : ''}`);
                 lockoutText.textContent = updatedText;
             }
+        }
+    </script>
+
+    <!-- reCAPTCHA v3 Integration Script -->
+    <script>
         // reCAPTCHA v3 Integration
         // Ensure the script runs after the DOM is ready
         document.addEventListener('DOMContentLoaded', function () {
@@ -1872,26 +1877,67 @@
                 return;
             }
 
+            console.log('reCAPTCHA v3 integration initialized');
+            console.log('Site Key:', '{{ config('services.recaptcha.site_key') }}' ? 'Present' : 'Missing');
+
+            // Store original form submission handler
+            let isSubmitting = false;
+
             form.addEventListener('submit', function (e) {
+                // Prevent multiple submissions
+                if (isSubmitting) {
+                    console.log('Form submission already in progress, preventing duplicate');
+                    e.preventDefault();
+                    return;
+                }
+
                 e.preventDefault(); // Stop the form submission
+                console.log('Form submission intercepted for reCAPTCHA processing');
+
+                // Check if reCAPTCHA token already exists (avoid duplicate tokens)
+                const existingToken = form.querySelector('input[name="g-recaptcha-response"]');
+                if (existingToken) {
+                    console.log('reCAPTCHA token already exists, submitting form');
+                    // Token already exists, submit the form
+                    isSubmitting = true;
+                    form.submit();
+                    return;
+                }
+
+                // Check if grecaptcha is available
+                if (typeof grecaptcha === 'undefined') {
+                    console.error('grecaptcha is not defined. reCAPTCHA script may not have loaded.');
+                    alert('Security verification is not available. Please refresh the page and try again.');
+                    return;
+                }
 
                 // Use grecaptcha.ready() to ensure the library is loaded
                 grecaptcha.ready(function() {
-                    // Execute reCAPTCHA for the 'login' action
-                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
-                        // Create a hidden input field for the token and append it to the form
-                        const tokenInput = document.createElement('input');
-                        tokenInput.type = 'hidden';
-                        tokenInput.name = 'g-recaptcha-response';
-                        tokenInput.value = token;
-                        form.appendChild(tokenInput);
+                    console.log('grecaptcha is ready, executing reCAPTCHA');
 
-                        // Now submit the form with the token
-                        form.submit();
-                    }).catch(function(error) {
-                        console.error('reCAPTCHA execution failed:', error);
-                        alert('Security verification failed. Please try again.');
-                    });
+                    // Execute reCAPTCHA for the 'login' action
+                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'})
+                        .then(function(token) {
+                            console.log('reCAPTCHA token generated successfully, token length:', token.length);
+
+                            // Create a hidden input field for the token and append it to the form
+                            const tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'g-recaptcha-response';
+                            tokenInput.value = token;
+                            form.appendChild(tokenInput);
+
+                            console.log('reCAPTCHA token added to form, submitting...');
+
+                            // Now submit the form with the token
+                            isSubmitting = true;
+                            form.submit();
+                        })
+                        .catch(function(error) {
+                            console.error('reCAPTCHA execution failed:', error);
+                            isSubmitting = false;
+                            alert('Security verification failed. Please try again.');
+                        });
                 });
             });
         });
