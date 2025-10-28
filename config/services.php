@@ -49,8 +49,9 @@ return [
     ],
 
     'recaptcha' => [
-        'sitekey' => env('NOCAPTCHA_SITEKEY'),
-        'secret'  => env('NOCAPTCHA_SECRET'),
+        'site_key' => env('GOOGLE_RECAPTCHA_SITE_KEY', env('NOCAPTCHA_SITEKEY')),
+        'secret_key' => env('GOOGLE_RECAPTCHA_SECRET_KEY', env('NOCAPTCHA_SECRET')),
+        'threshold' => env('RECAPTCHA_THRESHOLD', 0.5),
     ],
 
 

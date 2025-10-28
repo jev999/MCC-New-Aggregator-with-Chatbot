@@ -10,6 +10,7 @@ use App\Http\Controllers\SuperAdminAuthController;
 use App\Http\Controllers\DepartmentAdminAuthController;
 use App\Http\Controllers\OfficeAdminAuthController;
 use App\Rules\StrongPassword;
+use App\Rules\RecaptchaV3;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Hash;
@@ -187,7 +188,45 @@ class UnifiedAuthController extends Controller
             $validationRules['gmail_account'] = array_merge(['required'], $secureRules['gmail_account']);
         }
         
-        $request->validate($validationRules, $secureMessages);
+        // Add reCAPTCHA v3 validation
+        if (config('services.recaptcha.site_key')) {
+            $validationRules['g-recaptcha-response'] = ['required', new RecaptchaV3()];
+        }
+        
+        // Validate the request
+        try {
+            $request->validate($validationRules, $secureMessages);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Check if reCAPTCHA validation failed
+            if ($e->validator->errors()->has('g-recaptcha-response')) {
+                // reCAPTCHA failed - this indicates suspicious behavior
+                // Increment login attempts immediately to enforce lockout policy
+                $this->incrementLoginAttempts($request);
+                
+                \Log::warning('reCAPTCHA validation failed - incrementing login attempts', [
+                    'account_identifier' => $this->getAccountIdentifier($request),
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'login_type' => $loginType,
+                ]);
+                
+                // Check if this triggered a lockout
+                if ($this->isLockedOut($request)) {
+                    $timeRemaining = $this->getLockoutTimeRemaining($request);
+                    $remainingSeconds = $this->getLockoutTimeRemainingSeconds($request);
+                    $loginTypeText = $this->getLoginTypeDisplayName($loginType);
+                    
+                    return back()->withErrors([
+                        'account_lockout' => "Your {$loginTypeText} account is temporarily locked due to suspicious activity. Please wait {$timeRemaining} minute" . ($timeRemaining != 1 ? 's' : '') . " before trying again."
+                    ])->with('lockout_time', $timeRemaining)
+                      ->with('lockout_seconds', $remainingSeconds)
+                      ->with('locked_account', $this->getAccountIdentifier($request));
+                }
+            }
+            
+            // Re-throw the validation exception
+            throw $e;
+        }
 
         // Store current auth status before login attempt
         $wasAuthenticated = ($loginType === 'superadmin' || $loginType === 'department-admin' || $loginType === 'office-admin') 

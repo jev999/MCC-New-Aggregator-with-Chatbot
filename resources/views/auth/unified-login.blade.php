@@ -1354,6 +1354,9 @@
         </div>
     </div>
 
+    <!-- reCAPTCHA v3 Library -->
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1556,9 +1559,12 @@
                 });
             });
 
-            // Enhanced form submission validation
+            // Enhanced form submission validation with reCAPTCHA v3
             document.getElementById('unified-form').addEventListener('submit', function(e) {
-                const formData = new FormData(this);
+                e.preventDefault(); // Always prevent default to handle reCAPTCHA first
+                
+                const form = this;
+                const formData = new FormData(form);
                 let hasErrors = false;
 
                 // Validate all form inputs
@@ -1566,7 +1572,6 @@
                     if (key !== '_token' && value) {
                         const validation = validateInput(value, key);
                         if (!validation.valid) {
-                            e.preventDefault();
                             showSecurityError(validation.message);
                             hasErrors = true;
                             break;
@@ -1577,6 +1582,29 @@
                 if (hasErrors) {
                     return false;
                 }
+                
+                // Execute reCAPTCHA v3 before submitting
+                grecaptcha.ready(function() {
+                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
+                        // Add the reCAPTCHA token to the form
+                        let tokenInput = form.querySelector('input[name="g-recaptcha-response"]');
+                        if (!tokenInput) {
+                            tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'g-recaptcha-response';
+                            form.appendChild(tokenInput);
+                        }
+                        tokenInput.value = token;
+                        
+                        // Now submit the form
+                        form.submit();
+                    }).catch(function(error) {
+                        console.error('reCAPTCHA error:', error);
+                        showSecurityError('Unable to verify reCAPTCHA. Please try again.');
+                    });
+                });
+                
+                return false;
             });
 
             function toggleFields() {
@@ -1901,7 +1929,5 @@
 
     </script>
 
-    <!-- reCAPTCHA JavaScript -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </body>
 </html>
