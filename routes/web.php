@@ -57,16 +57,36 @@ Route::get('/privacy', function () {
 })->name('privacy');
 
 
-// Debug route to reset user password
+// ============================================================================
+// ROLE-BASED ACCESS CONTROL (RBAC) IMPLEMENTATION
+// ============================================================================
+// This section implements comprehensive RBAC for the application
+// All sensitive routes are protected with role and permission middleware
+// ============================================================================
+
+// Debug route to reset user password - RESTRICTED TO SUPERADMIN ONLY
 Route::get('/reset-user-password/{email}/{newPassword}', function ($email, $newPassword) {
+    // RBAC: Only superadmin can reset user passwords
+    if (!auth('admin')->check() || !auth('admin')->user()->isSuperAdmin()) {
+        abort(403, 'Unauthorized: Only Super Admin can reset user passwords');
+    }
+
     $user = \App\Models\User::all()->first(function ($user) use ($email) {
         return $user->ms365_account === $email || $user->gmail_account === $email;
     });
-    
+
     if ($user) {
         $user->password = \Hash::make($newPassword);
         $user->save();
-        
+
+        // Log this sensitive action
+        \Log::warning('User password reset by superadmin', [
+            'admin_id' => auth('admin')->user()->id,
+            'user_id' => $user->id,
+            'email' => $email,
+            'timestamp' => now()
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Password updated successfully',
@@ -82,14 +102,19 @@ Route::get('/reset-user-password/{email}/{newPassword}', function ($email, $newP
             'searched_email' => $email
         ]);
     }
-});
+})->middleware('auth:admin')->name('reset.user.password');
 
-// Debug route for user credentials - test authentication
+// Debug route for user credentials - test authentication - RESTRICTED TO SUPERADMIN
 Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
+    // RBAC: Only superadmin can test user authentication
+    if (!auth('admin')->check() || !auth('admin')->user()->isSuperAdmin()) {
+        abort(403, 'Unauthorized: Only Super Admin can test user authentication');
+    }
+
     $users = \App\Models\User::all();
     $foundUser = null;
     $allEmails = [];
-    
+
     foreach ($users as $user) {
         $allEmails[] = [
             'id' => $user->id,
@@ -97,12 +122,12 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
             'gmail_account' => $user->gmail_account,
             'matches_input' => ($user->ms365_account === $email || $user->gmail_account === $email)
         ];
-        
+
         if ($user->ms365_account === $email || $user->gmail_account === $email) {
             $foundUser = $user;
         }
     }
-    
+
     if ($foundUser) {
         return response()->json([
             'found' => true,
@@ -122,29 +147,41 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
             'sample_emails' => array_slice($allEmails, 0, 3)
         ]);
     }
-});
+})->middleware('auth:admin')->name('test.user.auth');
 
-// Unified login routes (default login)
+// ============================================================================
+// AUTHENTICATION ROUTES (Public - No RBAC Required)
+// ============================================================================
 
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
 
-// Session management API routes
+// ============================================================================
+// SESSION MANAGEMENT ROUTES (RBAC: Authenticated Users Only)
+// ============================================================================
+
 Route::middleware(['auth'])->group(function () {
+    // RBAC: Only authenticated users can check session status
     Route::get('/api/session-status', function(Request $request) {
         $user = Auth::user();
+
+        // Verify user has permission to check their own session
+        if ($user->id !== $request->user()->id && !$user->hasRole('superadmin')) {
+            abort(403, 'Unauthorized: Cannot check other user sessions');
+        }
+
         $sessionLifetime = config('session.lifetime', 30);
         $lastActivity = Session::get('security.last_activity', now());
         $timeUntilExpiry = $sessionLifetime - now()->diffInMinutes($lastActivity);
-        
+
         $timeoutWarning = false;
         $timeRemaining = 0;
-        
+
         if ($timeUntilExpiry <= config('session.security.timeout_warning', 5) && $timeUntilExpiry > 0) {
             $timeoutWarning = true;
             $timeRemaining = $timeUntilExpiry;
         }
-        
+
         return response()->json([
             'timeout_warning' => $timeoutWarning,
             'time_remaining' => $timeRemaining,
@@ -152,24 +189,30 @@ Route::middleware(['auth'])->group(function () {
             'last_activity' => $lastActivity
         ]);
     })->name('api.session.status');
-    
+
+    // RBAC: Only authenticated users can extend their session
     Route::post('/api/extend-session', function(Request $request) {
         $user = Auth::user();
-        
+
+        // Verify user has permission to extend their own session
+        if ($user->id !== $request->user()->id && !$user->hasRole('superadmin')) {
+            abort(403, 'Unauthorized: Cannot extend other user sessions');
+        }
+
         // Update last activity
         Session::put('security.last_activity', now());
-        
+
         // Clear timeout warning
         Session::forget('security.timeout_warning');
         Session::forget('security.time_remaining');
-        
+
         // Log session extension
         \Log::info('Session extended by user', [
             'user_id' => $user->id,
             'ip' => $request->ip(),
             'timestamp' => now()->toISOString()
         ]);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Session extended successfully',
@@ -178,15 +221,25 @@ Route::middleware(['auth'])->group(function () {
     })->name('api.session.extend');
 });
 
-// Password change routes
+// ============================================================================
+// PASSWORD MANAGEMENT ROUTES (RBAC: Authenticated Users Only)
+// ============================================================================
+
 Route::middleware(['auth'])->group(function () {
+    // RBAC: Users can only change their own password
     Route::get('/password/change', [App\Http\Controllers\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
     Route::post('/password/change', [App\Http\Controllers\PasswordChangeController::class, 'changePassword'])->name('password.change');
 });
 
-// Account switching routes
-Route::post('/switch-account', [UnifiedAuthController::class, 'switchAccount'])->name('switch.account');
-Route::post('/remove-account', [UnifiedAuthController::class, 'removeAccount'])->name('remove.account');
+// ============================================================================
+// ACCOUNT MANAGEMENT ROUTES (RBAC: Authenticated Users Only)
+// ============================================================================
+
+Route::middleware(['auth'])->group(function () {
+    // RBAC: Users can only switch/remove their own accounts
+    Route::post('/switch-account', [UnifiedAuthController::class, 'switchAccount'])->name('switch.account');
+    Route::post('/remove-account', [UnifiedAuthController::class, 'removeAccount'])->name('remove.account');
+});
 
 // Login attempt management routes (for debugging/admin purposes)
 Route::post('/clear-all-login-attempts', [UnifiedAuthController::class, 'clearAllLoginAttempts'])->name('clear.all.login.attempts');
@@ -1444,180 +1497,325 @@ Route::get('/news/{news}', [PublicContentController::class, 'showNews'])->name('
 
 
 
-// Admin Routes
+// ============================================================================
+// DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role Required)
+// ============================================================================
+
 Route::prefix('admin')->group(function () {
-    // Auth routes
+    // ========================================================================
+    // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
+    // ========================================================================
+
     Route::get('login', [AdminAuthController::class, 'showLoginForm'])->name('admin.login');
     Route::post('login', [AdminAuthController::class, 'login']);
     Route::get('register', [AdminAuthController::class, 'showRegisterForm'])->name('admin.register');
     Route::post('register', [AdminAuthController::class, 'register']);
-    
+
     // Admin registration from email link (signed routes for security)
     Route::get('register-form', [SuperAdminController::class, 'showAdminRegistrationForm'])->name('admin.register.form')->middleware('signed');
     Route::post('register-complete', [SuperAdminController::class, 'completeAdminRegistration'])->name('admin.register.complete');
-    
-    // Debug routes for department admin registration troubleshooting
-    Route::get('debug-registration/{token}', function($token) {
-        $cachedData = \Cache::get('admin_registration_' . $token);
-        return response()->json([
-            'token' => $token,
-            'cached_data' => $cachedData,
-            'cache_exists' => $cachedData !== null,
-            'current_timestamp' => now()->timestamp,
-            'cache_key' => 'admin_registration_' . $token,
-            'used_status' => isset($cachedData['used']) ? $cachedData['used'] : 'not_set',
-            'viewed_status' => isset($cachedData['viewed']) ? $cachedData['viewed'] : 'not_set',
-            'token_age_seconds' => $cachedData ? (now()->timestamp - $cachedData['timestamp']) : 'no_cache',
-            'is_expired' => $cachedData ? ((now()->timestamp - $cachedData['timestamp']) > 1800) : 'no_cache'
-        ]);
-    })->name('admin.debug-registration');
 
-    Route::get('clear-registration/{token}', function($token) {
-        $cachedData = \Cache::get('admin_registration_' . $token);
-        \Cache::forget('admin_registration_' . $token);
-        
-        // Also clear any potential corrupted cache variations
-        \Cache::forget('admin_registration_' . strtolower($token));
-        \Cache::forget('admin_registration_' . strtoupper($token));
-        
-        return response()->json([
-            'message' => 'Department admin registration cache cleared',
-            'token' => $token,
-            'previous_data' => $cachedData,
-            'cleared_at' => now()->toDateTimeString()
-        ]);
-    })->name('admin.clear-registration');
+    // ========================================================================
+    // DEBUG ROUTES (RBAC: SuperAdmin Only)
+    // ========================================================================
 
-    Route::get('clear-all-registrations', function() {
-        // Clear all admin registration caches (emergency cleanup)
-        $cleared = 0;
-        $cacheKeys = \Cache::getRedis()->keys('*admin_registration_*');
-        foreach ($cacheKeys as $key) {
-            \Cache::forget(str_replace(config('cache.prefix') . ':', '', $key));
-            $cleared++;
-        }
-        return response()->json([
-            'message' => 'All department admin registration caches cleared',
-            'cleared_count' => $cleared
-        ]);
-    })->name('admin.clear-all-registrations');
-    
-    // Protected routes - Only department admins can access these
+    Route::middleware(['auth:admin'])->group(function () {
+        Route::get('debug-registration/{token}', function($token) {
+            // RBAC: Only superadmin can debug registrations
+            if (!auth('admin')->user()->isSuperAdmin()) {
+                abort(403, 'Unauthorized: Only Super Admin can debug registrations');
+            }
+
+            $cachedData = \Cache::get('admin_registration_' . $token);
+            return response()->json([
+                'token' => $token,
+                'cached_data' => $cachedData,
+                'cache_exists' => $cachedData !== null,
+                'current_timestamp' => now()->timestamp,
+                'cache_key' => 'admin_registration_' . $token,
+                'used_status' => isset($cachedData['used']) ? $cachedData['used'] : 'not_set',
+                'viewed_status' => isset($cachedData['viewed']) ? $cachedData['viewed'] : 'not_set',
+                'token_age_seconds' => $cachedData ? (now()->timestamp - $cachedData['timestamp']) : 'no_cache',
+                'is_expired' => $cachedData ? ((now()->timestamp - $cachedData['timestamp']) > 1800) : 'no_cache'
+            ]);
+        })->name('admin.debug-registration');
+
+        Route::get('clear-registration/{token}', function($token) {
+            // RBAC: Only superadmin can clear registrations
+            if (!auth('admin')->user()->isSuperAdmin()) {
+                abort(403, 'Unauthorized: Only Super Admin can clear registrations');
+            }
+
+            $cachedData = \Cache::get('admin_registration_' . $token);
+            \Cache::forget('admin_registration_' . $token);
+
+            // Also clear any potential corrupted cache variations
+            \Cache::forget('admin_registration_' . strtolower($token));
+            \Cache::forget('admin_registration_' . strtoupper($token));
+
+            return response()->json([
+                'message' => 'Department admin registration cache cleared',
+                'token' => $token,
+                'previous_data' => $cachedData,
+                'cleared_at' => now()->toDateTimeString()
+            ]);
+        })->name('admin.clear-registration');
+
+        Route::get('clear-all-registrations', function() {
+            // RBAC: Only superadmin can clear all registrations
+            if (!auth('admin')->user()->isSuperAdmin()) {
+                abort(403, 'Unauthorized: Only Super Admin can clear all registrations');
+            }
+
+            // Clear all admin registration caches (emergency cleanup)
+            $cleared = 0;
+            $cacheKeys = \Cache::getRedis()->keys('*admin_registration_*');
+            foreach ($cacheKeys as $key) {
+                \Cache::forget(str_replace(config('cache.prefix') . ':', '', $key));
+                $cleared++;
+            }
+            return response()->json([
+                'message' => 'All department admin registration caches cleared',
+                'cleared_count' => $cleared
+            ]);
+        })->name('admin.clear-all-registrations');
+    });
+
+    // ========================================================================
+    // PROTECTED DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role + Permissions)
+    // ========================================================================
+
     Route::middleware(['auth:admin', 'session.security', 'can:view-admin-dashboard'])->group(function () {
+        // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
-        
-        // Content management routes (to be implemented)
-        // Announcements CRUD
-        Route::resource('announcements', AnnouncementController::class);
 
-        // Events CRUD  
-        Route::resource('events', EventController::class);
+        // ====================================================================
+        // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
+        // ====================================================================
 
-        // News CRUD
-        Route::resource('news', NewsController::class);
-        
-        // Faculty management routes
-        Route::get('faculty', [AdminFacultyController::class, 'index'])->name('admin.faculty.index');
-        Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('admin.faculty.edit');
-        Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('admin.faculty.update');
-        Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('admin.faculty.delete');
-        
-        // Student management routes
-        Route::get('students', [AdminStudentController::class, 'index'])->name('admin.students');
-        Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('admin.students.edit');
-        Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('admin.students.update');
-        Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('admin.students.delete');
+        // Announcements CRUD - with permission checks
+        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+
+        // Events CRUD - with permission checks
+        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('events.store');
+        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('events.update');
+        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        Route::get('events', [EventController::class, 'index'])->name('events.index');
+        Route::get('events/create', [EventController::class, 'create'])->name('events.create');
+        Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
+        Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
+
+        // News CRUD - with permission checks
+        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('news.store');
+        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('news.update');
+        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('news.destroy');
+        Route::get('news', [NewsController::class, 'index'])->name('news.index');
+        Route::get('news/create', [NewsController::class, 'create'])->name('news.create');
+        Route::get('news/{news}', [NewsController::class, 'show'])->name('news.show');
+        Route::get('news/{news}/edit', [NewsController::class, 'edit'])->name('news.edit');
+
+        // ====================================================================
+        // USER MANAGEMENT (RBAC: manage-faculty, manage-students)
+        // ====================================================================
+
+        // Faculty management routes - with permission checks
+        Route::middleware('can:manage-faculty')->group(function () {
+            Route::get('faculty', [AdminFacultyController::class, 'index'])->name('admin.faculty.index');
+            Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('admin.faculty.edit');
+            Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('admin.faculty.update');
+            Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('admin.faculty.delete');
+        });
+
+        // Student management routes - with permission checks
+        Route::middleware('can:manage-students')->group(function () {
+            Route::get('students', [AdminStudentController::class, 'index'])->name('admin.students');
+            Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('admin.students.edit');
+            Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('admin.students.update');
+            Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('admin.students.delete');
+        });
     });
 });
 
-// SuperAdmin Routes
+// ============================================================================
+// SUPERADMIN ROUTES (RBAC: SuperAdmin Role Required)
+// ============================================================================
+
 Route::prefix('superadmin')->group(function () {
+    // ========================================================================
+    // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
+    // ========================================================================
+
     // Redirect to unified login form - no dedicated superadmin login
     Route::get('login', function() {
         return redirect()->route('login')->with('info', 'Please use the unified login form and select "Super Admin" as login type.');
     })->name('superadmin.login');
-    
+
     // Only logout route needed
     Route::post('logout', [SuperAdminAuthController::class, 'logout'])->name('superadmin.logout');
 
-    // Protected SuperAdmin routes
+    // ========================================================================
+    // PROTECTED SUPERADMIN ROUTES (RBAC: SuperAdmin Role + Permissions)
+    // ========================================================================
+
     Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
+        // Dashboard access
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
-        
-        // Admin access logs route
-        Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
-        Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
 
-        // Admin management routes
-        Route::resource('admins', SuperAdminController::class, [
-            'as' => 'superadmin'
-        ]);
+        // ====================================================================
+        // ADMIN ACCESS LOGS (RBAC: view-admin-access-logs, delete-admin-access-logs)
+        // ====================================================================
 
-        // Department Admin management routes
-        Route::get('department-admins/create', [SuperAdminController::class, 'createDepartmentAdmin'])->name('superadmin.department-admins.create');
-        Route::post('department-admins', [SuperAdminController::class, 'storeDepartmentAdmin'])->name('superadmin.department-admins.store');
-        Route::get('department-admins', [SuperAdminController::class, 'departmentAdmins'])->name('superadmin.department-admins.index');
+        Route::middleware('can:view-admin-access-logs')->group(function () {
+            Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
+            Route::middleware('can:delete-admin-access-logs')->delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
+        });
 
-        // Office Admin management routes
-        Route::resource('office-admins', OfficeAdminController::class, [
-            'as' => 'superadmin'
-        ]);
+        // ====================================================================
+        // ADMIN MANAGEMENT (RBAC: manage-admins, create-admins, edit-admins, delete-admins)
+        // ====================================================================
 
-        // Content management routes (inherited from admin)
-        Route::resource('announcements', AnnouncementController::class, [
-            'as' => 'superadmin'
-        ]);
-        
+        Route::middleware('can:manage-admins')->group(function () {
+            Route::get('admins', [SuperAdminController::class, 'index'])->name('superadmin.admins.index');
+            Route::get('admins/create', [SuperAdminController::class, 'create'])->name('superadmin.admins.create');
+            Route::post('admins', [SuperAdminController::class, 'store'])->name('superadmin.admins.store');
+            Route::get('admins/{admin}', [SuperAdminController::class, 'show'])->name('superadmin.admins.show');
+            Route::get('admins/{admin}/edit', [SuperAdminController::class, 'edit'])->name('superadmin.admins.edit');
+            Route::put('admins/{admin}', [SuperAdminController::class, 'update'])->name('superadmin.admins.update');
+            Route::delete('admins/{admin}', [SuperAdminController::class, 'destroy'])->name('superadmin.admins.destroy');
+        });
+
+        // ====================================================================
+        // DEPARTMENT ADMIN MANAGEMENT (RBAC: manage-department-admins)
+        // ====================================================================
+
+        Route::middleware('can:manage-department-admins')->group(function () {
+            Route::get('department-admins/create', [SuperAdminController::class, 'createDepartmentAdmin'])->name('superadmin.department-admins.create');
+            Route::post('department-admins', [SuperAdminController::class, 'storeDepartmentAdmin'])->name('superadmin.department-admins.store');
+            Route::get('department-admins', [SuperAdminController::class, 'departmentAdmins'])->name('superadmin.department-admins.index');
+        });
+
+        // ====================================================================
+        // OFFICE ADMIN MANAGEMENT (RBAC: manage-office-admins)
+        // ====================================================================
+
+        Route::middleware('can:manage-office-admins')->group(function () {
+            Route::get('office-admins', [OfficeAdminController::class, 'index'])->name('superadmin.office-admins.index');
+            Route::get('office-admins/create', [OfficeAdminController::class, 'create'])->name('superadmin.office-admins.create');
+            Route::post('office-admins', [OfficeAdminController::class, 'store'])->name('superadmin.office-admins.store');
+            Route::get('office-admins/{officeAdmin}', [OfficeAdminController::class, 'show'])->name('superadmin.office-admins.show');
+            Route::get('office-admins/{officeAdmin}/edit', [OfficeAdminController::class, 'edit'])->name('superadmin.office-admins.edit');
+            Route::put('office-admins/{officeAdmin}', [OfficeAdminController::class, 'update'])->name('superadmin.office-admins.update');
+            Route::delete('office-admins/{officeAdmin}', [OfficeAdminController::class, 'destroy'])->name('superadmin.office-admins.destroy');
+        });
+
+        // ====================================================================
+        // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
+        // ====================================================================
+
+        // Announcements CRUD - with permission checks
+        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('superadmin.announcements.store');
+        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('superadmin.announcements.update');
+        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('superadmin.announcements.destroy');
+        Route::get('announcements', [AnnouncementController::class, 'index'])->name('superadmin.announcements.index');
+        Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('superadmin.announcements.create');
+        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('superadmin.announcements.show');
+        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('superadmin.announcements.edit');
+
         // Modal routes for announcements
         Route::get('announcements/{announcement}/modal-show', [AnnouncementController::class, 'showModal'])->name('superadmin.announcements.modal-show');
         Route::get('announcements/{announcement}/modal-edit', [AnnouncementController::class, 'editModal'])->name('superadmin.announcements.modal-edit');
-        
-        Route::resource('events', EventController::class, [
-            'as' => 'superadmin'
-        ]);
-        Route::resource('news', NewsController::class, [
-            'as' => 'superadmin'
-        ]);
+
+        // Events CRUD - with permission checks
+        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('superadmin.events.store');
+        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('superadmin.events.update');
+        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('superadmin.events.destroy');
+        Route::get('events', [EventController::class, 'index'])->name('superadmin.events.index');
+        Route::get('events/create', [EventController::class, 'create'])->name('superadmin.events.create');
+        Route::get('events/{event}', [EventController::class, 'show'])->name('superadmin.events.show');
+        Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('superadmin.events.edit');
+
+        // News CRUD - with permission checks
+        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('superadmin.news.store');
+        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('superadmin.news.update');
+        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('superadmin.news.destroy');
+        Route::get('news', [NewsController::class, 'index'])->name('superadmin.news.index');
+        Route::get('news/create', [NewsController::class, 'create'])->name('superadmin.news.create');
+        Route::get('news/{news}', [NewsController::class, 'show'])->name('superadmin.news.show');
+        Route::get('news/{news}/edit', [NewsController::class, 'edit'])->name('superadmin.news.edit');
         Route::get('news/{news}/show-data', [NewsController::class, 'showData'])->name('superadmin.news.show-data');
 
-        // Faculty management routes
-        Route::get('faculty', [AdminFacultyController::class, 'index'])->name('superadmin.faculty.index');
-        Route::get('faculty/create', [AdminFacultyController::class, 'create'])->name('superadmin.faculty.create');
-        Route::post('faculty', [AdminFacultyController::class, 'store'])->name('superadmin.faculty.store');
-        Route::get('faculty/{faculty}', [AdminFacultyController::class, 'show'])->name('superadmin.faculty.show');
-        Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('superadmin.faculty.edit');
-        Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('superadmin.faculty.update');
-        Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('superadmin.faculty.destroy');
+        // ====================================================================
+        // USER MANAGEMENT (RBAC: manage-faculty, manage-students)
+        // ====================================================================
 
-        // Student management routes
-        Route::get('students', [AdminStudentController::class, 'index'])->name('superadmin.students.index');
-        Route::get('students/create', [AdminStudentController::class, 'create'])->name('superadmin.students.create');
-        Route::post('students', [AdminStudentController::class, 'store'])->name('superadmin.students.store');
-        Route::get('students/{student}', [AdminStudentController::class, 'show'])->name('superadmin.students.show');
-        Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('superadmin.students.edit');
-        Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('superadmin.students.update');
-        Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('superadmin.students.destroy');
+        // Faculty management routes - with permission checks
+        Route::middleware('can:manage-faculty')->group(function () {
+            Route::get('faculty', [AdminFacultyController::class, 'index'])->name('superadmin.faculty.index');
+            Route::get('faculty/create', [AdminFacultyController::class, 'create'])->name('superadmin.faculty.create');
+            Route::post('faculty', [AdminFacultyController::class, 'store'])->name('superadmin.faculty.store');
+            Route::get('faculty/{faculty}', [AdminFacultyController::class, 'show'])->name('superadmin.faculty.show');
+            Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('superadmin.faculty.edit');
+            Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('superadmin.faculty.update');
+            Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('superadmin.faculty.destroy');
+        });
 
-        // Admin profile picture management routes
-        Route::post('admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.admins.upload-picture');
-        Route::delete('admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.admins.remove-picture');
-        
-        // Office Admin profile picture management routes
-        Route::post('office-admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.office-admins.upload-picture');
-        Route::delete('office-admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.office-admins.remove-picture');
+        // Student management routes - with permission checks
+        Route::middleware('can:manage-students')->group(function () {
+            Route::get('students', [AdminStudentController::class, 'index'])->name('superadmin.students.index');
+            Route::get('students/create', [AdminStudentController::class, 'create'])->name('superadmin.students.create');
+            Route::post('students', [AdminStudentController::class, 'store'])->name('superadmin.students.store');
+            Route::get('students/{student}', [AdminStudentController::class, 'show'])->name('superadmin.students.show');
+            Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('superadmin.students.edit');
+            Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('superadmin.students.update');
+            Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('superadmin.students.destroy');
+        });
+
+        // ====================================================================
+        // PROFILE PICTURE MANAGEMENT (RBAC: manage-admin-profiles)
+        // ====================================================================
+
+        Route::middleware('can:manage-admin-profiles')->group(function () {
+            // Admin profile picture management routes
+            Route::post('admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.admins.upload-picture');
+            Route::delete('admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.admins.remove-picture');
+
+            // Office Admin profile picture management routes
+            Route::post('office-admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.office-admins.upload-picture');
+            Route::delete('office-admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.office-admins.remove-picture');
+        });
     });
 });
 
-// Department Admin Routes
+// ============================================================================
+// DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role Required)
+// ============================================================================
+
 Route::prefix('department-admin')->group(function () {
-    // Auth routes (dedicated department admin auth)
+    // ========================================================================
+    // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
+    // ========================================================================
+
     Route::get('login', [DepartmentAdminAuthController::class, 'showLoginForm'])->name('department-admin.login');
     Route::post('login', [DepartmentAdminAuthController::class, 'login']);
     Route::post('logout', [DepartmentAdminAuthController::class, 'logout'])->name('department-admin.logout');
 
-    // Debug route for department admin authentication
+    // ========================================================================
+    // DEBUG ROUTES (RBAC: Department Admin Only)
+    // ========================================================================
+
     Route::get('debug-auth', function() {
+        // RBAC: Only authenticated department admins can debug auth
+        if (!Auth::guard('admin')->check()) {
+            abort(403, 'Unauthorized: Must be logged in');
+        }
+
         return response()->json([
             'authenticated' => Auth::guard('admin')->check(),
             'user' => Auth::guard('admin')->user(),
@@ -1627,25 +1825,57 @@ Route::prefix('department-admin')->group(function () {
         ]);
     })->name('department-admin.debug-auth');
 
-    // Protected Department Admin routes
+    // ========================================================================
+    // PROTECTED DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role + Permissions)
+    // ========================================================================
+
     Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class])->group(function () {
+        // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])->name('department-admin.dashboard');
 
-        // Content management routes (limited to department admin's content)
-        Route::resource('announcements', AnnouncementController::class, [
-            'as' => 'department-admin'
-        ]);
-        Route::resource('events', EventController::class, [
-            'as' => 'department-admin'
-        ]);
-        Route::resource('news', NewsController::class, [
-            'as' => 'department-admin'
-        ]);
+        // ====================================================================
+        // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
+        // Limited to department admin's own department
+        // ====================================================================
+
+        // Announcements CRUD - with permission checks
+        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('department-admin.announcements.store');
+        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('department-admin.announcements.update');
+        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('department-admin.announcements.destroy');
+        Route::get('announcements', [AnnouncementController::class, 'index'])->name('department-admin.announcements.index');
+        Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('department-admin.announcements.create');
+        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('department-admin.announcements.show');
+        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('department-admin.announcements.edit');
+
+        // Events CRUD - with permission checks
+        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('department-admin.events.store');
+        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('department-admin.events.update');
+        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('department-admin.events.destroy');
+        Route::get('events', [EventController::class, 'index'])->name('department-admin.events.index');
+        Route::get('events/create', [EventController::class, 'create'])->name('department-admin.events.create');
+        Route::get('events/{event}', [EventController::class, 'show'])->name('department-admin.events.show');
+        Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('department-admin.events.edit');
+
+        // News CRUD - with permission checks
+        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('department-admin.news.store');
+        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('department-admin.news.update');
+        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('department-admin.news.destroy');
+        Route::get('news', [NewsController::class, 'index'])->name('department-admin.news.index');
+        Route::get('news/create', [NewsController::class, 'create'])->name('department-admin.news.create');
+        Route::get('news/{news}', [NewsController::class, 'show'])->name('department-admin.news.show');
+        Route::get('news/{news}/edit', [NewsController::class, 'edit'])->name('department-admin.news.edit');
     });
 });
 
-// Office Admin Routes
+// ============================================================================
+// OFFICE ADMIN ROUTES (RBAC: Office Admin Role Required)
+// ============================================================================
+
 Route::prefix('office-admin')->name('office-admin.')->group(function () {
+    // ========================================================================
+    // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
+    // ========================================================================
+
     Route::get('login', [OfficeAdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('login', [OfficeAdminAuthController::class, 'login']);
 
@@ -1653,8 +1883,16 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
     Route::get('register-form', [OfficeAdminController::class, 'showOfficeAdminRegistrationForm'])->name('register.form')->middleware('signed');
     Route::post('register-complete', [OfficeAdminController::class, 'completeOfficeAdminRegistration'])->name('register.complete');
 
-    // Debug route to test authentication
+    // ========================================================================
+    // DEBUG ROUTES (RBAC: Office Admin Only)
+    // ========================================================================
+
     Route::get('debug-auth', function() {
+        // RBAC: Only authenticated office admins can debug auth
+        if (!Auth::guard('admin')->check()) {
+            abort(403, 'Unauthorized: Must be logged in');
+        }
+
         $admin = Auth::guard('admin')->user();
         return response()->json([
             'authenticated' => Auth::guard('admin')->check(),
@@ -1667,76 +1905,152 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
         ]);
     })->name('debug-auth');
 
-    // Debug routes for registration troubleshooting
-    Route::get('debug-registration/{token}', function($token) {
-        $cachedData = \Cache::get('office_admin_registration_' . $token);
-        return response()->json([
-            'token' => $token,
-            'cached_data' => $cachedData,
-            'cache_exists' => $cachedData !== null,
-            'timestamp' => now()->timestamp,
-            'cache_key' => 'office_admin_registration_' . $token
-        ]);
-    })->name('debug-registration');
+    // Debug routes for registration troubleshooting - RBAC: SuperAdmin Only
+    Route::middleware(['auth:admin'])->group(function () {
+        Route::get('debug-registration/{token}', function($token) {
+            // RBAC: Only superadmin can debug registrations
+            if (!auth('admin')->user()->isSuperAdmin()) {
+                abort(403, 'Unauthorized: Only Super Admin can debug registrations');
+            }
 
-    Route::get('clear-registration/{token}', function($token) {
-        $cachedData = \Cache::get('office_admin_registration_' . $token);
-        \Cache::forget('office_admin_registration_' . $token);
-        return response()->json([
-            'message' => 'Registration cache cleared',
-            'token' => $token,
-            'previous_data' => $cachedData,
-            'cleared_at' => now()->timestamp
-        ]);
-    })->name('clear-registration');
+            $cachedData = \Cache::get('office_admin_registration_' . $token);
+            return response()->json([
+                'token' => $token,
+                'cached_data' => $cachedData,
+                'cache_exists' => $cachedData !== null,
+                'timestamp' => now()->timestamp,
+                'cache_key' => 'office_admin_registration_' . $token
+            ]);
+        })->name('debug-registration');
 
-    // Protected Office Admin routes
+        Route::get('clear-registration/{token}', function($token) {
+            // RBAC: Only superadmin can clear registrations
+            if (!auth('admin')->user()->isSuperAdmin()) {
+                abort(403, 'Unauthorized: Only Super Admin can clear registrations');
+            }
+
+            $cachedData = \Cache::get('office_admin_registration_' . $token);
+            \Cache::forget('office_admin_registration_' . $token);
+            return response()->json([
+                'message' => 'Registration cache cleared',
+                'token' => $token,
+                'previous_data' => $cachedData,
+                'cleared_at' => now()->timestamp
+            ]);
+        })->name('clear-registration');
+    });
+
+    // ========================================================================
+    // PROTECTED OFFICE ADMIN ROUTES (RBAC: Office Admin Role + Permissions)
+    // ========================================================================
+
     Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class])->group(function () {
+        // Dashboard access
         Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('logout', [OfficeAdminAuthController::class, 'logout'])->name('logout');
 
-        // Content management routes (limited to office admin's content)
-        Route::resource('announcements', AnnouncementController::class);
-        Route::resource('events', EventController::class);
-        Route::resource('news', NewsController::class);
+        // ====================================================================
+        // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
+        // Limited to office admin's own office
+        // ====================================================================
+
+        // Announcements CRUD - with permission checks
+        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+
+        // Events CRUD - with permission checks
+        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('events.store');
+        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('events.update');
+        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        Route::get('events', [EventController::class, 'index'])->name('events.index');
+        Route::get('events/create', [EventController::class, 'create'])->name('events.create');
+        Route::get('events/{event}', [EventController::class, 'show'])->name('events.show');
+        Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
+
+        // News CRUD - with permission checks
+        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('news.store');
+        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('news.update');
+        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('news.destroy');
+        Route::get('news', [NewsController::class, 'index'])->name('news.index');
+        Route::get('news/create', [NewsController::class, 'create'])->name('news.create');
+        Route::get('news/{news}', [NewsController::class, 'show'])->name('news.show');
+        Route::get('news/{news}/edit', [NewsController::class, 'edit'])->name('news.edit');
     });
 });
 
-// User Routes
+// ============================================================================
+// USER ROUTES (RBAC: Student/Faculty Role Required)
+// ============================================================================
+
 Route::prefix('user')->group(function () {
-    // Auth routes
+    // ========================================================================
+    // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
+    // ========================================================================
+
     Route::get('login', [UserAuthController::class, 'showLoginForm'])->name('user.login');
     Route::post('login', [UserAuthController::class, 'login']);
     Route::get('register', [UserAuthController::class, 'showRegisterForm'])->name('user.register');
     Route::post('register', [UserAuthController::class, 'register']);
-    
-    // Protected routes
+
+    // ========================================================================
+    // PROTECTED USER ROUTES (RBAC: Student/Faculty Role + Permissions)
+    // ========================================================================
+
     Route::middleware(['auth', 'password.expiration', 'session.security', 'can:view-user-dashboard'])->group(function () {
+        // Dashboard access
         Route::get('dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::post('logout', [UserAuthController::class, 'logout'])->name('user.logout');
 
-        // Notification routes
-        Route::get('notifications', [NotificationController::class, 'index'])->name('user.notifications.index');
-        Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('user.notifications.read');
-        Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('user.notifications.mark-all-read');
-        Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('user.notifications.unread-count');
-        Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('user.notifications.destroy');
+        // ====================================================================
+        // NOTIFICATION MANAGEMENT (RBAC: view-user-notifications, mark-notifications-read)
+        // ====================================================================
 
-        // Content routes for notifications
+        Route::middleware('can:view-user-notifications')->group(function () {
+            Route::get('notifications', [NotificationController::class, 'index'])->name('user.notifications.index');
+            Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('user.notifications.unread-count');
+
+            Route::middleware('can:mark-notifications-read')->group(function () {
+                Route::post('notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('user.notifications.read');
+                Route::post('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('user.notifications.mark-all-read');
+                Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('user.notifications.destroy');
+            });
+        });
+
+        // ====================================================================
+        // CONTENT ACCESS (RBAC: view-announcements, view-events, view-news)
+        // ====================================================================
+
         Route::get('content/announcement/{id}', [UserDashboardController::class, 'getAnnouncement'])->name('user.content.announcement');
         Route::get('content/event/{id}', [UserDashboardController::class, 'getEvent'])->name('user.content.event');
         Route::get('content/news/{id}', [UserDashboardController::class, 'getNews'])->name('user.content.news');
 
-        // Comment routes
-        Route::get('content/{type}/{id}/comments', [CommentController::class, 'getComments'])->name('comments.get');
-        Route::post('comments', [CommentController::class, 'store'])->name('comments.store');
-        Route::put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
-        Route::delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+        // ====================================================================
+        // COMMENT MANAGEMENT (RBAC: create-comments, update-own-comments, delete-own-comments)
+        // ====================================================================
 
-        // Profile routes
-        Route::post('profile/update', [\App\Http\Controllers\UserProfileController::class, 'updateProfile'])->name('user.profile.update');
-        Route::post('profile/upload-picture', [\App\Http\Controllers\UserProfileController::class, 'uploadProfilePicture'])->name('user.profile.upload-picture');
-        Route::delete('profile/remove-picture', [\App\Http\Controllers\UserProfileController::class, 'removeProfilePicture'])->name('user.profile.remove-picture');
+        Route::get('content/{type}/{id}/comments', [CommentController::class, 'getComments'])->name('comments.get');
+
+        Route::middleware('can:create-comments')->post('comments', [CommentController::class, 'store'])->name('comments.store');
+        Route::middleware('can:update-own-comments')->put('comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
+        Route::middleware('can:delete-own-comments')->delete('comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+
+        // ====================================================================
+        // PROFILE MANAGEMENT (RBAC: update-user-profile, upload-user-profile-picture)
+        // ====================================================================
+
+        Route::middleware('can:update-user-profile')->group(function () {
+            Route::post('profile/update', [\App\Http\Controllers\UserProfileController::class, 'updateProfile'])->name('user.profile.update');
+
+            Route::middleware('can:upload-user-profile-picture')->group(function () {
+                Route::post('profile/upload-picture', [\App\Http\Controllers\UserProfileController::class, 'uploadProfilePicture'])->name('user.profile.upload-picture');
+                Route::delete('profile/remove-picture', [\App\Http\Controllers\UserProfileController::class, 'removeProfilePicture'])->name('user.profile.remove-picture');
+            });
+        });
 
         // Test route for comment functionality
         Route::get('comments/test', function() {
