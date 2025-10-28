@@ -7,11 +7,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - MCC News Aggregator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
@@ -1355,7 +1350,18 @@
     </div>
 
     <!-- reCAPTCHA v3 Library -->
+    @if(config('services.recaptcha.site_key'))
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    <script>
+        // Debug: Log when reCAPTCHA is loaded
+        console.log('reCAPTCHA v3 Site Key:', '{{ config('services.recaptcha.site_key') }}');
+        console.log('reCAPTCHA v3 library loading...');
+    </script>
+    @else
+    <script>
+        console.warn('reCAPTCHA v3 is not configured. Please set GOOGLE_RECAPTCHA_SITE_KEY in .env file');
+    </script>
+    @endif
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -1584,25 +1590,40 @@
                 }
                 
                 // Execute reCAPTCHA v3 before submitting
-                grecaptcha.ready(function() {
-                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
-                        // Add the reCAPTCHA token to the form
-                        let tokenInput = form.querySelector('input[name="g-recaptcha-response"]');
-                        if (!tokenInput) {
-                            tokenInput = document.createElement('input');
-                            tokenInput.type = 'hidden';
-                            tokenInput.name = 'g-recaptcha-response';
-                            form.appendChild(tokenInput);
-                        }
-                        tokenInput.value = token;
-                        
-                        // Now submit the form
-                        form.submit();
-                    }).catch(function(error) {
-                        console.error('reCAPTCHA error:', error);
-                        showSecurityError('Unable to verify reCAPTCHA. Please try again.');
+                @if(config('services.recaptcha.site_key'))
+                if (typeof grecaptcha !== 'undefined') {
+                    grecaptcha.ready(function() {
+                        console.log('Executing reCAPTCHA v3...');
+                        grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
+                            console.log('reCAPTCHA token received:', token.substring(0, 20) + '...');
+                            
+                            // Add the reCAPTCHA token to the form
+                            let tokenInput = form.querySelector('input[name="g-recaptcha-response"]');
+                            if (!tokenInput) {
+                                tokenInput = document.createElement('input');
+                                tokenInput.type = 'hidden';
+                                tokenInput.name = 'g-recaptcha-response';
+                                form.appendChild(tokenInput);
+                            }
+                            tokenInput.value = token;
+                            
+                            console.log('Submitting form with reCAPTCHA token...');
+                            // Now submit the form
+                            form.submit();
+                        }).catch(function(error) {
+                            console.error('reCAPTCHA error:', error);
+                            showSecurityError('Unable to verify reCAPTCHA. Please try again.');
+                        });
                     });
-                });
+                } else {
+                    console.warn('reCAPTCHA not loaded, submitting form without verification');
+                    form.submit();
+                }
+                @else
+                // reCAPTCHA not configured, submit form directly
+                console.log('reCAPTCHA not configured, submitting form...');
+                form.submit();
+                @endif
                 
                 return false;
             });
