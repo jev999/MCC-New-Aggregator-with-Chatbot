@@ -822,6 +822,12 @@
                 padding: 1rem;
             }
             
+            /* reCAPTCHA v2 scaling for small screens */
+            .recaptcha-container .g-recaptcha {
+                transform: scale(0.77);
+                transform-origin: center center;
+            }
+            
             .form-group {
                 margin-bottom: 1.25rem;
             }
@@ -930,10 +936,16 @@
                 font-size: 0.8125rem;
             }
             
-            /* Mobile reCAPTCHA scaling */
+            /* Mobile reCAPTCHA v2 scaling */
+            .recaptcha-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            
             .recaptcha-container .g-recaptcha {
                 transform: scale(0.85);
-                transform-origin: 0 0;
+                transform-origin: center center;
             }
         }
         
@@ -1329,10 +1341,11 @@
                         </label>
                     </div>
 
-                    <!-- reCAPTCHA v3 Field -->
+                    <!-- reCAPTCHA v2 Field -->
                     @if(config('services.recaptcha.site_key'))
                     <div class="form-group recaptcha-container" id="recaptcha-field" style="display: none; margin: 1rem 0;">
-                        <p style="font-size: 0.75rem; color: #999; text-align: center;">
+                        <div class="g-recaptcha" data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+                        <p style="font-size: 0.75rem; color: #999; text-align: center; margin-top: 0.5rem;">
                             This site is protected by reCAPTCHA and the Google
                             <a href="https://policies.google.com/privacy" target="_blank" style="color: #666;">Privacy Policy</a> and
                             <a href="https://policies.google.com/terms" target="_blank" style="color: #666;">Terms of Service</a> apply.
@@ -1358,17 +1371,17 @@
         </div>
     </div>
 
-    <!-- reCAPTCHA v3 Library -->
+    <!-- reCAPTCHA v2 Library -->
     @if(config('services.recaptcha.site_key'))
-    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
         // Debug: Log when reCAPTCHA is loaded
-        console.log('reCAPTCHA v3 Site Key:', '{{ config('services.recaptcha.site_key') }}');
-        console.log('reCAPTCHA v3 library loading...');
+        console.log('reCAPTCHA v2 Site Key:', '{{ config('services.recaptcha.site_key') }}');
+        console.log('reCAPTCHA v2 library loading...');
     </script>
     @else
     <script>
-        console.warn('reCAPTCHA v3 is not configured. Please set GOOGLE_RECAPTCHA_SITE_KEY in .env file');
+        console.warn('reCAPTCHA v2 is not configured. Please set GOOGLE_RECAPTCHA_SITE_KEY in .env file');
     </script>
     @endif
     
@@ -1574,10 +1587,8 @@
                 });
             });
 
-            // Enhanced form submission validation with reCAPTCHA v3
+            // Enhanced form submission validation with reCAPTCHA v2
             document.getElementById('unified-form').addEventListener('submit', function(e) {
-                e.preventDefault(); // Always prevent default to handle reCAPTCHA first
-                
                 const form = this;
                 const formData = new FormData(form);
                 let hasErrors = false;
@@ -1587,6 +1598,7 @@
                     if (key !== '_token' && value) {
                         const validation = validateInput(value, key);
                         if (!validation.valid) {
+                            e.preventDefault();
                             showSecurityError(validation.message);
                             hasErrors = true;
                             break;
@@ -1595,46 +1607,24 @@
                 }
 
                 if (hasErrors) {
+                    e.preventDefault();
                     return false;
                 }
                 
-                // Execute reCAPTCHA v3 before submitting
+                // Validate reCAPTCHA v2 response
                 @if(config('services.recaptcha.site_key'))
-                if (typeof grecaptcha !== 'undefined') {
-                    grecaptcha.ready(function() {
-                        console.log('Executing reCAPTCHA v3...');
-                        grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
-                            console.log('reCAPTCHA token received:', token.substring(0, 20) + '...');
-                            
-                            // Add the reCAPTCHA token to the form
-                            let tokenInput = form.querySelector('input[name="g-recaptcha-response"]');
-                            if (!tokenInput) {
-                                tokenInput = document.createElement('input');
-                                tokenInput.type = 'hidden';
-                                tokenInput.name = 'g-recaptcha-response';
-                                form.appendChild(tokenInput);
-                            }
-                            tokenInput.value = token;
-                            
-                            console.log('Submitting form with reCAPTCHA token...');
-                            // Now submit the form
-                            form.submit();
-                        }).catch(function(error) {
-                            console.error('reCAPTCHA error:', error);
-                            showSecurityError('Unable to verify reCAPTCHA. Please try again.');
-                        });
-                    });
-                } else {
-                    console.warn('reCAPTCHA not loaded, submitting form without verification');
-                    form.submit();
+                const recaptchaResponse = grecaptcha && grecaptcha.getResponse ? grecaptcha.getResponse() : '';
+                if (!recaptchaResponse) {
+                    e.preventDefault();
+                    showSecurityError('Please complete the reCAPTCHA verification.');
+                    return false;
                 }
+                console.log('reCAPTCHA v2 verified, submitting form...');
                 @else
-                // reCAPTCHA not configured, submit form directly
                 console.log('reCAPTCHA not configured, submitting form...');
-                form.submit();
                 @endif
                 
-                return false;
+                // Form will submit normally if validation passes
             });
 
             function toggleFields() {
