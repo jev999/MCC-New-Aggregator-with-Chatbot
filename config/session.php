@@ -32,7 +32,7 @@ return [
     |
     */
 
-    'lifetime' => (int) env('SESSION_LIFETIME', 60), // Reduced to 60 minutes for better security
+    'lifetime' => (int) env('SESSION_LIFETIME', 30), // Reduced to 30 minutes for enhanced security
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', true), // Sessions expire when browser closes
 
@@ -169,7 +169,7 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'), // Secure cookies in production
+    'secure' => env('SESSION_SECURE_COOKIE', true), // Always use secure cookies for enhanced security
 
     /*
     |--------------------------------------------------------------------------
@@ -199,7 +199,7 @@ return [
     |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'), // Lax SameSite for better compatibility
+    'same_site' => env('SESSION_SAME_SITE', 'strict'), // Strict SameSite for maximum security
 
     /*
     |--------------------------------------------------------------------------
@@ -213,5 +213,37 @@ return [
     */
 
     'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Session Security Enhancements
+    |--------------------------------------------------------------------------
+    |
+    | Additional security configurations for session management
+    |
+    */
+
+    'security' => [
+        // Regenerate session ID on login for security
+        'regenerate_on_login' => env('SESSION_REGENERATE_ON_LOGIN', true),
+        
+        // Regenerate session ID every N requests for additional security
+        'regenerate_frequency' => env('SESSION_REGENERATE_FREQUENCY', 10),
+        
+        // Maximum session lifetime regardless of activity
+        'max_lifetime' => env('SESSION_MAX_LIFETIME', 120), // 2 hours maximum
+        
+        // Session timeout warning (minutes before expiration)
+        'timeout_warning' => env('SESSION_TIMEOUT_WARNING', 5),
+        
+        // Force logout on IP change for enhanced security
+        'force_logout_on_ip_change' => env('SESSION_FORCE_LOGOUT_ON_IP_CHANGE', true),
+        
+        // Force logout on user agent change
+        'force_logout_on_user_agent_change' => env('SESSION_FORCE_LOGOUT_ON_USER_AGENT_CHANGE', false),
+        
+        // Session fingerprinting for additional security
+        'enable_fingerprinting' => env('SESSION_ENABLE_FINGERPRINTING', true),
+    ],
 
 ];

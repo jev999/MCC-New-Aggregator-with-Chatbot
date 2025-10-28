@@ -99,30 +99,117 @@ class OfficeAdminAuthController extends Controller
     public function logout(Request $request)
     {
         $user = Auth::guard('admin')->user();
+        $sessionId = $request->session()->getId();
 
-        // Log time out and duration for admin access log
-        if ($user && in_array($user->role, ['superadmin', 'department_admin', 'office_admin'])) {
-            $log = AdminAccessLog::where('admin_id', $user->id)
-                ->whereNull('time_out')
-                ->latest()
-                ->first();
+        // Log the logout event for security monitoring
+        \Log::info('Office Admin logout initiated', [
+            'user_id' => $user ? $user->id : null,
+            'username' => $user ? $user->username : null,
+            'role' => $user ? $user->role : null,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'session_id' => $sessionId,
+            'timestamp' => now()->toISOString()
+        ]);
 
-            if ($log) {
-                $timeOut = Carbon::now();
-                $duration = $timeOut->diffForHumans(Carbon::parse($log->time_in), true);
-                $log->update([
-                    'time_out' => $timeOut,
-                    'duration' => $duration,
-                ]);
+        try {
+            // Log time out and duration for admin access log
+            if ($user && in_array($user->role, ['superadmin', 'department_admin', 'office_admin'])) {
+                $log = AdminAccessLog::where('admin_id', $user->id)
+                    ->whereNull('time_out')
+                    ->latest()
+                    ->first();
+
+                if ($log) {
+                    $timeOut = Carbon::now();
+                    $duration = $timeOut->diffForHumans(Carbon::parse($log->time_in), true);
+                    $log->update([
+                        'time_out' => $timeOut,
+                        'duration' => $duration,
+                    ]);
+                }
             }
+
+            // Clear all security-related session data
+            $securityKeys = [
+                'security.ip_address',
+                'security.user_agent',
+                'security.fingerprint',
+                'security.session_start_time',
+                'security.last_activity',
+                'security.request_count',
+                'security.timeout_warning',
+                'security.time_remaining'
+            ];
+            
+            foreach ($securityKeys as $key) {
+                $request->session()->forget($key);
+            }
+
+            // Logout the user
+            Auth::guard('admin')->logout();
+
+            // Invalidate the session completely
+            $request->session()->invalidate();
+            
+            // Regenerate CSRF token
+            $request->session()->regenerateToken();
+            
+            // Clear all session data
+            $request->session()->flush();
+            
+            // Force garbage collection of old sessions
+            $request->session()->migrate(true);
+
+            // Clear remember me cookies if they exist
+            $cookies = [];
+            if ($request->hasCookie(Auth::guard('admin')->getRecallerName())) {
+                $cookies[] = \Cookie::forget(Auth::guard('admin')->getRecallerName());
+            }
+
+            // Log successful logout
+            \Log::info('Office Admin logout completed successfully', [
+                'user_id' => $user ? $user->id : null,
+                'session_id' => $sessionId,
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Prepare response with security headers
+            $response = redirect()->route('login')
+                ->with('success', 'You have been logged out successfully.');
+            
+            // Add security headers to prevent caching
+            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', '0');
+            $response->headers->set('Clear-Site-Data', '"cache", "cookies", "storage"');
+            
+            // Clear remember me cookies
+            foreach ($cookies as $cookie) {
+                $response->withCookie($cookie);
+            }
+
+            return $response;
+
+        } catch (\Exception $e) {
+            // Log logout error
+            \Log::error('Office Admin logout failed', [
+                'user_id' => $user ? $user->id : null,
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Force logout anyway for security
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $request->session()->flush();
+
+            return redirect()->route('login')
+                ->with('error', 'Logout encountered an error, but you have been logged out for security.');
         }
-
-        Auth::guard('admin')->logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('login')
-                        ->with('success', 'You have been logged out successfully.');
     }
 }

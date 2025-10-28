@@ -267,10 +267,100 @@ class GmailAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $user = Auth::user();
+        $sessionId = $request->session()->getId();
 
-        return redirect()->route('login')->with('success', 'You have been logged out successfully.');
+        // Log the logout event for security monitoring
+        \Log::info('Gmail Auth logout initiated', [
+            'user_id' => $user ? $user->id : null,
+            'gmail_account' => $user ? $user->gmail_account : null,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'session_id' => $sessionId,
+            'timestamp' => now()->toISOString()
+        ]);
+
+        try {
+            // Clear all security-related session data
+            $securityKeys = [
+                'security.ip_address',
+                'security.user_agent',
+                'security.fingerprint',
+                'security.session_start_time',
+                'security.last_activity',
+                'security.request_count',
+                'security.timeout_warning',
+                'security.time_remaining'
+            ];
+            
+            foreach ($securityKeys as $key) {
+                $request->session()->forget($key);
+            }
+
+            // Logout the user
+            Auth::logout();
+
+            // Invalidate the session completely
+            $request->session()->invalidate();
+            
+            // Regenerate CSRF token
+            $request->session()->regenerateToken();
+            
+            // Clear all session data
+            $request->session()->flush();
+            
+            // Force garbage collection of old sessions
+            $request->session()->migrate(true);
+
+            // Clear remember me cookies if they exist
+            $cookies = [];
+            if ($request->hasCookie(Auth::getRecallerName())) {
+                $cookies[] = \Cookie::forget(Auth::getRecallerName());
+            }
+
+            // Log successful logout
+            \Log::info('Gmail Auth logout completed successfully', [
+                'user_id' => $user ? $user->id : null,
+                'session_id' => $sessionId,
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Prepare response with security headers
+            $response = redirect()->route('login')
+                ->with('success', 'You have been logged out successfully.');
+            
+            // Add security headers to prevent caching
+            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', '0');
+            $response->headers->set('Clear-Site-Data', '"cache", "cookies", "storage"');
+            
+            // Clear remember me cookies
+            foreach ($cookies as $cookie) {
+                $response->withCookie($cookie);
+            }
+
+            return $response;
+
+        } catch (\Exception $e) {
+            // Log logout error
+            \Log::error('Gmail Auth logout failed', [
+                'user_id' => $user ? $user->id : null,
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Force logout anyway for security
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $request->session()->flush();
+
+            return redirect()->route('login')
+                ->with('error', 'Logout encountered an error, but you have been logged out for security.');
+        }
     }
 }

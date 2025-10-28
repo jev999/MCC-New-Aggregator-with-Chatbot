@@ -29,6 +29,8 @@ use App\Http\Controllers\Auth\GmailAuthController;
 use App\Http\Controllers\Auth\MS365AuthController;
 use App\Http\Controllers\Auth\MS365OAuthController;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Http\Request;
 
 // Show welcome page at root
 Route::get('/', function () {
@@ -126,6 +128,55 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
 
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
+
+// Session management API routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/api/session-status', function(Request $request) {
+        $user = Auth::user();
+        $sessionLifetime = config('session.lifetime', 30);
+        $lastActivity = Session::get('security.last_activity', now());
+        $timeUntilExpiry = $sessionLifetime - now()->diffInMinutes($lastActivity);
+        
+        $timeoutWarning = false;
+        $timeRemaining = 0;
+        
+        if ($timeUntilExpiry <= config('session.security.timeout_warning', 5) && $timeUntilExpiry > 0) {
+            $timeoutWarning = true;
+            $timeRemaining = $timeUntilExpiry;
+        }
+        
+        return response()->json([
+            'timeout_warning' => $timeoutWarning,
+            'time_remaining' => $timeRemaining,
+            'session_lifetime' => $sessionLifetime,
+            'last_activity' => $lastActivity
+        ]);
+    })->name('api.session.status');
+    
+    Route::post('/api/extend-session', function(Request $request) {
+        $user = Auth::user();
+        
+        // Update last activity
+        Session::put('security.last_activity', now());
+        
+        // Clear timeout warning
+        Session::forget('security.timeout_warning');
+        Session::forget('security.time_remaining');
+        
+        // Log session extension
+        \Log::info('Session extended by user', [
+            'user_id' => $user->id,
+            'ip' => $request->ip(),
+            'timestamp' => now()->toISOString()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Session extended successfully',
+            'new_expiry' => now()->addMinutes(config('session.lifetime', 30))
+        ]);
+    })->name('api.session.extend');
+});
 
 // Password change routes
 Route::middleware(['auth'])->group(function () {
@@ -1452,7 +1503,7 @@ Route::prefix('admin')->group(function () {
     })->name('admin.clear-all-registrations');
     
     // Protected routes - Only department admins can access these
-    Route::middleware(['auth:admin', 'can:view-admin-dashboard'])->group(function () {
+    Route::middleware(['auth:admin', 'session.security', 'can:view-admin-dashboard'])->group(function () {
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])->name('admin.dashboard');
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
         
@@ -1660,7 +1711,7 @@ Route::prefix('user')->group(function () {
     Route::post('register', [UserAuthController::class, 'register']);
     
     // Protected routes
-    Route::middleware(['auth', 'password.expiration', 'can:view-user-dashboard'])->group(function () {
+    Route::middleware(['auth', 'password.expiration', 'session.security', 'can:view-user-dashboard'])->group(function () {
         Route::get('dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::post('logout', [UserAuthController::class, 'logout'])->name('user.logout');
 

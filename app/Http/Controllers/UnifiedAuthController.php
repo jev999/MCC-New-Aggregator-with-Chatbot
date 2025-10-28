@@ -1112,40 +1112,127 @@ class UnifiedAuthController extends Controller
         $adminUser = Auth::guard('admin')->user();
         $webUser = Auth::guard('web')->user();
         
+        // Get session ID before logout for logging
+        $sessionId = $request->session()->getId();
+        
         // Log the logout event for security monitoring
-        \Log::info('User logout', [
+        \Log::info('User logout initiated', [
             'admin_user_id' => $adminUser ? $adminUser->id : null,
             'web_user_id' => $webUser ? $webUser->id : null,
             'admin_username' => $adminUser ? $adminUser->username : null,
+            'web_user_email' => $webUser ? ($webUser->ms365_account ?? $webUser->gmail_account) : null,
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
+            'session_id' => $sessionId,
             'timestamp' => now()->toISOString()
         ]);
         
-        // Logout from appropriate guard
-        if ($adminUser) {
-            Auth::guard('admin')->logout();
-        }
-        if ($webUser) {
-            Auth::guard('web')->logout();
-        }
-        
-        // Clear authenticated accounts session data
-        $request->session()->forget('authenticated_accounts');
-        
-        // Clear login attempt data but preserve other session data
-        $sessionData = $request->session()->all();
-        foreach ($sessionData as $key => $value) {
-            if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
+        try {
+            // Logout from appropriate guard
+            if ($adminUser) {
+                Auth::guard('admin')->logout();
+            }
+            if ($webUser) {
+                Auth::guard('web')->logout();
+            }
+            
+            // Clear all security-related session data
+            $securityKeys = [
+                'authenticated_accounts',
+                'security.ip_address',
+                'security.user_agent',
+                'security.fingerprint',
+                'security.session_start_time',
+                'security.last_activity',
+                'security.request_count',
+                'security.timeout_warning',
+                'security.time_remaining'
+            ];
+            
+            foreach ($securityKeys as $key) {
                 $request->session()->forget($key);
             }
+            
+            // Clear login attempt data
+            $sessionData = $request->session()->all();
+            foreach ($sessionData as $key => $value) {
+                if (strpos($key, 'login_attempts_') === 0 || 
+                    strpos($key, 'lockout_time_') === 0 ||
+                    strpos($key, 'security.') === 0) {
+                    $request->session()->forget($key);
+                }
+            }
+            
+            // Invalidate the session completely
+            $request->session()->invalidate();
+            
+            // Regenerate CSRF token
+            $request->session()->regenerateToken();
+            
+            // Clear all session data
+            $request->session()->flush();
+            
+            // Force garbage collection of old sessions
+            $request->session()->migrate(true);
+            
+            // Clear remember me cookies if they exist
+            $cookies = [];
+            if ($request->hasCookie(Auth::getRecallerName())) {
+                $cookies[] = \Cookie::forget(Auth::getRecallerName());
+            }
+            
+            // Log successful logout
+            \Log::info('User logout completed successfully', [
+                'admin_user_id' => $adminUser ? $adminUser->id : null,
+                'web_user_id' => $webUser ? $webUser->id : null,
+                'session_id' => $sessionId,
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            // Prepare response with security headers
+            $response = redirect()->route('login')
+                ->with('success', 'You have been logged out successfully.');
+            
+            // Add security headers to prevent caching
+            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', '0');
+            $response->headers->set('Clear-Site-Data', '"cache", "cookies", "storage"');
+            
+            // Clear remember me cookies
+            foreach ($cookies as $cookie) {
+                $response->withCookie($cookie);
+            }
+            
+            return $response;
+            
+        } catch (\Exception $e) {
+            // Log logout error
+            \Log::error('User logout failed', [
+                'admin_user_id' => $adminUser ? $adminUser->id : null,
+                'web_user_id' => $webUser ? $webUser->id : null,
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'ip' => $request->ip(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            // Force logout anyway for security
+            if ($adminUser) {
+                Auth::guard('admin')->logout();
+            }
+            if ($webUser) {
+                Auth::guard('web')->logout();
+            }
+            
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            $request->session()->flush();
+            
+            return redirect()->route('login')
+                ->with('error', 'Logout encountered an error, but you have been logged out for security.');
         }
-        
-        // Regenerate session ID for security but don't flush everything
-        $request->session()->regenerate(true);
-        
-        return redirect()->route('login')
-                        ->with('success', 'You have been logged out successfully.');
     }
 
     /**
