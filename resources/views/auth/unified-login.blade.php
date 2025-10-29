@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - MCC News Aggregator</title>
-    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -1327,7 +1327,7 @@
 
             <!-- reCAPTCHA removed -->
 
-                    <input type="hidden" name="recaptcha_token" id="recaptcha_token">
+                    
 
                     <!-- Submit Button -->
                     <button type="submit" class="btn" id="submit-btn">
@@ -1349,6 +1349,36 @@
 
     <!-- reCAPTCHA scripts removed -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Superadmin OTP Modal -->
+    <div id="otp-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden;">
+            <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="margin: 0; color: #2563eb;">Super Admin OTP Verification</h3>
+                <button id="otp-close" type="button" aria-label="Close" style="background: transparent; border: 0; font-size: 18px; cursor: pointer;">×</button>
+            </div>
+            <div style="padding: 20px;">
+                @if(session('status'))
+                    <div style="background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;padding:10px 12px;border-radius:8px;margin-bottom:12px;">{{ session('status') }}</div>
+                @endif
+                <form method="POST" action="{{ route('superadmin.otp.verify') }}" id="otp-form">
+                    @csrf
+                    <div class="form-group">
+                        <label for="otp" style="display:block;font-size:14px;color:#374151;margin-bottom:6px;">Enter 6-digit code</label>
+                        <input type="text" id="otp" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="••••••" required class="form-control" style="text-align:center;letter-spacing:6px;font-size:20px;">
+                    </div>
+                    @error('otp')
+                        <div class="error-message" style="margin-top:8px;">{{ $message }}</div>
+                    @enderror
+                    <button type="submit" class="btn" style="margin-top:8px;">
+                        <i class="fas fa-shield-alt"></i>
+                        Verify and Continue
+                    </button>
+                    <div class="text-muted" style="margin-top:8px;">Code expires in 10 minutes. Max 5 attempts.</div>
+                </form>
+            </div>
+        </div>
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var el = document.getElementById('swal-success');
@@ -1558,7 +1588,7 @@
 
                 // Validate all form inputs
                 for (let [key, value] of formData.entries()) {
-                    if (key !== '_token' && key !== 'recaptcha_token' && value) {
+                    if (key !== '_token' && value) {
                         const validation = validateInput(value, key);
                         if (!validation.valid) {
                             showSecurityError(validation.message);
@@ -1572,19 +1602,8 @@
                     return false;
                 }
 
-                if (typeof grecaptcha === 'undefined') {
-                    showSecurityError('Security check unavailable. Please refresh and try again.');
-                    return false;
-                }
-
-                grecaptcha.ready(function() {
-                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', { action: 'login' }).then(function(token) {
-                        document.getElementById('recaptcha_token').value = token;
-                        form.submit();
-                    }).catch(function() {
-                        showSecurityError('Unable to complete security verification. Please try again.');
-                    });
-                });
+                // Submit directly without reCAPTCHA
+                form.submit();
             });
 
             function toggleFields() {
@@ -1692,14 +1711,35 @@
 
             // Initial call to set the correct state
             console.log('Initializing form fields...'); // Debug log
-            
-            // Set default login type to ms365 and show appropriate fields
-            if (loginTypeSelect.value === 'ms365') {
-                toggleFields();
-            } else {
-                // Force show MS365 fields by default
-                loginTypeSelect.value = 'ms365';
-                toggleFields();
+            // Respect current selected value (from old input or server), do not override
+            toggleFields();
+
+            // OTP modal behavior
+            const otpModal = document.getElementById('otp-modal');
+            const otpClose = document.getElementById('otp-close');
+            if (otpClose) {
+                otpClose.addEventListener('click', function() {
+                    if (otpModal) otpModal.style.display = 'none';
+                });
+            }
+
+            // Server flag to show OTP modal
+            const shouldShowOtp = {{ (session('show_superadmin_otp') || ($errors && $errors->has('otp'))) ? 'true' : 'false' }};
+            if (shouldShowOtp && otpModal) {
+                // Preselect superadmin fields
+                if (loginTypeSelect) {
+                    loginTypeSelect.value = 'superadmin';
+                    toggleFields();
+                }
+                otpModal.style.display = 'flex';
+                // Focus OTP input
+                const otpInput = document.getElementById('otp');
+                if (otpInput) {
+                    otpInput.focus();
+                    otpInput.addEventListener('input', function() {
+                        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+                    });
+                }
             }
 
             // Add event listener for changes

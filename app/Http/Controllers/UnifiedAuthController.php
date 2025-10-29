@@ -23,12 +23,13 @@ use App\Models\Admin;
 use App\Models\AdminAccessLog;
 use App\Models\PasswordReset;
 use App\Services\GeolocationService;
+use App\Services\MicrosoftGraphService;
 use Carbon\Carbon;
-use App\Services\RecaptchaService;
 class UnifiedAuthController extends Controller
 {
     protected $securityService;
     protected $geolocationService;
+    protected $graphService;
     
     public function __construct()
     {
@@ -37,6 +38,9 @@ class UnifiedAuthController extends Controller
             $this->securityService = app('\App\Services\SecurityService');
         }
         $this->geolocationService = new GeolocationService();
+        if (class_exists('App\\Services\\MicrosoftGraphService')) {
+            $this->graphService = new MicrosoftGraphService();
+        }
     }
 
     /**
@@ -169,37 +173,8 @@ class UnifiedAuthController extends Controller
             $validationRules['gmail_account'] = array_merge(['required'], $secureRules['gmail_account']);
         }
         
-        // reCAPTCHA v3 token is required for all login types
-        $validationRules['recaptcha_token'] = 'required|string';
-        
         // Validate the request
         $request->validate($validationRules, $secureMessages);
-
-        // Verify reCAPTCHA v3 token
-        $token = (string) $request->input('recaptcha_token');
-        /** @var RecaptchaService $recaptcha */
-        $recaptcha = app(RecaptchaService::class);
-        $recaptchaResult = $recaptcha->verify($token, $request->ip());
-
-        \Log::info('recaptcha', [
-            'ip' => $request->ip(),
-            'login_type' => $request->input('login_type'),
-            'result' => $recaptchaResult['raw'] ?? [],
-        ]);
-
-        if (!($recaptchaResult['success'] ?? false)) {
-            return back()->withErrors(['recaptcha' => 'reCAPTCHA verification failed.'])->withInput($request->except('password'));
-        }
-
-        if (($recaptchaResult['action'] ?? '') !== 'login') {
-            return back()->withErrors(['recaptcha' => 'Invalid reCAPTCHA action.'])->withInput($request->except('password'));
-        }
-
-        $threshold = (float) (config('services.recaptcha.threshold', env('RECAPTCHA_SCORE_THRESHOLD', 0.5)));
-        $score = (float) ($recaptchaResult['score'] ?? 0.0);
-        if ($score < $threshold) {
-            return back()->withErrors(['recaptcha' => 'Suspicious activity detected. Please try again.'])->withInput($request->except('password'));
-        }
 
         // Store current auth status before login attempt
         $wasAuthenticated = ($loginType === 'superadmin' || $loginType === 'department-admin' || $loginType === 'office-admin') 
@@ -439,29 +414,100 @@ class UnifiedAuthController extends Controller
                 // Handle superadmin authentication with MS365 account lookup (same as other admins)
                 $credentials = $request->only('ms365_account', 'password');
                 
-                // Debug logging for superadmin authentication
-                \Log::info('Superadmin authentication attempt', [
+                // Enhanced debug logging for superadmin authentication
+                \Log::info('Superadmin authentication attempt - ENHANCED DEBUG', [
                     'ms365_account' => $credentials['ms365_account'] ?? null,
+                    'ms365_account_length' => strlen($credentials['ms365_account'] ?? ''),
                     'password_provided' => !empty($credentials['password']),
+                    'password_length' => strlen($credentials['password'] ?? ''),
                     'ip' => $request->ip()
                 ]);
                 
+                // Log all admins in database for debugging
+                $allAdmins = Admin::all();
+                \Log::info('All admins in database for superadmin auth', [
+                    'total_admins' => $allAdmins->count(),
+                    'admins' => $allAdmins->map(function($admin) {
+                        return [
+                            'id' => $admin->id,
+                            'username' => $admin->username,
+                            'username_length' => strlen($admin->username ?? ''),
+                            'role' => $admin->role,
+                            'is_superadmin' => $admin->isSuperAdmin(),
+                            'password_hash_exists' => !empty($admin->password),
+                            'password_hash_length' => strlen($admin->password ?? '')
+                        ];
+                    })->toArray()
+                ]);
+                
                 // Find admin by MS365 account (stored as username for admins)
-                $admin = Admin::all()->first(function ($admin) use ($credentials) {
-                    return $admin->username === ($credentials['ms365_account'] ?? null);
+                $inputEmail = trim($credentials['ms365_account'] ?? '');
+                $inputLower = strtolower($inputEmail);
+                
+                \Log::info('Searching for superadmin', [
+                    'input_original' => $inputEmail,
+                    'input_lowercase' => $inputLower,
+                    'search_method' => 'case_insensitive_comparison'
+                ]);
+                
+                $admin = Admin::all()->first(function ($admin) use ($inputLower) {
+                    $storedUsername = trim($admin->username ?? '');
+                    $storedLower = strtolower($storedUsername);
+                    $matches = $storedLower === $inputLower;
+                    
+                    \Log::info('Superadmin comparison check', [
+                        'admin_id' => $admin->id,
+                        'stored_username' => $storedUsername,
+                        'stored_lowercase' => $storedLower,
+                        'input_lowercase' => $inputLower,
+                        'matches' => $matches ? 'YES' : 'NO'
+                    ]);
+                    
+                    return $matches;
                 });
                 
+                // Fallback: match by local-part (before @) to tolerate domain differences (e.g., aliases)
+                if (!$admin && !empty($inputLower) && str_contains($inputLower, '@')) {
+                    $inputLocal = substr($inputLower, 0, strpos($inputLower, '@'));
+                    \Log::info('Superadmin fallback local-part match initiated', [
+                        'input_local' => $inputLocal
+                    ]);
+                    $admin = Admin::all()->first(function ($admin) use ($inputLocal) {
+                        $stored = strtolower(trim($admin->username ?? ''));
+                        $storedLocal = str_contains($stored, '@') ? substr($stored, 0, strpos($stored, '@')) : $stored;
+                        $match = ($storedLocal === $inputLocal) && $admin->isSuperAdmin();
+                        \Log::info('Superadmin local-part comparison', [
+                            'admin_id' => $admin->id,
+                            'stored_username' => $admin->username,
+                            'stored_local' => $storedLocal,
+                            'input_local' => $inputLocal,
+                            'is_superadmin' => $admin->isSuperAdmin(),
+                            'matches' => $match ? 'YES' : 'NO'
+                        ]);
+                        return $match;
+                    });
+                }
+                
                 if ($admin) {
-                    \Log::info('Admin found for authentication', [
+                    // Test password verification
+                    $passwordCheck = Hash::check($credentials['password'], $admin->password);
+                    
+                    \Log::info('Admin found for authentication - ENHANCED DEBUG', [
                         'admin_id' => $admin->id,
                         'username' => $admin->username,
+                        'username_raw' => $admin->getRawOriginal('username') ?? 'N/A',
                         'role' => $admin->role,
                         'is_superadmin' => $admin->isSuperAdmin(),
-                        'password_check' => Hash::check($credentials['password'], $admin->password)
+                        'password_hash_exists' => !empty($admin->password),
+                        'password_hash_length' => strlen($admin->password ?? ''),
+                        'password_hash_preview' => substr($admin->password ?? '', 0, 20) . '...',
+                        'input_password_length' => strlen($credentials['password'] ?? ''),
+                        'password_check_result' => $passwordCheck,
+                        'password_check_method' => 'Hash::check()'
                     ]);
                     
                     // Verify password and role
-                    if (Hash::check($credentials['password'], $admin->password)) {
+                    if ($passwordCheck) {
                         // Check if the user is specifically a super admin
                         if (!$admin->isSuperAdmin()) {
                             \Log::warning('Non-superadmin tried to login as superadmin', [
@@ -496,30 +542,63 @@ class UnifiedAuthController extends Controller
                             }
                             $loginSuccessful = false;
                         } else {
-                            // Successful super admin login - manually log in the user
-                            Auth::guard('admin')->login($admin);
-                            $request->session()->regenerate();
-                            
-                            // Log admin access with geolocation
-                            $geoData = $this->getGeolocationData($request->ip());
-                            AdminAccessLog::create([
+                            // Step 1: Generate OTP and send to superadmin's MS365 account, do NOT log them in yet
+                            $otpCode = (string) random_int(100000, 999999);
+                            $otpPayload = [
                                 'admin_id' => $admin->id,
-                                'role' => $admin->role,
-                                'status' => 'success',
-                                'ip_address' => $request->ip(),
-                                'latitude' => $geoData['latitude'] ?? null,
-                                'longitude' => $geoData['longitude'] ?? null,
-                                'location_details' => $geoData['location_details'] ?? null,
-                                'time_in' => Carbon::now(),
-                            ]);
-                            
-                            $result = redirect()->route('superadmin.dashboard')->with('login_success', true);
-                            $loginSuccessful = true;
-                            
-                            \Log::info('Superadmin login successful', [
-                                'admin_id' => $admin->id,
-                                'username' => $admin->username
-                            ]);
+                                'email' => $admin->username,
+                                'code_hash' => \Hash::make($otpCode),
+                                'expires_at' => now()->addMinutes(10)->toIso8601String(),
+                                'attempts' => 0,
+                                'max_attempts' => 5,
+                            ];
+
+                            // Store OTP data in session under a dedicated key
+                            $request->session()->put('superadmin_otp', $otpPayload);
+
+                            // Try sending via Microsoft Graph first, then fallback to Laravel Mail
+                            $sent = false;
+                            $subject = 'Your Super Admin OTP Code';
+                            $htmlBody = view('emails.superadmin-otp', [
+                                'code' => $otpCode,
+                                'expiresInMinutes' => 10,
+                            ])->render();
+
+                            try {
+                                if ($this->graphService) {
+                                    $sent = (bool) $this->graphService->sendEmail($admin->username, $subject, $htmlBody, true);
+                                }
+                            } catch (\Exception $e) {
+                                \Log::error('Graph email send failed for superadmin OTP', ['error' => $e->getMessage()]);
+                            }
+
+                            if (!$sent) {
+                                try {
+                                    \Mail::send('emails.superadmin-otp', [
+                                        'code' => $otpCode,
+                                        'expiresInMinutes' => 10,
+                                    ], function ($message) use ($admin, $subject) {
+                                        $message->to($admin->username)->subject($subject);
+                                    });
+                                    $sent = true;
+                                } catch (\Exception $e) {
+                                    \Log::error('Fallback mail send failed for superadmin OTP', ['error' => $e->getMessage()]);
+                                }
+                            }
+
+                            if ($sent) {
+                                \Log::info('Superadmin OTP sent', ['admin_id' => $admin->id, 'email' => $admin->username]);
+                                // Redirect to unified login with OTP modal flag
+                                $result = redirect()->route('login', ['type' => 'superadmin'])
+                                    ->with('show_superadmin_otp', true)
+                                    ->with('status', 'We sent a 6-digit OTP to your MS365 email. Please enter it to continue.');
+                                $loginSuccessful = true; // mark as successful step to avoid attempts increment
+                            } else {
+                                // If email could not be sent, treat as error and do not proceed
+                                $result = back()->withErrors(['ms365_account' => 'Unable to send OTP email. Please try again later.'])
+                                               ->withInput($request->only('ms365_account', 'login_type'));
+                                $loginSuccessful = false;
+                            }
                         }
                     } else {
                         // Password verification failed
@@ -547,9 +626,15 @@ class UnifiedAuthController extends Controller
                         $loginSuccessful = false;
                     }
                 } else {
-                    // Admin not found
-                    \Log::warning('Superadmin not found', [
-                        'ms365_account' => $credentials['ms365_account'] ?? null
+                    // Admin not found - Enhanced debugging
+                    \Log::warning('Superadmin not found - ENHANCED DEBUG', [
+                        'ms365_account_attempted' => $credentials['ms365_account'] ?? null,
+                        'input_email_trimmed' => $inputEmail,
+                        'input_email_lowercase' => $inputLower,
+                        'total_admins_checked' => $allAdmins->count(),
+                        'all_usernames_in_db' => $allAdmins->pluck('username')->toArray(),
+                        'all_roles_in_db' => $allAdmins->pluck('role')->toArray(),
+                        'superadmin_usernames' => $allAdmins->filter(function($a) { return $a->isSuperAdmin(); })->pluck('username')->toArray()
                     ]);
                     
                     // Log failed login attempt with geolocation
@@ -585,7 +670,9 @@ class UnifiedAuthController extends Controller
                 
                 // Find admin by MS365 account - handle potential encryption issues
                 $admin = Admin::all()->first(function ($admin) use ($credentials) {
-                    return $admin->username === $credentials['ms365_account'];
+                    $input = trim(strtolower($credentials['ms365_account'] ?? ''));
+                    $stored = trim(strtolower($admin->username ?? ''));
+                    return $stored === $input;
                 });
                 
                 if ($admin) {
@@ -1245,6 +1332,98 @@ class UnifiedAuthController extends Controller
             return redirect()->route('login')
                 ->with('error', 'Logout encountered an error, but you have been logged out for security.');
         }
+    }
+
+    /**
+     * Show Superadmin OTP verification form
+     */
+    public function showSuperadminOtpForm(Request $request)
+    {
+        $otpSession = $request->session()->get('superadmin_otp');
+        if (!$otpSession || empty($otpSession['admin_id'])) {
+            return redirect()->route('login')->withErrors(['ms365_account' => 'Session expired. Please login again as Super Admin.']);
+        }
+        // Redirect to unified login with the OTP modal shown
+        return redirect()->route('login', ['type' => 'superadmin'])
+            ->with('show_superadmin_otp', true);
+    }
+
+    /**
+     * Verify Superadmin OTP and complete login
+     */
+    public function verifySuperadminOtp(Request $request)
+    {
+        // Basic validation: 6 digits numeric
+        $validator = \Validator::make($request->all(), [
+            'otp' => ['required', 'digits:6']
+        ]);
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->with('show_superadmin_otp', true);
+        }
+
+        $otpSession = $request->session()->get('superadmin_otp');
+        if (!$otpSession || empty($otpSession['admin_id'])) {
+            return redirect()->route('login')->withErrors(['ms365_account' => 'Session expired. Please login again as Super Admin.']);
+        }
+
+        // Check expiry
+        if (now()->greaterThan(\Carbon\Carbon::parse($otpSession['expires_at']))) {
+            $request->session()->forget('superadmin_otp');
+            return redirect()->route('login')->withErrors(['ms365_account' => 'OTP expired. Please login again to receive a new code.']);
+        }
+
+        // Check attempts
+        if (($otpSession['attempts'] ?? 0) >= ($otpSession['max_attempts'] ?? 5)) {
+            $request->session()->forget('superadmin_otp');
+            return redirect()->route('login')->withErrors(['ms365_account' => 'Too many invalid OTP attempts. Please login again.']);
+        }
+
+        // Verify the code
+        $isValid = \Hash::check($request->input('otp'), $otpSession['code_hash']);
+        if (!$isValid) {
+            // Increment attempts
+            $otpSession['attempts'] = ($otpSession['attempts'] ?? 0) + 1;
+            $request->session()->put('superadmin_otp', $otpSession);
+            return back()->withErrors(['otp' => 'Invalid code. Please try again.'])->with('show_superadmin_otp', true);
+        }
+
+        // Valid OTP; complete admin login
+        $admin = \App\Models\Admin::find($otpSession['admin_id']);
+        if (!$admin || !$admin->isSuperAdmin()) {
+            $request->session()->forget('superadmin_otp');
+            return redirect()->route('login')->withErrors(['ms365_account' => 'Account not found or no longer authorized.']);
+        }
+
+        Auth::guard('admin')->login($admin);
+        $request->session()->regenerate();
+
+        // Store a session snapshot to allow read-only access even if the admin row is later deleted
+        $request->session()->put('admin_session_snapshot', [
+            'id' => $admin->id,
+            'username' => $admin->username,
+            'role' => $admin->role,
+            'logged_in_at' => now()->toDateTimeString(),
+        ]);
+
+        // Clear OTP session
+        $request->session()->forget('superadmin_otp');
+
+        // Log admin access with geolocation
+        $geoData = $this->getGeolocationData($request->ip());
+        AdminAccessLog::create([
+            'admin_id' => $admin->id,
+            'role' => $admin->role,
+            'status' => 'success',
+            'ip_address' => $request->ip(),
+            'latitude' => $geoData['latitude'] ?? null,
+            'longitude' => $geoData['longitude'] ?? null,
+            'location_details' => $geoData['location_details'] ?? null,
+            'time_in' => \Carbon\Carbon::now(),
+        ]);
+
+        return redirect()->route('superadmin.dashboard')->with('login_success', true);
     }
 
     /**

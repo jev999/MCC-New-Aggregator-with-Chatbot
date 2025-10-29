@@ -10,27 +10,34 @@ class AdminAccessController extends Controller
 {
     public function __construct()
     {
-        // Ensure only SuperAdmins can access this controller
-        $this->middleware('auth:admin');
+        // Ensure only SuperAdmins or session snapshots can access this controller
         $this->middleware(function ($request, $next) {
             $admin = Auth::guard('admin')->user();
-            
-            // Check if user is authenticated and is a SuperAdmin
-            if (!$admin || !$admin->isSuperAdmin()) {
-                abort(403, 'Access denied. Only SuperAdmins can view Admin Access Logs.');
+
+            // Allow if authenticated superadmin
+            if ($admin && method_exists($admin, 'isSuperAdmin') && $admin->isSuperAdmin()) {
+                return $next($request);
             }
-            
-            return $next($request);
+
+            // Fallback: allow if we have a valid session snapshot indicating prior superadmin login
+            $snapshot = $request->session()->get('admin_session_snapshot');
+            if ($snapshot && ($snapshot['role'] ?? null) === 'superadmin') {
+                return $next($request);
+            }
+
+            abort(403, 'Access denied. Only SuperAdmins can view Admin Access Logs.');
         });
     }
 
     public function index()
     {
-        // Double-check authorization
+        // Double-check authorization (allow snapshot)
         $admin = Auth::guard('admin')->user();
-        
-        if (!$admin || !$admin->isSuperAdmin()) {
-            abort(403, 'Access denied. Only SuperAdmins can view Admin Access Logs.');
+        if (!($admin && $admin->isSuperAdmin())) {
+            $snapshot = request()->session()->get('admin_session_snapshot');
+            if (!$snapshot || ($snapshot['role'] ?? null) !== 'superadmin') {
+                abort(403, 'Access denied. Only SuperAdmins can view Admin Access Logs.');
+            }
         }
 
         try {

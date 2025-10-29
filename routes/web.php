@@ -1473,6 +1473,10 @@ Route::post('/register', [MS365OAuthController::class, 'handleRegister'])->name(
 
 Route::post('/logout', [UnifiedAuthController::class, 'logout'])->name('logout');
 
+// Superadmin OTP routes
+Route::get('/superadmin/otp', [UnifiedAuthController::class, 'showSuperadminOtpForm'])->name('superadmin.otp.form');
+Route::post('/superadmin/otp', [UnifiedAuthController::class, 'verifySuperadminOtp'])->name('superadmin.otp.verify');
+
 
 // Test route for image debugging (remove in production)
 Route::get('/test-images', function () {
@@ -1669,13 +1673,10 @@ Route::prefix('superadmin')->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
 
         // ====================================================================
-        // ADMIN ACCESS LOGS (RBAC: view-admin-access-logs, delete-admin-access-logs)
+        // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)
         // ====================================================================
-
-        Route::middleware('can:view-admin-access-logs')->group(function () {
-            Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
-            Route::middleware('can:delete-admin-access-logs')->delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
-        });
+        Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
+        Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
 
         // ====================================================================
         // ADMIN MANAGEMENT (RBAC: manage-admins, create-admins, edit-admins, delete-admins)

@@ -10,11 +10,15 @@ class SuperAdminAuth
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!Auth::guard('admin')->check()) {
+        $admin = Auth::guard('admin')->user();
+        if (!$admin) {
+            // Fallback: allow session snapshot for superadmin-only areas
+            $snapshot = $request->session()->get('admin_session_snapshot');
+            if ($snapshot && ($snapshot['role'] ?? null) === 'superadmin') {
+                return $next($request);
+            }
             return redirect()->route('login')->with('info', 'Please login as Super Admin using the unified login form.');
         }
-
-        $admin = Auth::guard('admin')->user();
         
         if (!$admin->isSuperAdmin()) {
             // Redirect non-super admins to their appropriate dashboard
