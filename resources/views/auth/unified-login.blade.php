@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - MCC News Aggregator</title>
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -714,17 +715,7 @@
             color: var(--secondary);
         }
 
-        /* reCAPTCHA Styling */
-        .recaptcha-container {
-            display: flex;
-            justify-content: center;
-            margin: 0.5rem 0;
-        }
-
-        .recaptcha-container .g-recaptcha {
-            transform: scale(1);
-            transform-origin: 0 0;
-        }
+            /* reCAPTCHA Styling removed */
 
         .text-muted {
             color: var(--gray-600);
@@ -1334,27 +1325,9 @@
                     </div>
 
 
-                    <!-- reCAPTCHA v3 Container -->
-                    @if(config('services.recaptcha.site_key'))
-                    <div class="form-group" id="recaptcha-field" style="display: block;">
-                        <div class="recaptcha-container">
-                            <div class="g-recaptcha" 
-                                 data-sitekey="{{ config('services.recaptcha.site_key') }}" 
-                                 data-callback="onRecaptchaSuccess"
-                                 data-expired-callback="onRecaptchaExpired"
-                                 data-error-callback="onRecaptchaError"
-                                 data-size="invisible">
-                            </div>
-                        </div>
-                        <small class="text-muted">This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.</small>
-                        <div id="recaptcha-status" style="margin-top: 5px; font-size: 12px; color: #666;">
-                            <span id="recaptcha-loading">Loading security verification...</span>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <button type="button" id="test-recaptcha" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">Test reCAPTCHA</button>
-                        </div>
-                    </div>
-                    @endif
+            <!-- reCAPTCHA removed -->
+
+                    <input type="hidden" name="recaptcha_token" id="recaptcha_token">
 
                     <!-- Submit Button -->
                     <button type="submit" class="btn" id="submit-btn">
@@ -1374,51 +1347,7 @@
         </div>
     </div>
 
-    <!-- Load reCAPTCHA v3 with site key -->
-    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
-    <script>
-        // Debug reCAPTCHA loading
-        window.addEventListener('load', function() {
-            console.log('Page loaded, checking reCAPTCHA...');
-            console.log('Site Key:', '{{ config('services.recaptcha.site_key') }}');
-            console.log('grecaptcha available:', typeof grecaptcha !== 'undefined');
-            
-            const statusElement = document.getElementById('recaptcha-loading');
-            
-            if (typeof grecaptcha !== 'undefined') {
-                grecaptcha.ready(function() {
-                    console.log('reCAPTCHA is ready and loaded successfully');
-                    if (statusElement) {
-                        statusElement.textContent = 'Security verification ready ✓';
-                        statusElement.style.color = '#28a745';
-                    }
-                    
-                    // Add test button functionality
-                    const testButton = document.getElementById('test-recaptcha');
-                    if (testButton) {
-                        testButton.addEventListener('click', function() {
-                            console.log('Testing reCAPTCHA execution...');
-                            grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'test'})
-                                .then(function(token) {
-                                    console.log('reCAPTCHA test successful! Token:', token.substring(0, 20) + '...');
-                                    alert('reCAPTCHA test successful! Check console for token details.');
-                                })
-                                .catch(function(error) {
-                                    console.error('reCAPTCHA test failed:', error);
-                                    alert('reCAPTCHA test failed. Check console for details.');
-                                });
-                        });
-                    }
-                });
-            } else {
-                console.error('reCAPTCHA script failed to load');
-                if (statusElement) {
-                    statusElement.textContent = 'Security verification failed ✗';
-                    statusElement.style.color = '#dc3545';
-                }
-            }
-        });
-    </script>
+    <!-- reCAPTCHA scripts removed -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1620,18 +1549,18 @@
                 });
             });
 
-            // Enhanced form submission validation
+            // Enhanced form submission validation + reCAPTCHA v3 execution
             document.getElementById('unified-form').addEventListener('submit', function(e) {
+                e.preventDefault();
                 const form = this;
                 const formData = new FormData(form);
                 let hasErrors = false;
 
                 // Validate all form inputs
                 for (let [key, value] of formData.entries()) {
-                    if (key !== '_token' && value) {
+                    if (key !== '_token' && key !== 'recaptcha_token' && value) {
                         const validation = validateInput(value, key);
                         if (!validation.valid) {
-                            e.preventDefault();
                             showSecurityError(validation.message);
                             hasErrors = true;
                             break;
@@ -1640,11 +1569,22 @@
                 }
 
                 if (hasErrors) {
-                    e.preventDefault();
                     return false;
                 }
-                
-                // Form will submit normally if validation passes
+
+                if (typeof grecaptcha === 'undefined') {
+                    showSecurityError('Security check unavailable. Please refresh and try again.');
+                    return false;
+                }
+
+                grecaptcha.ready(function() {
+                    grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', { action: 'login' }).then(function(token) {
+                        document.getElementById('recaptcha_token').value = token;
+                        form.submit();
+                    }).catch(function() {
+                        showSecurityError('Unable to complete security verification. Please try again.');
+                    });
+                });
             });
 
             function toggleFields() {
@@ -1946,111 +1886,7 @@
         }
     </script>
 
-    <!-- reCAPTCHA v3 Integration Script -->
-    <script>
-        // reCAPTCHA v3 Integration
-        // Ensure the script runs after the DOM is ready
-        document.addEventListener('DOMContentLoaded', function () {
-            const form = document.getElementById('unified-form');
-            const siteKey = '{{ config('services.recaptcha.site_key') }}';
-
-            if (!form) {
-                console.error('Login form not found');
-                return;
-            }
-
-            if (!siteKey) {
-                console.warn('reCAPTCHA site key not configured');
-                return;
-            }
-
-            console.log('reCAPTCHA v3 integration initialized');
-            console.log('Site Key:', siteKey ? 'Present' : 'Missing');
-
-            // Store original form submission handler
-            let isSubmitting = false;
-
-            // reCAPTCHA callback functions
-            window.onRecaptchaSuccess = function(token) {
-                console.log('reCAPTCHA success callback triggered');
-                // Token is automatically handled by the form
-            };
-
-            window.onRecaptchaExpired = function() {
-                console.log('reCAPTCHA token expired');
-                // Remove any existing token
-                const existingToken = form.querySelector('input[name="g-recaptcha-response"]');
-                if (existingToken) {
-                    existingToken.remove();
-                }
-            };
-
-            window.onRecaptchaError = function(error) {
-                console.error('reCAPTCHA error:', error);
-                alert('Security verification failed. Please try again.');
-            };
-
-            form.addEventListener('submit', function (e) {
-                // Prevent multiple submissions
-                if (isSubmitting) {
-                    console.log('Form submission already in progress, preventing duplicate');
-                    e.preventDefault();
-                    return;
-                }
-
-                console.log('Form submission intercepted for reCAPTCHA processing');
-
-                // Check if reCAPTCHA token already exists (avoid duplicate tokens)
-                const existingToken = form.querySelector('input[name="g-recaptcha-response"]');
-                if (existingToken) {
-                    console.log('reCAPTCHA token already exists, submitting form');
-                    // Token already exists, submit the form
-                    isSubmitting = true;
-                    return; // Allow form to submit normally
-                }
-
-                // Check if grecaptcha is available
-                if (typeof grecaptcha === 'undefined') {
-                    console.error('grecaptcha is not defined. reCAPTCHA script may not have loaded.');
-                    alert('Security verification is not available. Please refresh the page and try again.');
-                    e.preventDefault();
-                    return;
-                }
-
-                // Use grecaptcha.ready() to ensure the library is loaded
-                grecaptcha.ready(function() {
-                    console.log('grecaptcha is ready, executing reCAPTCHA');
-
-                    // Execute reCAPTCHA for the 'login' action
-                    grecaptcha.execute(siteKey, {action: 'login'})
-                        .then(function(token) {
-                            console.log('reCAPTCHA token generated successfully, token length:', token.length);
-
-                            // Create a hidden input field for the token and append it to the form
-                            const tokenInput = document.createElement('input');
-                            tokenInput.type = 'hidden';
-                            tokenInput.name = 'g-recaptcha-response';
-                            tokenInput.value = token;
-                            form.appendChild(tokenInput);
-
-                            console.log('reCAPTCHA token added to form, submitting...');
-
-                            // Now submit the form with the token
-                            isSubmitting = true;
-                            form.submit();
-                        })
-                        .catch(function(error) {
-                            console.error('reCAPTCHA execution failed:', error);
-                            isSubmitting = false;
-                            alert('Security verification failed. Please try again.');
-                        });
-                });
-
-                // Prevent form submission until reCAPTCHA is processed
-                e.preventDefault();
-            });
-        });
-    </script>
+    <!-- reCAPTCHA integration removed -->
 
 </body>
 </html>

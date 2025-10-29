@@ -10,7 +10,7 @@ use App\Http\Controllers\SuperAdminAuthController;
 use App\Http\Controllers\DepartmentAdminAuthController;
 use App\Http\Controllers\OfficeAdminAuthController;
 use App\Rules\StrongPassword;
-use App\Rules\RecaptchaV3;
+// reCAPTCHA rule removed
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Hash;
@@ -24,6 +24,7 @@ use App\Models\AdminAccessLog;
 use App\Models\PasswordReset;
 use App\Services\GeolocationService;
 use Carbon\Carbon;
+use App\Services\RecaptchaService;
 class UnifiedAuthController extends Controller
 {
     protected $securityService;
@@ -46,17 +47,7 @@ class UnifiedAuthController extends Controller
         return $this->geolocationService->getLocationFromIp($ip);
     }
 
-    // app/Http/Requests/LoginRequest.php (or Controller validation)
-public function rules(): array
-{
-    return [
-        // Your existing login validation rules
-        'email' => ['required', 'email'],
-        'password' => ['required'],
-        // Apply the custom rule to the token
-        'g-recaptcha-response' => ['required', new RecaptchaV3()],
-    ];
-}
+    // reCAPTCHA rules removed
     
     /**
      * Show the unified login form
@@ -178,44 +169,36 @@ public function rules(): array
             $validationRules['gmail_account'] = array_merge(['required'], $secureRules['gmail_account']);
         }
         
-        // Add reCAPTCHA v3 validation
-        if (config('services.recaptcha.site_key')) {
-            $validationRules['g-recaptcha-response'] = ['required', new RecaptchaV3()];
-        }
+        // reCAPTCHA v3 token is required for all login types
+        $validationRules['recaptcha_token'] = 'required|string';
         
         // Validate the request
-        try {
-            $request->validate($validationRules, $secureMessages);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Check if reCAPTCHA validation failed
-            if ($e->validator->errors()->has('g-recaptcha-response')) {
-                // reCAPTCHA failed - this indicates suspicious behavior
-                // Increment login attempts immediately to enforce lockout policy
-                $this->incrementLoginAttempts($request);
-                
-                \Log::warning('reCAPTCHA validation failed - incrementing login attempts', [
-                    'account_identifier' => $this->getAccountIdentifier($request),
-                    'ip' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'login_type' => $loginType,
-                ]);
-                
-                // Check if this triggered a lockout
-                if ($this->isLockedOut($request)) {
-                    $timeRemaining = $this->getLockoutTimeRemaining($request);
-                    $remainingSeconds = $this->getLockoutTimeRemainingSeconds($request);
-                    $loginTypeText = $this->getLoginTypeDisplayName($loginType);
-                    
-                    return back()->withErrors([
-                        'account_lockout' => "Your {$loginTypeText} account is temporarily locked due to suspicious activity. Please wait {$timeRemaining} minute" . ($timeRemaining != 1 ? 's' : '') . " before trying again."
-                    ])->with('lockout_time', $timeRemaining)
-                      ->with('lockout_seconds', $remainingSeconds)
-                      ->with('locked_account', $this->getAccountIdentifier($request));
-                }
-            }
-            
-            // Re-throw the validation exception
-            throw $e;
+        $request->validate($validationRules, $secureMessages);
+
+        // Verify reCAPTCHA v3 token
+        $token = (string) $request->input('recaptcha_token');
+        /** @var RecaptchaService $recaptcha */
+        $recaptcha = app(RecaptchaService::class);
+        $recaptchaResult = $recaptcha->verify($token, $request->ip());
+
+        \Log::info('recaptcha', [
+            'ip' => $request->ip(),
+            'login_type' => $request->input('login_type'),
+            'result' => $recaptchaResult['raw'] ?? [],
+        ]);
+
+        if (!($recaptchaResult['success'] ?? false)) {
+            return back()->withErrors(['recaptcha' => 'reCAPTCHA verification failed.'])->withInput($request->except('password'));
+        }
+
+        if (($recaptchaResult['action'] ?? '') !== 'login') {
+            return back()->withErrors(['recaptcha' => 'Invalid reCAPTCHA action.'])->withInput($request->except('password'));
+        }
+
+        $threshold = (float) (config('services.recaptcha.threshold', env('RECAPTCHA_SCORE_THRESHOLD', 0.5)));
+        $score = (float) ($recaptchaResult['score'] ?? 0.0);
+        if ($score < $threshold) {
+            return back()->withErrors(['recaptcha' => 'Suspicious activity detected. Please try again.'])->withInput($request->except('password'));
         }
 
         // Store current auth status before login attempt
