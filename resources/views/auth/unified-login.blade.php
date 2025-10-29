@@ -1333,13 +1333,6 @@
                         <a href="{{ route('password.request') }}">Forgot Password?</a>
                     </div>
 
-                    <!-- Remember Me -->
-                    <div class="form-group" id="remember-field" style="display: block;">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}>
-                            <span class="checkbox-text">Remember me</span>
-                        </label>
-                    </div>
 
                     <!-- reCAPTCHA v3 Container -->
                     @if(config('services.recaptcha.site_key'))
@@ -1588,7 +1581,6 @@
             const ms365Field = document.getElementById('ms365-field');
             const usernameField = document.getElementById('username-field');
             const passwordField = document.getElementById('password-field');
-            const rememberField = document.getElementById('remember-field');
             const submitBtn = document.getElementById('submit-btn');
             const authLinks = document.getElementById('auth-links');
             const forgotPassword = document.getElementById('forgot-password');
@@ -1664,7 +1656,6 @@
                 ms365Field.style.display = 'none';
                 usernameField.style.display = 'none';
                 passwordField.style.display = 'none';
-                rememberField.style.display = 'none';
                 authLinks.style.display = 'none';
                 forgotPassword.style.display = 'none';
 
@@ -1707,7 +1698,6 @@
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
-                    rememberField.style.display = 'block';
                     authLinks.style.display = 'block';
                     forgotPassword.style.display = 'block';
                     
@@ -1728,7 +1718,6 @@
                     // Show admin fields (superadmin uses username)
                     usernameField.style.display = 'block';
                     passwordField.style.display = 'block';
-                    rememberField.style.display = 'block';
                     
                     // Set required fields
                     setRequired('username', true);
@@ -1745,7 +1734,6 @@
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
-                    rememberField.style.display = 'block';
                     
                     // Set required fields
                     setRequired('ms365_account', true);
