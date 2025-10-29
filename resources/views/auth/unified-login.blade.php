@@ -1354,6 +1354,12 @@
                             </div>
                         </div>
                         <small class="text-muted">This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.</small>
+                        <div id="recaptcha-status" style="margin-top: 5px; font-size: 12px; color: #666;">
+                            <span id="recaptcha-loading">Loading security verification...</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <button type="button" id="test-recaptcha" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">Test reCAPTCHA</button>
+                        </div>
                     </div>
                     @endif
 
@@ -1375,7 +1381,51 @@
         </div>
     </div>
 
+    <!-- Load reCAPTCHA v3 with site key -->
     <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    <script>
+        // Debug reCAPTCHA loading
+        window.addEventListener('load', function() {
+            console.log('Page loaded, checking reCAPTCHA...');
+            console.log('Site Key:', '{{ config('services.recaptcha.site_key') }}');
+            console.log('grecaptcha available:', typeof grecaptcha !== 'undefined');
+            
+            const statusElement = document.getElementById('recaptcha-loading');
+            
+            if (typeof grecaptcha !== 'undefined') {
+                grecaptcha.ready(function() {
+                    console.log('reCAPTCHA is ready and loaded successfully');
+                    if (statusElement) {
+                        statusElement.textContent = 'Security verification ready ✓';
+                        statusElement.style.color = '#28a745';
+                    }
+                    
+                    // Add test button functionality
+                    const testButton = document.getElementById('test-recaptcha');
+                    if (testButton) {
+                        testButton.addEventListener('click', function() {
+                            console.log('Testing reCAPTCHA execution...');
+                            grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'test'})
+                                .then(function(token) {
+                                    console.log('reCAPTCHA test successful! Token:', token.substring(0, 20) + '...');
+                                    alert('reCAPTCHA test successful! Check console for token details.');
+                                })
+                                .catch(function(error) {
+                                    console.error('reCAPTCHA test failed:', error);
+                                    alert('reCAPTCHA test failed. Check console for details.');
+                                });
+                        });
+                    }
+                });
+            } else {
+                console.error('reCAPTCHA script failed to load');
+                if (statusElement) {
+                    statusElement.textContent = 'Security verification failed ✗';
+                    statusElement.style.color = '#dc3545';
+                }
+            }
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
