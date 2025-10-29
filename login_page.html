@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,9 +7,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
+    <meta name="csrf-token" content="j3HQayfatYLGIppvJv4czJ2VZZIBjJd8IClprjk3">
     <title>Login - MCC News Aggregator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -45,7 +50,7 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: url("{{ asset('images/mccfront.jpg') }}") no-repeat center center fixed;
+            background: url("https://mcc-nac.com/images/mccfront.jpg") no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
             display: flex;
@@ -73,8 +78,6 @@
             box-shadow: var(--shadow-md);
             overflow: hidden;
             transition: var(--transition);
-            position: relative;
-            z-index: 10;
         }
 
         .logo-container {
@@ -177,9 +180,6 @@
         .form-group {
             margin-bottom: 1.5rem;
             position: relative;
-            opacity: 1;
-            visibility: visible;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
 
         .form-group label {
@@ -227,8 +227,8 @@
         }
 
         .login-type-select::after {
-            content: '\f0c0';
-            font-family: 'Font Awesome 6 Free', 'FontAwesome', sans-serif;
+            content: '\f0dd';
+            font-family: 'Font Awesome 6 Free';
             font-weight: 900;
             position: absolute;
             left: 1rem;
@@ -236,10 +236,6 @@
             transform: translateY(-50%);
             color: var(--secondary);
             z-index: 1;
-            font-size: 1rem;
-            display: inline-block;
-            text-rendering: auto;
-            -webkit-font-smoothing: antialiased;
         }
 
         .login-type-select select:focus {
@@ -726,23 +722,6 @@
             transform-origin: 0 0;
         }
 
-        .text-muted {
-            color: var(--gray-600);
-            font-size: 0.75rem;
-            margin-top: 0.5rem;
-            text-align: center;
-            line-height: 1.4;
-        }
-
-        .text-muted a {
-            color: var(--secondary);
-            text-decoration: none;
-        }
-
-        .text-muted a:hover {
-            text-decoration: underline;
-        }
-
         /* Animation for form fields */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -947,6 +926,11 @@
                 font-size: 0.8125rem;
             }
             
+            /* Mobile reCAPTCHA scaling */
+            .recaptcha-container .g-recaptcha {
+                transform: scale(0.85);
+                transform-origin: 0 0;
+            }
         }
         
         /* Small devices (phones, 481px to 576px) */
@@ -1160,7 +1144,7 @@
     <div class="auth-container">
         <!-- Logo at the top center -->
         <div class="logo-container">
-            <img src="{{ asset('images/mcclogo.png') }}" alt="MCC Logo" class="logo">
+            <img src="https://mcc-nac.com/images/mcclogo.png" alt="MCC Logo" class="logo">
         </div>
         
         <div class="auth-header">
@@ -1170,47 +1154,17 @@
         </div>
 
         <div class="auth-content">
-            @if(session('success'))
-                <div class="success-message" id="swal-success" data-message="{{ session('success') }}" style="display:none"></div>
-            @endif
+            
+            
 
-            @if(session('warning'))
-                <div class="warning-message">
-                    {{ session('warning') }}
-                </div>
-            @endif
-
-
-            @if($errors->has('account_lockout'))
-                <div class="error-message lockout-message" id="lockout-message">
-                    <i class="fas fa-lock"></i>
-                    <span id="lockout-text">{{ $errors->first('account_lockout') }}</span>
-                    <div class="lockout-countdown" id="lockout-countdown" style="margin-top: 8px; display: block;">
-                        <strong>Time remaining: <span id="countdown-timer">Loading...</span></strong>
-                    </div>
-                </div>
-            @elseif($errors->any() && !$errors->has('ms365_account') && !$errors->has('gmail_account') && !$errors->has('username') && !$errors->has('password') && !$errors->has('account_lockout'))
-                <div class="error-message">
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            @endif
-
-            @if((session('attempts_left') && session('attempts_left') > 0 && session('attempts_left') < 3) || (isset($attemptsLeft) && $attemptsLeft > 0 && $attemptsLeft < 3))
-                <div class="warning-message attempts-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Warning: {{ session('attempts_left') ?? $attemptsLeft }} login attempt(s) remaining before temporary lockout.
-                </div>
-            @endif
-
+            
+            
             
 
             <!-- Unified Login Form -->
-            <div class="unified-login-form" style="opacity: 1; visibility: visible;">
-                <form method="POST" action="{{ url('/login') }}" id="unified-form" @if($errors->has('account_lockout')) class="form-disabled" @endif>
-                    @csrf
-
+            <div class="unified-login-form">
+                <form method="POST" action="https://mcc-nac.com/login" id="unified-form" >
+                    <input type="hidden" name="_token" value="j3HQayfatYLGIppvJv4czJ2VZZIBjJd8IClprjk3" autocomplete="off">
                     <!-- Login Type Selector -->
                     <div class="form-group login-type-selector">
                         <label for="login_type">
@@ -1219,16 +1173,16 @@
                         </label>
                         <div class="login-type-select">
                             <select name="login_type" id="login_type" class="form-control" required>
-                                <option value="ms365" {{ old('login_type', 'ms365') == 'ms365' ? 'selected' : '' }}>
+                                <option value="ms365" selected>
                                     Student/Faculty (MS365)
                                 </option>
-                                <option value="superadmin" {{ old('login_type') == 'superadmin' ? 'selected' : '' }}>
+                                <option value="superadmin" >
                                     Super Admin
                                 </option>
-                                <option value="department-admin" {{ old('login_type') == 'department-admin' ? 'selected' : '' }}>
+                                <option value="department-admin" >
                                     Department Admin
                                 </option>
-                                <option value="office-admin" {{ old('login_type') == 'office-admin' ? 'selected' : '' }}>
+                                <option value="office-admin" >
                                     Office Admin
                                 </option>
                             </select>
@@ -1244,18 +1198,15 @@
                         <input type="email"
                                id="gmail_account"
                                name="gmail_account"
-                               class="form-control @error('gmail_account') error @enderror"
-                               value="{{ old('gmail_account') }}"
+                               class="form-control "
+                               value=""
                                placeholder="example@gmail.com"
                                pattern="[a-zA-Z0-9._%+-]+@gmail\.com"
                                title="Please enter a valid Gmail address">
-                        @error('gmail_account')
-                            <div class="error-message">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                            </div>
 
                     <!-- MS365 Account Field -->
-                    <div class="form-group" id="ms365-field" style="display: block;">
+                    <div class="form-group" id="ms365-field" style="display: none;">
                         <label for="ms365_account">
                             <i class="fab fa-microsoft"></i>
                             MS365 Account
@@ -1263,8 +1214,8 @@
                         <input type="email"
                                id="ms365_account"
                                name="ms365_account"
-                               class="form-control @error('ms365_account') error @enderror"
-                               value="{{ old('ms365_account') ? e(old('ms365_account')) : '' }}"
+                               class="form-control "
+                               value=""
                                placeholder="example@mcc-nac.edu.ph"
                                pattern="[a-zA-Z0-9._%+-]+@.*\.edu\.ph"
                                title="Please enter a valid .edu.ph email address"
@@ -1273,10 +1224,7 @@
                                data-security-check="true"
                                autocomplete="email"
                                spellcheck="false">
-                        @error('ms365_account')
-                            <div class="error-message">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                            </div>
 
                     <!-- Username Field (for admins) -->
                     <div class="form-group" id="username-field" style="display: none;">
@@ -1287,8 +1235,8 @@
                         <input type="text"
                                id="username"
                                name="username"
-                               class="form-control @error('username') error @enderror"
-                               value="{{ old('username') ? e(old('username')) : '' }}"
+                               class="form-control "
+                               value=""
                                placeholder="Enter your username"
                                maxlength="50"
                                minlength="3"
@@ -1297,13 +1245,10 @@
                                data-security-check="true"
                                autocomplete="username"
                                spellcheck="false">
-                        @error('username')
-                            <div class="error-message">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                            </div>
 
                     <!-- Password Field -->
-                    <div class="form-group" id="password-field" style="display: block;">
+                    <div class="form-group" id="password-field" style="display: none;">
                         <label for="password">
                             <i class="fas fa-lock"></i>
                             Password
@@ -1312,7 +1257,7 @@
                             <input type="password"
                                    id="password"
                                    name="password"
-                                   class="form-control @error('password') error @enderror"
+                                   class="form-control "
                                    placeholder="Enter your password"
                                    maxlength="255"
                                    minlength="8"
@@ -1323,50 +1268,33 @@
                                 <i class="fas fa-eye" id="password-eye"></i>
                             </button>
                         </div>
-                        @error('password')
-                            <div class="error-message">{{ $message }}</div>
-                        @enderror
-                    </div>
+                                            </div>
 
                     <!-- Forgot Password (MS365) -->
-                    <div class="forgot-password" id="forgot-password" style="display:block;">
-                        <a href="{{ route('password.request') }}">Forgot Password?</a>
+                    <div class="forgot-password" id="forgot-password" style="display:none;">
+                        <a href="https://mcc-nac.com/forgot-password">Forgot Password?</a>
                     </div>
 
                     <!-- Remember Me -->
-                    <div class="form-group" id="remember-field" style="display: block;">
+                    <div class="form-group" id="remember-field" style="display: none;">
                         <label class="checkbox-label">
-                            <input type="checkbox" name="remember" {{ old('remember') ? 'checked' : '' }}>
+                            <input type="checkbox" name="remember" >
                             <span class="checkbox-text">Remember me</span>
                         </label>
                     </div>
 
-                    <!-- reCAPTCHA v3 Container -->
-                    @if(config('services.recaptcha.site_key'))
-                    <div class="form-group" id="recaptcha-field" style="display: block;">
-                        <div class="recaptcha-container">
-                            <div class="g-recaptcha" 
-                                 data-sitekey="{{ config('services.recaptcha.site_key') }}" 
-                                 data-callback="onRecaptchaSuccess"
-                                 data-expired-callback="onRecaptchaExpired"
-                                 data-error-callback="onRecaptchaError"
-                                 data-size="invisible">
-                            </div>
-                        </div>
-                        <small class="text-muted">This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.</small>
-                    </div>
-                    @endif
+                    <!-- reCAPTCHA removed -->
 
                     <!-- Submit Button -->
-                    <button type="submit" class="btn" id="submit-btn">
+                    <button type="submit" class="btn" id="submit-btn" disabled>
                         <i class="fas fa-sign-in-alt"></i>
-                        Login with MS365
+                        Select Login Type
                     </button>
                 </form>
 
                 <!-- Auth Links -->
-                <div class="auth-links" id="auth-links" style="display: block;">
-                    <a href="{{ route('ms365.signup') }}">
+                <div class="auth-links" id="auth-links" style="display: none;">
+                    <a href="https://mcc-nac.com/ms365/signup">
                         <i class="fas fa-user-plus"></i>
                         Don't have an MS365 account? Sign up
                     </a>
@@ -1375,7 +1303,6 @@
         </div>
     </div>
 
-    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1580,8 +1507,7 @@
 
             // Enhanced form submission validation
             document.getElementById('unified-form').addEventListener('submit', function(e) {
-                const form = this;
-                const formData = new FormData(form);
+                const formData = new FormData(this);
                 let hasErrors = false;
 
                 // Validate all form inputs
@@ -1598,11 +1524,8 @@
                 }
 
                 if (hasErrors) {
-                    e.preventDefault();
                     return false;
                 }
-                
-                // Form will submit normally if validation passes
             });
 
             function toggleFields() {
@@ -1661,6 +1584,12 @@
                     authLinks.style.display = 'block';
                     forgotPassword.style.display = 'block';
                     
+                    // Show reCAPTCHA
+                    const recaptchaField = document.getElementById('recaptcha-field');
+                    if (recaptchaField) {
+                        recaptchaField.style.display = 'block';
+                    }
+                    
                     console.log('Forgot password should now be visible'); // Debug log
                     
                     // Set required fields
@@ -1680,6 +1609,12 @@
                     passwordField.style.display = 'block';
                     rememberField.style.display = 'block';
                     
+                    // Show reCAPTCHA
+                    const recaptchaField = document.getElementById('recaptcha-field');
+                    if (recaptchaField) {
+                        recaptchaField.style.display = 'block';
+                    }
+                    
                     // Set required fields
                     setRequired('username', true);
                     setRequired('password', true);
@@ -1696,6 +1631,12 @@
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
                     rememberField.style.display = 'block';
+                    
+                    // Show reCAPTCHA
+                    const recaptchaField = document.getElementById('recaptcha-field');
+                    if (recaptchaField) {
+                        recaptchaField.style.display = 'block';
+                    }
                     
                     // Set required fields
                     setRequired('ms365_account', true);
@@ -1714,15 +1655,7 @@
 
             // Initial call to set the correct state
             console.log('Initializing form fields...'); // Debug log
-            
-            // Set default login type to ms365 and show appropriate fields
-            if (loginTypeSelect.value === 'ms365') {
-                toggleFields();
-            } else {
-                // Force show MS365 fields by default
-                loginTypeSelect.value = 'ms365';
-                toggleFields();
-            }
+            toggleFields();
 
             // Add event listener for changes
             loginTypeSelect.addEventListener('change', toggleFields);
@@ -1799,7 +1732,7 @@
             });
             
             // Get remaining seconds from backend
-            let remainingSeconds = {{ session('lockout_seconds', 180) }};
+            let remainingSeconds = 180;
             
             // Fallback if no backend seconds available
             if (!remainingSeconds || remainingSeconds <= 0) {
@@ -1818,7 +1751,7 @@
             // Add debug logging
             console.log('Lockout countdown initialized:', {
                 remainingSeconds: remainingSeconds,
-                backendSeconds: {{ session('lockout_seconds', 0) }},
+                backendSeconds: 0,
                 currentTime: new Date().toISOString()
             });
             
@@ -1890,15 +1823,15 @@
         function updateCountdownDisplay(remainingSeconds, countdownTimer, lockoutText) {
             const minutes = Math.floor(remainingSeconds / 60);
             const seconds = remainingSeconds % 60;
-
+            
             // Format time as MM:SS
             const timeText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
+            
             // Update countdown timer
             if (countdownTimer) {
                 countdownTimer.textContent = timeText;
             }
-
+            
             // Update main lockout text with current minutes
             if (lockoutText) {
                 const originalText = lockoutText.textContent;
@@ -1906,113 +1839,10 @@
                 lockoutText.textContent = updatedText;
             }
         }
+
     </script>
 
-    <!-- reCAPTCHA v3 Integration Script -->
-    <script>
-        // reCAPTCHA v3 Integration
-        // Ensure the script runs after the DOM is ready
-        document.addEventListener('DOMContentLoaded', function () {
-            const form = document.getElementById('unified-form');
-            const siteKey = '{{ config('services.recaptcha.site_key') }}';
-
-            if (!form) {
-                console.error('Login form not found');
-                return;
-            }
-
-            if (!siteKey) {
-                console.warn('reCAPTCHA site key not configured');
-                return;
-            }
-
-            console.log('reCAPTCHA v3 integration initialized');
-            console.log('Site Key:', siteKey ? 'Present' : 'Missing');
-
-            // Store original form submission handler
-            let isSubmitting = false;
-
-            // reCAPTCHA callback functions
-            window.onRecaptchaSuccess = function(token) {
-                console.log('reCAPTCHA success callback triggered');
-                // Token is automatically handled by the form
-            };
-
-            window.onRecaptchaExpired = function() {
-                console.log('reCAPTCHA token expired');
-                // Remove any existing token
-                const existingToken = form.querySelector('input[name="g-recaptcha-response"]');
-                if (existingToken) {
-                    existingToken.remove();
-                }
-            };
-
-            window.onRecaptchaError = function(error) {
-                console.error('reCAPTCHA error:', error);
-                alert('Security verification failed. Please try again.');
-            };
-
-            form.addEventListener('submit', function (e) {
-                // Prevent multiple submissions
-                if (isSubmitting) {
-                    console.log('Form submission already in progress, preventing duplicate');
-                    e.preventDefault();
-                    return;
-                }
-
-                console.log('Form submission intercepted for reCAPTCHA processing');
-
-                // Check if reCAPTCHA token already exists (avoid duplicate tokens)
-                const existingToken = form.querySelector('input[name="g-recaptcha-response"]');
-                if (existingToken) {
-                    console.log('reCAPTCHA token already exists, submitting form');
-                    // Token already exists, submit the form
-                    isSubmitting = true;
-                    return; // Allow form to submit normally
-                }
-
-                // Check if grecaptcha is available
-                if (typeof grecaptcha === 'undefined') {
-                    console.error('grecaptcha is not defined. reCAPTCHA script may not have loaded.');
-                    alert('Security verification is not available. Please refresh the page and try again.');
-                    e.preventDefault();
-                    return;
-                }
-
-                // Use grecaptcha.ready() to ensure the library is loaded
-                grecaptcha.ready(function() {
-                    console.log('grecaptcha is ready, executing reCAPTCHA');
-
-                    // Execute reCAPTCHA for the 'login' action
-                    grecaptcha.execute(siteKey, {action: 'login'})
-                        .then(function(token) {
-                            console.log('reCAPTCHA token generated successfully, token length:', token.length);
-
-                            // Create a hidden input field for the token and append it to the form
-                            const tokenInput = document.createElement('input');
-                            tokenInput.type = 'hidden';
-                            tokenInput.name = 'g-recaptcha-response';
-                            tokenInput.value = token;
-                            form.appendChild(tokenInput);
-
-                            console.log('reCAPTCHA token added to form, submitting...');
-
-                            // Now submit the form with the token
-                            isSubmitting = true;
-                            form.submit();
-                        })
-                        .catch(function(error) {
-                            console.error('reCAPTCHA execution failed:', error);
-                            isSubmitting = false;
-                            alert('Security verification failed. Please try again.');
-                        });
-                });
-
-                // Prevent form submission until reCAPTCHA is processed
-                e.preventDefault();
-            });
-        });
-    </script>
-
+    <!-- reCAPTCHA JavaScript -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </body>
 </html>
