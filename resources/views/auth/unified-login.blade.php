@@ -1652,15 +1652,15 @@
                     submitBtn.disabled = false;
                     
                 } else if (selectedType === 'superadmin') {
-                    // Clear student fields
-                    clearGroup(['ms365-field', 'gmail-field']);
+                    // Clear student/gmail fields
+                    clearGroup(['gmail-field', 'username-field']);
                     
-                    // Show admin fields (superadmin uses username)
-                    usernameField.style.display = 'block';
+                    // Show MS365 fields for superadmin
+                    ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
                     
                     // Set required fields
-                    setRequired('username', true);
+                    setRequired('ms365_account', true);
                     setRequired('password', true);
                     
                     // Update button text
@@ -1718,7 +1718,7 @@
                         accountValue = document.getElementById('gmail_account')?.value || '';
                         break;
                     case 'superadmin':
-                        accountValue = document.getElementById('username')?.value || '';
+                        accountValue = document.getElementById('ms365_account')?.value || '';
                         break;
                     case 'department-admin':
                     case 'office-admin':
@@ -1885,8 +1885,6 @@
             }
         }
     </script>
-
-    <!-- reCAPTCHA integration removed -->
 
 </body>
 </html>

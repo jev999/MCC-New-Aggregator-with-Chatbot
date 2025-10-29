@@ -162,7 +162,7 @@ class UnifiedAuthController extends Controller
         
         // Add conditional validation based on login type
         if ($loginType === 'superadmin') {
-            $validationRules['username'] = array_merge(['required'], $secureRules['username']);
+            $validationRules['ms365_account'] = array_merge(['required'], $secureRules['ms365_account']);
         } elseif (in_array($loginType, ['ms365', 'department-admin', 'office-admin'])) {
             $validationRules['ms365_account'] = array_merge(['required'], $secureRules['ms365_account']);
         } elseif ($loginType === 'user') {
@@ -436,19 +436,19 @@ class UnifiedAuthController extends Controller
                 break;
 
             case 'superadmin':
-                // Handle superadmin authentication with manual lookup (similar to other admin types)
-                $credentials = $request->only('username', 'password');
+                // Handle superadmin authentication with MS365 account lookup (same as other admins)
+                $credentials = $request->only('ms365_account', 'password');
                 
                 // Debug logging for superadmin authentication
                 \Log::info('Superadmin authentication attempt', [
-                    'username' => $credentials['username'],
+                    'ms365_account' => $credentials['ms365_account'] ?? null,
                     'password_provided' => !empty($credentials['password']),
                     'ip' => $request->ip()
                 ]);
                 
-                // Find admin by username - handle potential encryption issues
+                // Find admin by MS365 account (stored as username for admins)
                 $admin = Admin::all()->first(function ($admin) use ($credentials) {
-                    return $admin->username === $credentials['username'];
+                    return $admin->username === ($credentials['ms365_account'] ?? null);
                 });
                 
                 if ($admin) {
@@ -471,14 +471,14 @@ class UnifiedAuthController extends Controller
                             
                             // Provide specific error messages based on admin type
                             if ($admin->isDepartmentAdmin()) {
-                                $result = back()->withErrors(['username' => 'Department admins should use the department admin login.'])
-                                            ->withInput($request->only('username', 'login_type'));
+                                $result = back()->withErrors(['ms365_account' => 'Department admins should use the department admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } elseif ($admin->isOfficeAdmin()) {
-                                $result = back()->withErrors(['username' => 'Office admins should use the office admin login.'])
-                                            ->withInput($request->only('username', 'login_type'));
+                                $result = back()->withErrors(['ms365_account' => 'Office admins should use the office admin login.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             } else {
-                                $result = back()->withErrors(['username' => 'You do not have super admin privileges.'])
-                                            ->withInput($request->only('username', 'login_type'));
+                                $result = back()->withErrors(['ms365_account' => 'You do not have super admin privileges.'])
+                                            ->withInput($request->only('ms365_account', 'login_type'));
                             }
                             
                             // Add attempts warning for role validation errors
@@ -524,7 +524,7 @@ class UnifiedAuthController extends Controller
                     } else {
                         // Password verification failed
                         \Log::warning('Superadmin password verification failed', [
-                            'username' => $credentials['username'],
+                            'ms365_account' => $credentials['ms365_account'] ?? null,
                             'admin_id' => $admin->id
                         ]);
                         
@@ -534,7 +534,7 @@ class UnifiedAuthController extends Controller
                             'admin_id' => null,
                             'role' => 'superadmin',
                             'status' => 'failed',
-                            'username_attempted' => $credentials['username'],
+                            'username_attempted' => $credentials['ms365_account'] ?? null,
                             'ip_address' => $request->ip(),
                             'latitude' => $geoData['latitude'] ?? null,
                             'longitude' => $geoData['longitude'] ?? null,
@@ -542,14 +542,14 @@ class UnifiedAuthController extends Controller
                             'time_in' => null,
                         ]);
                         
-                        $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
-                                    ->withInput($request->only('username', 'login_type'));
+                        $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                    ->withInput($request->only('ms365_account', 'login_type'));
                         $loginSuccessful = false;
                     }
                 } else {
                     // Admin not found
                     \Log::warning('Superadmin not found', [
-                        'username' => $credentials['username']
+                        'ms365_account' => $credentials['ms365_account'] ?? null
                     ]);
                     
                     // Log failed login attempt with geolocation
@@ -558,7 +558,7 @@ class UnifiedAuthController extends Controller
                         'admin_id' => null,
                         'role' => 'superadmin',
                         'status' => 'failed',
-                        'username_attempted' => $credentials['username'],
+                        'username_attempted' => $credentials['ms365_account'] ?? null,
                         'ip_address' => $request->ip(),
                         'latitude' => $geoData['latitude'] ?? null,
                         'longitude' => $geoData['longitude'] ?? null,
@@ -566,8 +566,8 @@ class UnifiedAuthController extends Controller
                         'time_in' => null,
                     ]);
                     
-                    $result = back()->withErrors(['username' => 'The provided credentials do not match our records.'])
-                                ->withInput($request->only('username', 'login_type'));
+                    $result = back()->withErrors(['ms365_account' => 'The provided credentials do not match our records.'])
+                                ->withInput($request->only('ms365_account', 'login_type'));
                     $loginSuccessful = false;
                 }
                 break;
@@ -1431,7 +1431,7 @@ class UnifiedAuthController extends Controller
             case 'user':
                 return $loginType . '_' . ($request->gmail_account ?? 'unknown');
             case 'superadmin':
-                return $loginType . '_' . ($request->username ?? 'unknown');
+                return $loginType . '_' . ($request->ms365_account ?? 'unknown');
             case 'department-admin':
             case 'office-admin':
                 // Department and office admins now use MS365 accounts
