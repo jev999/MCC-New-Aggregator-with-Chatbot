@@ -12,9 +12,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Register security middleware globally
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        
         // Register other middleware for web routes
         $middleware->web(append: [
             \App\Http\Middleware\ForceHttps::class,       // HTTPS enforcement

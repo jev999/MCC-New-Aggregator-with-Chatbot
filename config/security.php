@@ -54,10 +54,10 @@ return [
         */
 
         'hsts' => [
-            'enabled' => env('SECURITY_HSTS_ENABLED', false),
-            'max-age' => env('SECURITY_HSTS_MAX_AGE', 31536000), // 1 year
-            'include_subdomains' => env('SECURITY_HSTS_INCLUDE_SUBDOMAINS', false),
-            'preload' => env('SECURITY_HSTS_PRELOAD', false),
+            'enabled' => false,
+            'max-age' => 0,
+            'include_subdomains' => false,
+            'preload' => false,
         ],
 
         /*
@@ -91,7 +91,7 @@ return [
         | Modern browsers rely on CSP instead
         | Value: 1; mode=block
         */
-        'xss_protection' => env('SECURITY_XSS_PROTECTION', true),
+        'xss_protection' => false,
 
         /*
         | Referrer-Policy

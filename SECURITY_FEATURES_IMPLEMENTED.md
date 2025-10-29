@@ -14,7 +14,6 @@ This document provides a comprehensive overview of the security features added t
 - **Configuration**: Registered in `bootstrap/app.php`
 - **Features**:
   - Automatically redirects HTTP to HTTPS in production
-  - Adds security headers (Strict-Transport-Security, X-Content-Type-Options, etc.)
   - Configurable via `APP_ENV=production` in `.env`
 
 ### ✅ Password Encryption
