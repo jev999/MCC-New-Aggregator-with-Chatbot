@@ -1352,10 +1352,16 @@
     
     <!-- Superadmin OTP Modal -->
     <div id="otp-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden;">
-            <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;">
+        <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden; position: relative;">
+            <!-- Close button - Top Right -->
+            <button id="otp-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: rgba(0, 0, 0, 0.05); border: 0; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; font-weight: 600; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: all 0.2s ease; line-height: 1;" onmouseover="this.style.background='rgba(0,0,0,0.1)'; this.style.color='#111827';" onmouseout="this.style.background='rgba(0,0,0,0.05)'; this.style.color='#6b7280';">×</button>
+            
+            <!-- Logo at the top center -->
+            <div style="display: flex; justify-content: center; align-items: center; padding: 2rem 0 1.5rem; background: white; position: relative;">
+                <img src="{{ asset('images/mcclogo.png') }}" alt="MCC Logo" style="height: 80px; width: auto; max-width: 90px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)); position: relative; z-index: 2; margin-top: 10px; transition: all 0.3s ease; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; user-select: none;">
+            </div>
+            <div style="padding: 0 20px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">
                 <h3 style="margin: 0; color: #2563eb;">Super Admin OTP Verification</h3>
-                <button id="otp-close" type="button" aria-label="Close" style="background: transparent; border: 0; font-size: 18px; cursor: pointer;">×</button>
             </div>
             <div style="padding: 20px;">
                 @if(session('status'))
