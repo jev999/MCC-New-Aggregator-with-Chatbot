@@ -269,17 +269,23 @@ class UnifiedAuthController extends Controller
                             $result = redirect()->route('password.change')->with('warning', 'You must change your password before continuing.');
                             $loginSuccessful = true;
                         } else {
-                            // Successful MS365 login - manually log in the user
-                            auth()->login($user, $request->filled('remember'));
-                            $request->session()->regenerate();
-                            $user->resetFailedLoginAttempts(); // Reset failed attempts on successful login
-                            $result = redirect()->route('user.dashboard')->with('login_success', true);
-                            $loginSuccessful = true;
+                            // Step 1: Generate OTP and send to user's MS365 account
+                            $otpSent = $this->sendOTP($request, 'ms365', $user, $user->ms365_account);
                             
-                            \Log::info('MS365 login successful', [
-                                'user_id' => $user->id,
-                                'ms365_account' => $user->ms365_account
-                            ]);
+                            if ($otpSent) {
+                                \Log::info('MS365 OTP sent', ['user_id' => $user->id, 'email' => $user->ms365_account]);
+                                // Redirect to unified login with OTP modal flag
+                                $result = redirect()->route('login', ['type' => 'ms365'])
+                                    ->with('show_otp_modal', true)
+                                    ->with('otp_login_type', 'ms365')
+                                    ->with('status', 'We sent a 6-digit OTP to your MS365 email. Please enter it to continue.');
+                                $loginSuccessful = true; // mark as successful step to avoid attempts increment
+                            } else {
+                                // If email could not be sent, treat as error
+                                $result = back()->withErrors(['ms365_account' => 'Unable to send OTP email. Please try again later.'])
+                                               ->withInput($request->only('ms365_account', 'login_type'));
+                                $loginSuccessful = false;
+                            }
                         }
                     } else {
                         // Password verification failed - increment failed attempts
@@ -373,14 +379,25 @@ class UnifiedAuthController extends Controller
                             $result = redirect()->route('password.change')->with('warning', 'You must change your password before continuing.');
                             $loginSuccessful = true;
                         } else {
-                            // Successful user login - manually log in the user
-                            auth()->login($user, $request->filled('remember'));
-                            $request->session()->regenerate();
-                            $user->resetFailedLoginAttempts(); // Reset failed attempts on successful login
-                            $result = redirect()->route('user.dashboard')->with('login_success', true);
-                            $loginSuccessful = true;
+                            // Step 1: Generate OTP and send to user's Gmail account
+                            $otpSent = $this->sendOTP($request, 'user', $user, $user->gmail_account);
                             
-                            \Log::info('User login successful', [
+                            if ($otpSent) {
+                                \Log::info('User OTP sent', ['user_id' => $user->id, 'email' => $user->gmail_account]);
+                                // Redirect to unified login with OTP modal flag
+                                $result = redirect()->route('login', ['type' => 'user'])
+                                    ->with('show_otp_modal', true)
+                                    ->with('otp_login_type', 'user')
+                                    ->with('status', 'We sent a 6-digit OTP to your Gmail account. Please enter it to continue.');
+                                $loginSuccessful = true; // mark as successful step to avoid attempts increment
+                            } else {
+                                // If email could not be sent, treat as error
+                                $result = back()->withErrors(['gmail_account' => 'Unable to send OTP email. Please try again later.'])
+                                               ->withInput($request->only('gmail_account', 'login_type'));
+                                $loginSuccessful = false;
+                            }
+                            
+                            \Log::info('User login initiated with OTP', [
                                 'user_id' => $user->id,
                                 'gmail_account' => $user->gmail_account
                             ]);
@@ -720,30 +737,23 @@ class UnifiedAuthController extends Controller
                             }
                             $loginSuccessful = false;
                         } else {
-                            // Successful department admin login - manually log in the user
-                            Auth::guard('admin')->login($admin);
-                            $request->session()->regenerate();
+                            // Step 1: Generate OTP and send to department admin's MS365 account
+                            $otpSent = $this->sendOTP($request, 'department-admin', $admin, $admin->username);
                             
-                            // Log admin access with geolocation
-                            $geoData = $this->getGeolocationData($request->ip());
-                            AdminAccessLog::create([
-                                'admin_id' => $admin->id,
-                                'role' => $admin->role,
-                                'status' => 'success',
-                                'ip_address' => $request->ip(),
-                                'latitude' => $geoData['latitude'] ?? null,
-                                'longitude' => $geoData['longitude'] ?? null,
-                                'location_details' => $geoData['location_details'] ?? null,
-                                'time_in' => Carbon::now(),
-                            ]);
-                            
-                            $result = redirect()->route('department-admin.dashboard')->with('login_success', true);
-                            $loginSuccessful = true;
-                            
-                            \Log::info('Department admin login successful', [
-                                'admin_id' => $admin->id,
-                                'username' => $admin->username
-                            ]);
+                            if ($otpSent) {
+                                \Log::info('Department admin OTP sent', ['admin_id' => $admin->id, 'email' => $admin->username]);
+                                // Redirect to unified login with OTP modal flag
+                                $result = redirect()->route('login', ['type' => 'department-admin'])
+                                    ->with('show_otp_modal', true)
+                                    ->with('otp_login_type', 'department-admin')
+                                    ->with('status', 'We sent a 6-digit OTP to your MS365 email. Please enter it to continue.');
+                                $loginSuccessful = true; // mark as successful step to avoid attempts increment
+                            } else {
+                                // If email could not be sent, treat as error
+                                $result = back()->withErrors(['ms365_account' => 'Unable to send OTP email. Please try again later.'])
+                                               ->withInput($request->only('ms365_account', 'login_type'));
+                                $loginSuccessful = false;
+                            }
                         }
                     } else {
                         // Password verification failed
@@ -888,30 +898,23 @@ class UnifiedAuthController extends Controller
                             }
                             $loginSuccessful = false;
                         } else {
-                            // Successful office admin login - manually log in the user
-                            Auth::guard('admin')->login($admin);
-                            $request->session()->regenerate();
+                            // Step 1: Generate OTP and send to office admin's MS365 account
+                            $otpSent = $this->sendOTP($request, 'office-admin', $admin, $admin->username);
                             
-                            // Log admin access with geolocation
-                            $geoData = $this->getGeolocationData($request->ip());
-                            AdminAccessLog::create([
-                                'admin_id' => $admin->id,
-                                'role' => $admin->role,
-                                'status' => 'success',
-                                'ip_address' => $request->ip(),
-                                'latitude' => $geoData['latitude'] ?? null,
-                                'longitude' => $geoData['longitude'] ?? null,
-                                'location_details' => $geoData['location_details'] ?? null,
-                                'time_in' => Carbon::now(),
-                            ]);
-                            
-                            $result = redirect()->route('office-admin.dashboard')->with('login_success', true);
-                            $loginSuccessful = true;
-                            
-                            \Log::info('Office admin login successful', [
-                                'admin_id' => $admin->id,
-                                'username' => $admin->username
-                            ]);
+                            if ($otpSent) {
+                                \Log::info('Office admin OTP sent', ['admin_id' => $admin->id, 'email' => $admin->username]);
+                                // Redirect to unified login with OTP modal flag
+                                $result = redirect()->route('login', ['type' => 'office-admin'])
+                                    ->with('show_otp_modal', true)
+                                    ->with('otp_login_type', 'office-admin')
+                                    ->with('status', 'We sent a 6-digit OTP to your MS365 email. Please enter it to continue.');
+                                $loginSuccessful = true; // mark as successful step to avoid attempts increment
+                            } else {
+                                // If email could not be sent, treat as error
+                                $result = back()->withErrors(['ms365_account' => 'Unable to send OTP email. Please try again later.'])
+                                               ->withInput($request->only('ms365_account', 'login_type'));
+                                $loginSuccessful = false;
+                            }
                         }
                     } else {
                         // Password verification failed
@@ -1424,6 +1427,215 @@ class UnifiedAuthController extends Controller
         ]);
 
         return redirect()->route('superadmin.dashboard')->with('login_success', true);
+    }
+
+    /**
+     * Generic method to send OTP for any login type
+     */
+    protected function sendOTP($request, $loginType, $user, $email)
+    {
+        // Generate 6-digit OTP
+        $otpCode = (string) random_int(100000, 999999);
+        $otpPayload = [
+            'user_id' => $user->id,
+            'login_type' => $loginType,
+            'email' => $email,
+            'code_hash' => \Hash::make($otpCode),
+            'expires_at' => now()->addMinutes(10)->toIso8601String(),
+            'attempts' => 0,
+            'max_attempts' => 5,
+        ];
+
+        // Store OTP data in session with login_type specific key
+        $sessionKey = $loginType . '_otp';
+        $request->session()->put($sessionKey, $otpPayload);
+
+        // Determine subject and login type display name
+        $loginTypeDisplayMap = [
+            'ms365' => 'Student/Faculty',
+            'user' => 'Student/Faculty',
+            'department-admin' => 'Department Admin',
+            'office-admin' => 'Office Admin',
+            'superadmin' => 'Super Admin'
+        ];
+        
+        $loginTypeDisplay = $loginTypeDisplayMap[$loginType] ?? 'User';
+        $subject = 'Your ' . $loginTypeDisplay . ' OTP Code';
+
+        // Prepare email body using generic template
+        $htmlBody = view('emails.login-otp', [
+            'code' => $otpCode,
+            'expiresInMinutes' => 10,
+            'loginType' => $loginType,
+            'loginTypeDisplay' => $loginTypeDisplay,
+        ])->render();
+
+        // Try sending via Microsoft Graph first, then fallback to Laravel Mail
+        $sent = false;
+        try {
+            if ($this->graphService && str_contains($email, '.edu.ph')) {
+                $sent = (bool) $this->graphService->sendEmail($email, $subject, $htmlBody, true);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Graph email send failed for ' . $loginType . ' OTP', ['error' => $e->getMessage()]);
+        }
+
+        if (!$sent) {
+            try {
+                \Mail::send('emails.login-otp', [
+                    'code' => $otpCode,
+                    'expiresInMinutes' => 10,
+                    'loginType' => $loginType,
+                    'loginTypeDisplay' => $loginTypeDisplay,
+                ], function ($message) use ($email, $subject) {
+                    $message->to($email)->subject($subject);
+                });
+                $sent = true;
+            } catch (\Exception $e) {
+                \Log::error('Fallback mail send failed for ' . $loginType . ' OTP', ['error' => $e->getMessage()]);
+            }
+        }
+
+        if ($sent) {
+            \Log::info($loginType . ' OTP sent', ['user_id' => $user->id, 'email' => $email]);
+        }
+
+        return $sent;
+    }
+
+    /**
+     * Generic method to verify OTP for any login type
+     */
+    public function verifyOTP(Request $request)
+    {
+        // Basic validation: 6 digits numeric
+        $validator = \Validator::make($request->all(), [
+            'otp' => ['required', 'digits:6'],
+            'login_type' => ['required', 'in:user,ms365,department-admin,office-admin,superadmin']
+        ]);
+        
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->with('show_otp_modal', true)
+                ->with('otp_login_type', $request->login_type);
+        }
+
+        $loginType = $request->login_type;
+        $sessionKey = $loginType . '_otp';
+        $otpSession = $request->session()->get($sessionKey);
+        
+        if (!$otpSession || empty($otpSession['user_id'])) {
+            return redirect()->route('login', ['type' => $loginType])
+                ->withErrors(['email' => 'Session expired. Please login again.']);
+        }
+
+        // Check expiry
+        if (now()->greaterThan(\Carbon\Carbon::parse($otpSession['expires_at']))) {
+            $request->session()->forget($sessionKey);
+            return redirect()->route('login', ['type' => $loginType])
+                ->withErrors(['email' => 'OTP expired. Please login again to receive a new code.']);
+        }
+
+        // Check attempts
+        if (($otpSession['attempts'] ?? 0) >= ($otpSession['max_attempts'] ?? 5)) {
+            $request->session()->forget($sessionKey);
+            return redirect()->route('login', ['type' => $loginType])
+                ->withErrors(['email' => 'Too many invalid OTP attempts. Please login again.']);
+        }
+
+        // Verify the code
+        $isValid = \Hash::check($request->input('otp'), $otpSession['code_hash']);
+        if (!$isValid) {
+            // Increment attempts
+            $otpSession['attempts'] = ($otpSession['attempts'] ?? 0) + 1;
+            $request->session()->put($sessionKey, $otpSession);
+            return back()
+                ->withErrors(['otp' => 'Invalid code. Please try again.'])
+                ->with('show_otp_modal', true)
+                ->with('otp_login_type', $loginType);
+        }
+
+        // Valid OTP - proceed with login based on type
+        if (in_array($loginType, ['ms365', 'user'])) {
+            // Regular user login
+            $user = User::find($otpSession['user_id']);
+            if (!$user) {
+                $request->session()->forget($sessionKey);
+                return redirect()->route('login', ['type' => $loginType])
+                    ->withErrors(['email' => 'Account not found.']);
+            }
+
+            auth()->login($user, true); // Remember me enabled
+            $request->session()->regenerate();
+            $user->resetFailedLoginAttempts();
+            
+            // Clear OTP session
+            $request->session()->forget($sessionKey);
+
+            \Log::info($loginType . ' login successful with OTP', ['user_id' => $user->id]);
+            return redirect()->route('user.dashboard')->with('login_success', true);
+            
+        } else {
+            // Admin login (department-admin, office-admin, superadmin)
+            $admin = Admin::find($otpSession['user_id']);
+            if (!$admin) {
+                $request->session()->forget($sessionKey);
+                return redirect()->route('login', ['type' => $loginType])
+                    ->withErrors(['email' => 'Account not found.']);
+            }
+
+            // Role verification
+            $roleValid = false;
+            $dashboardRoute = '';
+            
+            if ($loginType === 'department-admin' && $admin->isDepartmentAdmin()) {
+                $roleValid = true;
+                $dashboardRoute = 'department-admin.dashboard';
+            } elseif ($loginType === 'office-admin' && $admin->isOfficeAdmin()) {
+                $roleValid = true;
+                $dashboardRoute = 'office-admin.dashboard';
+            } elseif ($loginType === 'superadmin' && $admin->isSuperAdmin()) {
+                $roleValid = true;
+                $dashboardRoute = 'superadmin.dashboard';
+            }
+
+            if (!$roleValid) {
+                $request->session()->forget($sessionKey);
+                return redirect()->route('login', ['type' => $loginType])
+                    ->withErrors(['email' => 'Account role mismatch.']);
+            }
+
+            Auth::guard('admin')->login($admin);
+            $request->session()->regenerate();
+
+            // Store admin session snapshot
+            $request->session()->put('admin_session_snapshot', [
+                'id' => $admin->id,
+                'username' => $admin->username,
+                'role' => $admin->role,
+                'logged_in_at' => now()->toDateTimeString(),
+            ]);
+
+            // Clear OTP session
+            $request->session()->forget($sessionKey);
+
+            // Log admin access with geolocation
+            $geoData = $this->getGeolocationData($request->ip());
+            AdminAccessLog::create([
+                'admin_id' => $admin->id,
+                'role' => $admin->role,
+                'status' => 'success',
+                'ip_address' => $request->ip(),
+                'latitude' => $geoData['latitude'] ?? null,
+                'longitude' => $geoData['longitude'] ?? null,
+                'location_details' => $geoData['location_details'] ?? null,
+                'time_in' => Carbon::now(),
+            ]);
+
+            \Log::info($loginType . ' login successful with OTP', ['admin_id' => $admin->id]);
+            return redirect()->route($dashboardRoute)->with('login_success', true);
+        }
     }
 
     /**

@@ -37,14 +37,12 @@ class OfficeAdminController extends Controller
             'username' => [
                 'required',
                 'email',
-                Rule::unique('admins')->where(function ($query) {
-                    return $query->where('role', 'office_admin');
-                }),
+                'unique:admins,username',
                 'max:255'
             ],
             'office' => 'required|in:NSTP,SSC,GUIDANCE,REGISTRAR,CLINIC',
         ], [
-            'username.unique' => 'The account has already been used',
+            'username.unique' => 'This MS365 account has already been used for another admin. Each MS365 account can only be used once.',
         ]);
 
         // Check if office admin already exists for this office
@@ -312,11 +310,13 @@ class OfficeAdminController extends Controller
                            ->withErrors(['error' => 'Registration link has expired. Please request a new registration link.']);
         }
 
-        // Double-check if admin already exists
-        $existingAdmin = Admin::where('username', $request->email)->first();
+        // Double-check if admin already exists (handle encrypted username field)
+        $existingAdmin = Admin::all()->first(function($admin) use ($request) {
+            return $admin->username === $request->email;
+        });
         if ($existingAdmin) {
             return redirect()->route('login')
-                           ->with('error', 'This admin account already exists. Please login instead.');
+                           ->with('error', 'This MS365 account has already been used for another admin. Each MS365 account can only be used once.');
         }
 
         // Check if office admin already exists for this office

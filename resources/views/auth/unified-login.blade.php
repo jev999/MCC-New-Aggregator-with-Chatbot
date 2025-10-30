@@ -1350,7 +1350,7 @@
     <!-- reCAPTCHA scripts removed -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <!-- Superadmin OTP Modal -->
+    <!-- Dynamic OTP Modal for All Login Types -->
     <div id="otp-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; align-items: center; justify-content: center;">
         <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden; position: relative;">
             <!-- Close button - Top Right -->
@@ -1361,14 +1361,15 @@
                 <img src="{{ asset('images/mcclogo.png') }}" alt="MCC Logo" style="height: 80px; width: auto; max-width: 90px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1)); position: relative; z-index: 2; margin-top: 10px; transition: all 0.3s ease; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; user-select: none;">
             </div>
             <div style="padding: 0 20px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">
-                <h3 style="margin: 0; color: #2563eb;">Super Admin OTP Verification</h3>
+                <h3 id="otp-modal-title" style="margin: 0; color: #2563eb;">OTP Verification</h3>
             </div>
             <div style="padding: 20px;">
                 @if(session('status'))
                     <div style="background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;padding:10px 12px;border-radius:8px;margin-bottom:12px;">{{ session('status') }}</div>
                 @endif
-                <form method="POST" action="{{ route('superadmin.otp.verify') }}" id="otp-form">
+                <form method="POST" action="{{ route('otp.verify') }}" id="otp-form">
                     @csrf
+                    <input type="hidden" id="otp-login-type" name="login_type" value="">
                     <div class="form-group">
                         <label for="otp" style="display:block;font-size:14px;color:#374151;margin-bottom:6px;">Enter 6-digit code</label>
                         <input type="text" id="otp" name="otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="••••••" required class="form-control" style="text-align:center;letter-spacing:6px;font-size:20px;">
@@ -1723,21 +1724,47 @@
             // OTP modal behavior
             const otpModal = document.getElementById('otp-modal');
             const otpClose = document.getElementById('otp-close');
+            const otpModalTitle = document.getElementById('otp-modal-title');
+            const otpLoginTypeInput = document.getElementById('otp-login-type');
+            
             if (otpClose) {
                 otpClose.addEventListener('click', function() {
                     if (otpModal) otpModal.style.display = 'none';
                 });
             }
 
-            // Server flag to show OTP modal
-            const shouldShowOtp = {{ (session('show_superadmin_otp') || ($errors && $errors->has('otp'))) ? 'true' : 'false' }};
+            // Server flag to show OTP modal for any login type
+            const shouldShowOtp = {{ (session('show_otp_modal') || session('show_superadmin_otp') || ($errors && $errors->has('otp'))) ? 'true' : 'false' }};
+            const otpLoginType = '{{ session('otp_login_type') ?? 'superadmin' }}';
+            
             if (shouldShowOtp && otpModal) {
-                // Preselect superadmin fields
+                // Map login types to display names
+                const loginTypeDisplayMap = {
+                    'ms365': 'Student/Faculty',
+                    'user': 'Student/Faculty',
+                    'department-admin': 'Department Admin',
+                    'office-admin': 'Office Admin',
+                    'superadmin': 'Super Admin'
+                };
+                
+                // Update modal title based on login type
+                if (otpModalTitle) {
+                    otpModalTitle.textContent = (loginTypeDisplayMap[otpLoginType] || 'User') + ' OTP Verification';
+                }
+                
+                // Set hidden login_type field
+                if (otpLoginTypeInput) {
+                    otpLoginTypeInput.value = otpLoginType;
+                }
+                
+                // Preselect appropriate fields based on login type
                 if (loginTypeSelect) {
-                    loginTypeSelect.value = 'superadmin';
+                    loginTypeSelect.value = otpLoginType;
                     toggleFields();
                 }
+                
                 otpModal.style.display = 'flex';
+                
                 // Focus OTP input
                 const otpInput = document.getElementById('otp');
                 if (otpInput) {

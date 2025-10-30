@@ -444,16 +444,11 @@
                 </a>
             </div>
 
-            @if ($errors->any())
+            @if ($errors->has('office'))
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle"></i>
                     <div>
-                        <strong>Please fix the following errors:</strong>
-                        <ul style="margin: 0.5rem 0 0 0; padding-left: 1.5rem;">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
+                        <strong>{{ $errors->first('office') }}</strong>
                     </div>
                 </div>
             @endif

@@ -1473,9 +1473,10 @@ Route::post('/register', [MS365OAuthController::class, 'handleRegister'])->name(
 
 Route::post('/logout', [UnifiedAuthController::class, 'logout'])->name('logout');
 
-// Superadmin OTP routes
+// OTP routes for all login types
 Route::get('/superadmin/otp', [UnifiedAuthController::class, 'showSuperadminOtpForm'])->name('superadmin.otp.form');
 Route::post('/superadmin/otp', [UnifiedAuthController::class, 'verifySuperadminOtp'])->name('superadmin.otp.verify');
+Route::post('/otp/verify', [UnifiedAuthController::class, 'verifyOTP'])->name('otp.verify');
 
 
 // Test route for image debugging (remove in production)
@@ -1679,42 +1680,36 @@ Route::prefix('superadmin')->group(function () {
         Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
 
         // ====================================================================
-        // ADMIN MANAGEMENT (RBAC: manage-admins, create-admins, edit-admins, delete-admins)
+        // ADMIN MANAGEMENT (Superadmin Only)
         // ====================================================================
 
-        Route::middleware('can:manage-admins')->group(function () {
-            Route::get('admins', [SuperAdminController::class, 'index'])->name('superadmin.admins.index');
-            Route::get('admins/create', [SuperAdminController::class, 'create'])->name('superadmin.admins.create');
-            Route::post('admins', [SuperAdminController::class, 'store'])->name('superadmin.admins.store');
-            Route::get('admins/{admin}', [SuperAdminController::class, 'show'])->name('superadmin.admins.show');
-            Route::get('admins/{admin}/edit', [SuperAdminController::class, 'edit'])->name('superadmin.admins.edit');
-            Route::put('admins/{admin}', [SuperAdminController::class, 'update'])->name('superadmin.admins.update');
-            Route::delete('admins/{admin}', [SuperAdminController::class, 'destroy'])->name('superadmin.admins.destroy');
-        });
+        Route::get('admins', [SuperAdminController::class, 'index'])->name('superadmin.admins.index');
+        Route::get('admins/create', [SuperAdminController::class, 'create'])->name('superadmin.admins.create');
+        Route::post('admins', [SuperAdminController::class, 'store'])->name('superadmin.admins.store');
+        Route::get('admins/{admin}', [SuperAdminController::class, 'show'])->name('superadmin.admins.show');
+        Route::get('admins/{admin}/edit', [SuperAdminController::class, 'edit'])->name('superadmin.admins.edit');
+        Route::put('admins/{admin}', [SuperAdminController::class, 'update'])->name('superadmin.admins.update');
+        Route::delete('admins/{admin}', [SuperAdminController::class, 'destroy'])->name('superadmin.admins.destroy');
 
         // ====================================================================
-        // DEPARTMENT ADMIN MANAGEMENT (RBAC: manage-department-admins)
+        // DEPARTMENT ADMIN MANAGEMENT (Superadmin Only)
         // ====================================================================
 
-        Route::middleware('can:manage-department-admins')->group(function () {
-            Route::get('department-admins/create', [SuperAdminController::class, 'createDepartmentAdmin'])->name('superadmin.department-admins.create');
-            Route::post('department-admins', [SuperAdminController::class, 'storeDepartmentAdmin'])->name('superadmin.department-admins.store');
-            Route::get('department-admins', [SuperAdminController::class, 'departmentAdmins'])->name('superadmin.department-admins.index');
-        });
+        Route::get('department-admins/create', [SuperAdminController::class, 'createDepartmentAdmin'])->name('superadmin.department-admins.create');
+        Route::post('department-admins', [SuperAdminController::class, 'storeDepartmentAdmin'])->name('superadmin.department-admins.store');
+        Route::get('department-admins', [SuperAdminController::class, 'departmentAdmins'])->name('superadmin.department-admins.index');
 
         // ====================================================================
-        // OFFICE ADMIN MANAGEMENT (RBAC: manage-office-admins)
+        // OFFICE ADMIN MANAGEMENT (Superadmin Only)
         // ====================================================================
 
-        Route::middleware('can:manage-office-admins')->group(function () {
-            Route::get('office-admins', [OfficeAdminController::class, 'index'])->name('superadmin.office-admins.index');
-            Route::get('office-admins/create', [OfficeAdminController::class, 'create'])->name('superadmin.office-admins.create');
-            Route::post('office-admins', [OfficeAdminController::class, 'store'])->name('superadmin.office-admins.store');
-            Route::get('office-admins/{officeAdmin}', [OfficeAdminController::class, 'show'])->name('superadmin.office-admins.show');
-            Route::get('office-admins/{officeAdmin}/edit', [OfficeAdminController::class, 'edit'])->name('superadmin.office-admins.edit');
-            Route::put('office-admins/{officeAdmin}', [OfficeAdminController::class, 'update'])->name('superadmin.office-admins.update');
-            Route::delete('office-admins/{officeAdmin}', [OfficeAdminController::class, 'destroy'])->name('superadmin.office-admins.destroy');
-        });
+        Route::get('office-admins', [OfficeAdminController::class, 'index'])->name('superadmin.office-admins.index');
+        Route::get('office-admins/create', [OfficeAdminController::class, 'create'])->name('superadmin.office-admins.create');
+        Route::post('office-admins', [OfficeAdminController::class, 'store'])->name('superadmin.office-admins.store');
+        Route::get('office-admins/{officeAdmin}', [OfficeAdminController::class, 'show'])->name('superadmin.office-admins.show');
+        Route::get('office-admins/{officeAdmin}/edit', [OfficeAdminController::class, 'edit'])->name('superadmin.office-admins.edit');
+        Route::put('office-admins/{officeAdmin}', [OfficeAdminController::class, 'update'])->name('superadmin.office-admins.update');
+        Route::delete('office-admins/{officeAdmin}', [OfficeAdminController::class, 'destroy'])->name('superadmin.office-admins.destroy');
 
         // ====================================================================
         // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
@@ -2002,7 +1997,7 @@ Route::prefix('user')->group(function () {
     // PROTECTED USER ROUTES (RBAC: Student/Faculty Role + Permissions)
     // ========================================================================
 
-    Route::middleware(['auth', 'password.expiration', 'session.security', 'can:view-user-dashboard'])->group(function () {
+    Route::middleware(['auth', \App\Http\Middleware\CheckPasswordExpiration::class, \App\Http\Middleware\SessionSecurityMiddleware::class, 'can:view-user-dashboard'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::post('logout', [UserAuthController::class, 'logout'])->name('user.logout');

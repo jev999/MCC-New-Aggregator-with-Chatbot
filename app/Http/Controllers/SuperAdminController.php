@@ -40,15 +40,13 @@ class SuperAdminController extends Controller
             'username' => [
                 'required',
                 'email',
-                Rule::unique('admins')->where(function ($query) {
-                    return $query->where('role', 'department_admin');
-                }),
+                'unique:admins,username',
                 'max:255'
             ],
             'role' => 'required|in:department_admin',
             'department' => 'required|in:BSIT,BSBA,EDUC,BSED,BSHM',
         ], [
-            'username.unique' => 'The account has already been used',
+            'username.unique' => 'This MS365 account has already been used for another admin. Each MS365 account can only be used once.',
         ]);
 
         // Check if department admin already exists for this department
@@ -199,10 +197,12 @@ class SuperAdminController extends Controller
     public function storeDepartmentAdmin(Request $request)
     {
         $request->validate([
-            'username' => 'required|string|unique:admins|max:255',
+            'username' => 'required|string|unique:admins,username|max:255',
             'password' => 'required|string|min:6',
             'password_confirmation' => 'required|string|same:password',
             'department' => 'required|in:BSIT,BSBA,EDUC,BSED,BSHM',
+        ], [
+            'username.unique' => 'This MS365 account has already been used for another admin. Each MS365 account can only be used once.',
         ]);
 
         // Check if department admin already exists for this department
