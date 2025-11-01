@@ -738,122 +738,52 @@
             }
         }
         
-        /* Glassmorphism Modal Styles */
+        /* Professional Traditional Modal Styles */
         .glass-modal-backdrop {
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.1), 
-                rgba(255, 255, 255, 0.05)
-            );
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            animation: backdropFadeIn 0.5s ease-out;
-        }
-        
-        @keyframes backdropFadeIn {
-            from {
-                backdrop-filter: blur(0px);
-                -webkit-backdrop-filter: blur(0px);
-            }
-            to {
-                backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-            }
+            background: rgba(0, 0, 0, 0.6);
         }
         
         .glass-modal-container {
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.25), 
-                rgba(255, 255, 255, 0.15)
-            );
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 24px;
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-                0 1px 0 rgba(255, 255, 255, 0.2) inset;
-            position: relative;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
             overflow: hidden;
         }
         
-        .glass-modal-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, 
-                transparent, 
-                rgba(255, 255, 255, 0.4), 
-                transparent
-            );
-        }
-        
         .glass-header {
-            background: linear-gradient(135deg, 
-                rgba(147, 51, 234, 0.8), 
-                rgba(79, 70, 229, 0.8)
-            );
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             padding: 2rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
         }
         
-        .glass-header::before {
+        .glass-header::after {
             content: '';
             position: absolute;
-            top: 0;
+            bottom: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.1), 
-                rgba(255, 255, 255, 0.05)
-            );
-            pointer-events: none;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
         }
         
         .glass-close-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .glass-close-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
+            color: white;
         }
         
         .glass-close-btn:hover {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.2);
             transform: scale(1.05);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-        
-        .glass-close-btn:hover::before {
-            opacity: 1;
         }
         
         .glass-close-btn:active {
@@ -861,171 +791,133 @@
         }
         
         .glass-content {
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.1), 
-                rgba(255, 255, 255, 0.05)
-            );
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            background: #f9fafb;
             padding: 2rem;
             overflow-y: auto;
-            max-height: calc(95vh - 200px);
-            position: relative;
-        }
-        
-        .glass-content::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.05), 
-                rgba(255, 255, 255, 0.02)
-            );
-            pointer-events: none;
+            max-height: calc(95vh - 240px);
         }
         
         .glass-profile-picture {
-            width: 128px;
-            height: 128px;
+            width: 140px;
+            height: 140px;
             border-radius: 50%;
-            background: linear-gradient(135deg, 
-                rgba(147, 51, 234, 0.3), 
-                rgba(79, 70, 229, 0.3)
-            );
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 
-                0 15px 35px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: 4px solid #ffffff;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
             overflow: hidden;
-            position: relative;
             transition: all 0.3s ease;
-        }
-        
-        .glass-profile-picture::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.2), 
-                rgba(255, 255, 255, 0.05)
-            );
-            pointer-events: none;
         }
         
         .glass-profile-picture:hover {
-            transform: scale(1.02);
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+            transform: scale(1.03);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(0, 0, 0, 0.1);
         }
         
         .glass-footer {
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.15), 
-                rgba(255, 255, 255, 0.08)
-            );
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            position: relative;
+            background: #ffffff;
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e5e7eb;
         }
         
-        .glass-footer::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 255, 0.05), 
-                rgba(255, 255, 255, 0.02)
-            );
-            pointer-events: none;
-        }
-        
-        /* Enhanced Glass Form Elements */
+        /* Professional Form Elements */
         .glass-content input,
         .glass-content select,
         .glass-content textarea {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
             color: #1f2937;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            font-size: 0.9375rem;
         }
         
         .glass-content input:focus,
         .glass-content select:focus,
         .glass-content textarea:focus {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(147, 51, 234, 0.5);
-            box-shadow: 
-                0 0 0 3px rgba(147, 51, 234, 0.1),
-                0 8px 25px rgba(0, 0, 0, 0.1);
+            background: #ffffff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
             outline: none;
         }
         
         .glass-content label {
             color: #374151;
             font-weight: 600;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+            font-size: 0.875rem;
+            letter-spacing: 0.025em;
         }
         
-        /* Glass Buttons */
-        .glass-content button {
-            background: linear-gradient(135deg, 
-                rgba(147, 51, 234, 0.8), 
-                rgba(79, 70, 229, 0.8)
-            );
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+        /* Professional Info Cards */
+        .info-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1rem;
+            transition: all 0.2s ease;
         }
         
-        .glass-content button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, 
-                transparent, 
-                rgba(255, 255, 255, 0.2), 
-                transparent
-            );
-            transition: left 0.5s ease;
-        }
-        
-        .glass-content button:hover::before {
-            left: 100%;
-        }
-        
-        .glass-content button:hover {
-            background: linear-gradient(135deg, 
-                rgba(147, 51, 234, 0.9), 
-                rgba(79, 70, 229, 0.9)
-            );
+        .info-card:hover {
+            border-color: #c7d2fe;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(147, 51, 234, 0.3);
+        }
+        
+        .info-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+        
+        /* Profile Picture Upload Overlay */
+        .profile-picture-overlay {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Professional Action Buttons */
+        .action-button-group {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        
+        .action-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 1.125rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .action-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Status Indicator */
+        .status-indicator {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #10b981;
+            border: 3px solid #ffffff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
         }
         
         /* Mobile Responsive Glassmorphism */
@@ -2289,7 +2181,7 @@
                 <!-- Glassmorphism Content -->
                 <div class="glass-content" x-ref="modalContent">
                     <!-- Profile Picture Section -->
-                    <div class="flex flex-col items-center mb-8">
+                    <div class="flex flex-col items-center mb-6">
                         <div class="relative group">
                             <div class="glass-profile-picture">
                                 @if(auth()->user()->hasProfilePicture)
@@ -2298,18 +2190,21 @@
                                          alt="Profile Picture" 
                                          class="w-full h-full object-cover">
                                 @else
-                                    <div class="w-full h-full flex items-center justify-center text-white font-bold text-3xl">
+                                    <div class="w-full h-full flex items-center justify-center text-white font-bold text-4xl">
                                         {{ auth()->user()->initials }}
                                     </div>
                                 @endif
+                                <!-- Status Indicator -->
+                                <div class="status-indicator"></div>
                             </div>
                             
-                            <!-- Upload/Change Picture Button -->
-                            <div class="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center cursor-pointer"
+                            <!-- Upload/Change Picture Button (Only in Edit Mode) -->
+                            <div x-show="editMode" 
+                                 class="absolute inset-0 rounded-full profile-picture-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center cursor-pointer"
                                  @click="$refs.profilePictureInput.click()">
                                 <div class="text-center text-white">
-                                    <i class="fas fa-camera text-2xl mb-1"></i>
-                                    <p class="text-xs">Change Photo</p>
+                                    <i class="fas fa-camera text-3xl mb-2"></i>
+                                    <p class="text-sm font-semibold">Change Photo</p>
                                 </div>
                             </div>
                             
@@ -2321,72 +2216,78 @@
                                    class="hidden">
                         </div>
                         
-                        <!-- Profile Picture Actions -->
-                        <div class="flex space-x-3 mt-4 justify-center">
+                        <!-- Profile Picture Actions (Only in Edit Mode) -->
+                        <div class="action-button-group" x-show="editMode">
                             <button @click="$refs.profilePictureInput.click()" 
-                                    class="profile-action-btn w-12 h-12 bg-green-500 text-white rounded-full hover:bg-green-600 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-110 group"
+                                    class="action-button bg-indigo-500 text-white hover:bg-indigo-600"
                                     title="Upload Photo">
-                                <i class="fas fa-camera text-lg group-hover:scale-110 transition-transform duration-200"></i>
+                                <i class="fas fa-camera"></i>
                             </button>
                             @if(auth()->user()->hasProfilePicture)
                                 <button @click="removeProfilePicture()" 
-                                        class="profile-action-btn w-12 h-12 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-110 group"
+                                        class="action-button bg-red-500 text-white hover:bg-red-600"
                                         title="Remove Photo">
-                                    <i class="fas fa-trash text-lg group-hover:scale-110 transition-transform duration-200"></i>
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             @endif
                         </div>
                         
-                        <h3 class="font-bold text-xl text-gray-800 mt-4" x-text="editMode ? 'Edit Profile' : '{{ auth()->user()->first_name }} {{ auth()->user()->surname }}'"></h3>
-                        <p class="text-gray-600" x-show="!editMode">{{ auth()->user()->department }} - {{ auth()->user()->year_level }}</p>
+                        <h3 class="font-bold text-2xl text-gray-900 mt-4" x-text="editMode ? 'Edit Profile' : '{{ auth()->user()->first_name }} {{ auth()->user()->surname }}'"></h3>
+                        <p class="text-gray-600 text-sm mt-1" x-show="!editMode">{{ auth()->user()->department }}</p>
+                        <div class="mt-2" x-show="!editMode">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
+                                <i class="fas fa-graduation-cap mr-1"></i>
+                                {{ auth()->user()->year_level }}
+                            </span>
+                        </div>
                     </div>
                     
                     <!-- Profile Information -->
-                    <div x-show="!editMode" class="space-y-4">
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex items-center mb-3">
-                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-                                    <i class="fas fa-envelope text-purple-600"></i>
+                    <div x-show="!editMode" class="space-y-3">
+                        <div class="info-card">
+                            <div class="flex items-center">
+                                <div class="info-card-icon bg-indigo-50 text-indigo-600 mr-3">
+                                    <i class="fas fa-envelope"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-medium text-gray-500">MS365 Account</p>
-                                    <p class="text-gray-800">{{ auth()->user()->email }}</p>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">MS365 Account</p>
+                                    <p class="text-gray-900 font-medium">{{ auth()->user()->email }}</p>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex items-center mb-3">
-                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                    <i class="fas fa-building text-blue-600"></i>
+                        <div class="info-card">
+                            <div class="flex items-center">
+                                <div class="info-card-icon bg-blue-50 text-blue-600 mr-3">
+                                    <i class="fas fa-building"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-medium text-gray-500">Department</p>
-                                    <p class="text-gray-800">{{ auth()->user()->department }}</p>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Department</p>
+                                    <p class="text-gray-900 font-medium">{{ auth()->user()->department }}</p>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex items-center mb-3">
-                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                                    <i class="fas fa-graduation-cap text-green-600"></i>
+                        <div class="info-card">
+                            <div class="flex items-center">
+                                <div class="info-card-icon bg-emerald-50 text-emerald-600 mr-3">
+                                    <i class="fas fa-graduation-cap"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-medium text-gray-500">Year Level</p>
-                                    <p class="text-gray-800">{{ auth()->user()->year_level }}</p>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Year Level</p>
+                                    <p class="text-gray-900 font-medium">{{ auth()->user()->year_level }}</p>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex items-center mb-3">
-                                <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mr-3">
-                                    <i class="fas fa-calendar-alt text-orange-600"></i>
+                        <div class="info-card">
+                            <div class="flex items-center">
+                                <div class="info-card-icon bg-amber-50 text-amber-600 mr-3">
+                                    <i class="fas fa-calendar-alt"></i>
                                 </div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-medium text-gray-500">Member Since</p>
-                                    <p class="text-gray-800">{{ auth()->user()->created_at->format('M d, Y') }}</p>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Member Since</p>
+                                    <p class="text-gray-900 font-medium">{{ auth()->user()->created_at->format('M d, Y') }}</p>
                                 </div>
                             </div>
                         </div>
@@ -2456,14 +2357,14 @@
                             <div class="flex space-x-3 pt-4">
                                 <button type="submit" 
                                         :disabled="updatingProfile"
-                                        class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center justify-center">
+                                        class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95">
                                     <i class="fas fa-save mr-2" x-show="!updatingProfile"></i>
                                     <i class="fas fa-spinner fa-spin mr-2" x-show="updatingProfile"></i>
                                     <span x-text="updatingProfile ? 'Saving...' : 'Save Changes'"></span>
                                 </button>
                                 <button type="button" 
                                         @click="editMode = false; resetProfileForm()" 
-                                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-semibold shadow hover:shadow-md transform hover:scale-105 active:scale-95">
                                     Cancel
                                 </button>
                             </div>
@@ -2471,15 +2372,24 @@
                     </div>
                 </div>
                 
-                <!-- Glassmorphism Footer -->
+                <!-- Professional Footer -->
                 <div class="glass-footer">
-                    <div class="flex justify-center items-center">
-                        <!-- Logout Button (Icon Only) -->
-                        <button @click="logout()" 
-                                title="Logout"
-                                class="profile-action-btn w-12 h-12 rounded-full bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-110 group">
-                            <i class="fas fa-sign-out-alt text-lg group-hover:rotate-12 transition-transform duration-200"></i>
+                    <div class="flex justify-between items-center gap-3" x-show="!editMode">
+                        <!-- Edit Profile Button -->
+                        <button @click="editMode = true; initializeProfileForm()" 
+                                class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95">
+                            <i class="fas fa-edit mr-2"></i>
+                            <span>Edit Profile</span>
                         </button>
+                        <!-- Logout Button -->
+                        <button @click="logout()" 
+                                class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center justify-center font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95">
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                    <div class="text-center text-sm text-gray-500" x-show="editMode">
+                        <p>Update your profile information above</p>
                     </div>
                 </div>
             </div>
