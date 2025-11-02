@@ -562,7 +562,8 @@ class UnifiedAuthController extends Controller
                             // Step 1: Generate OTP and send to superadmin's MS365 account, do NOT log them in yet
                             $otpCode = (string) random_int(100000, 999999);
                             $otpPayload = [
-                                'admin_id' => $admin->id,
+                                'user_id' => $admin->id, // Changed from admin_id to user_id for consistency
+                                'admin_id' => $admin->id, // Keep for backward compatibility
                                 'email' => $admin->username,
                                 'code_hash' => \Hash::make($otpCode),
                                 'expires_at' => now()->addMinutes(10)->toIso8601String(),
@@ -1525,7 +1526,10 @@ class UnifiedAuthController extends Controller
         $sessionKey = $loginType . '_otp';
         $otpSession = $request->session()->get($sessionKey);
         
-        if (!$otpSession || empty($otpSession['user_id'])) {
+        // Check for both user_id and admin_id (superadmin uses admin_id)
+        $userId = $otpSession['user_id'] ?? $otpSession['admin_id'] ?? null;
+        
+        if (!$otpSession || empty($userId)) {
             return redirect()->route('login', ['type' => $loginType])
                 ->withErrors(['email' => 'Session expired. Please login again.']);
         }
@@ -1559,7 +1563,7 @@ class UnifiedAuthController extends Controller
         // Valid OTP - proceed with login based on type
         if (in_array($loginType, ['ms365', 'user'])) {
             // Regular user login
-            $user = User::find($otpSession['user_id']);
+            $user = User::find($userId);
             if (!$user) {
                 $request->session()->forget($sessionKey);
                 return redirect()->route('login', ['type' => $loginType])
@@ -1578,7 +1582,7 @@ class UnifiedAuthController extends Controller
             
         } else {
             // Admin login (department-admin, office-admin, superadmin)
-            $admin = Admin::find($otpSession['user_id']);
+            $admin = Admin::find($userId);
             if (!$admin) {
                 $request->session()->forget($sessionKey);
                 return redirect()->route('login', ['type' => $loginType])

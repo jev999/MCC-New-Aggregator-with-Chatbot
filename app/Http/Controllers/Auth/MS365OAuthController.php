@@ -190,7 +190,16 @@ class MS365OAuthController extends Controller
             'role' => 'required|in:student,faculty',
             'department' => 'required|in:Bachelor of Science in Information Technology,Bachelor of Science in Business Administration,Bachelor of Elementary Education,Bachelor of Secondary Education,Bachelor of Science in Hospitality Management',
             'year_level' => 'required_if:role,student|in:1st Year,2nd Year,3rd Year,4th Year',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[a-z]/',      // Must contain at least one lowercase letter
+                'regex:/[A-Z]/',      // Must contain at least one uppercase letter
+                'regex:/[0-9]/',      // Must contain at least one number
+                'regex:/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', // Must contain at least one special character
+            ],
         ], [
             'ms365_account.regex' => 'Please enter a valid .edu.ph email address',
             'first_name.regex' => 'First name should only contain letters, spaces, and apostrophes',
@@ -203,6 +212,7 @@ class MS365OAuthController extends Controller
             'year_level.required_if' => 'Year level is required for students',
             'year_level.in' => 'Please select a valid year level',
             'password.min' => 'Password must be at least 8 characters long',
+            'password.regex' => 'Password must contain uppercase, lowercase, number, and special character',
         ]);
 
         // Validate token

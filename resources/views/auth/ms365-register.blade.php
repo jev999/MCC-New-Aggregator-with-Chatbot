@@ -33,7 +33,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('ms365.register.complete') }}">
+    <form method="POST" action="{{ route('ms365.register.complete') }}" id="registration-form" onsubmit="return validateRegistrationForm()">
         @csrf
         <input type="hidden" name="token" value="{{ $token }}">
         <input type="hidden" name="ms365_account" value="{{ $email ?? '' }}">
@@ -281,9 +281,9 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" id="submit-btn">
             <i class="fab fa-microsoft"></i>
-            Complete MS365 Registration
+            <span id="submit-btn-text">Complete MS365 Registration</span>
         </button>
     </form>
 
@@ -736,12 +736,18 @@
 
 
 
-    // Initialize department fields visibility on page load
-
+    // Initialize department fields visibility and submit button state on page load
     document.addEventListener('DOMContentLoaded', function() {
-
         toggleDepartmentFields();
-
+        
+        // Initialize submit button as disabled
+        const submitBtn = document.getElementById('submit-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+        }
     });
 
 </script>
@@ -753,6 +759,8 @@
         const strengthFill = document.getElementById('password-strength-fill');
         const strengthText = document.getElementById('password-strength-text');
         const suggestions = document.getElementById('password-suggestions');
+        const submitBtn = document.getElementById('submit-btn');
+        const submitBtnText = document.getElementById('submit-btn-text');
         
         // Requirements elements
         const reqLength = document.getElementById('req-length');
@@ -783,31 +791,51 @@
         if (hasNumber) strength++;
         if (hasSpecial) strength++;
         
+        // Check if all requirements are met (strong password)
+        const allRequirementsMet = hasLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
+        
+        // Update submit button state
+        if (allRequirementsMet) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+            submitBtnText.textContent = 'Complete MS365 Registration';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtnText.textContent = 'Please Create a Strong Password First';
+        }
+        
         // Update strength indicator
         strengthFill.className = 'password-strength-fill';
         strengthText.className = 'password-strength-text';
         
         if (password.length === 0) {
             strengthText.textContent = 'Enter a password';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+            submitBtnText.textContent = 'Complete MS365 Registration';
         } else if (strength <= 2) {
             strengthFill.classList.add('weak');
             strengthText.classList.add('weak');
-            strengthText.textContent = 'Weak Password';
+            strengthText.textContent = 'Weak Password - Cannot Proceed';
             showPasswordSuggestions(password);
         } else if (strength === 3) {
             strengthFill.classList.add('fair');
             strengthText.classList.add('fair');
-            strengthText.textContent = 'Fair Password';
+            strengthText.textContent = 'Fair Password - Missing Requirements';
             showPasswordSuggestions(password);
         } else if (strength === 4) {
             strengthFill.classList.add('good');
             strengthText.classList.add('good');
-            strengthText.textContent = 'Good Password';
+            strengthText.textContent = 'Good Password - Almost There!';
             suggestions.style.display = 'none';
         } else {
             strengthFill.classList.add('strong');
             strengthText.classList.add('strong');
-            strengthText.textContent = 'Strong Password!';
+            strengthText.textContent = 'Strong Password - Ready to Register!';
             suggestions.style.display = 'none';
         }
     }
@@ -920,6 +948,40 @@
                 }, 1500);
             }
         });
+    }
+    
+    // Validate registration form before submission
+    function validateRegistrationForm() {
+        const password = document.getElementById('password').value;
+        
+        // Check all password requirements
+        const hasLength = password.length >= 8;
+        const hasUppercase = /[A-Z]/.test(password);
+        const hasLowercase = /[a-z]/.test(password);
+        const hasNumber = /\d/.test(password);
+        const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+        
+        const allRequirementsMet = hasLength && hasUppercase && hasLowercase && hasNumber && hasSpecial;
+        
+        if (!allRequirementsMet) {
+            alert('❌ Registration Cannot Proceed\n\nYour password does not meet all security requirements:\n\n' +
+                  '✓ At least 8 characters\n' +
+                  '✓ One uppercase letter (A-Z)\n' +
+                  '✓ One lowercase letter (a-z)\n' +
+                  '✓ One number (0-9)\n' +
+                  '✓ One special character (!@#$%^&*)\n\n' +
+                  'Please create a strong password to protect your account.');
+            return false; // Prevent form submission
+        }
+        
+        // Check password confirmation match
+        const passwordConfirmation = document.getElementById('password_confirmation').value;
+        if (password !== passwordConfirmation) {
+            alert('❌ Password Mismatch\n\nYour passwords do not match. Please make sure both password fields are identical.');
+            return false;
+        }
+        
+        return true; // Allow form submission
     }
     
     function checkPasswordMatch() {

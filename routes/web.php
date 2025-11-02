@@ -1751,41 +1751,35 @@ Route::prefix('superadmin')->group(function () {
         // USER MANAGEMENT (RBAC: manage-faculty, manage-students)
         // ====================================================================
 
-        // Faculty management routes - with permission checks
-        Route::middleware('can:manage-faculty')->group(function () {
-            Route::get('faculty', [AdminFacultyController::class, 'index'])->name('superadmin.faculty.index');
-            Route::get('faculty/create', [AdminFacultyController::class, 'create'])->name('superadmin.faculty.create');
-            Route::post('faculty', [AdminFacultyController::class, 'store'])->name('superadmin.faculty.store');
-            Route::get('faculty/{faculty}', [AdminFacultyController::class, 'show'])->name('superadmin.faculty.show');
-            Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('superadmin.faculty.edit');
-            Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('superadmin.faculty.update');
-            Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('superadmin.faculty.destroy');
-        });
+        // Faculty management routes
+        Route::get('faculty', [AdminFacultyController::class, 'index'])->name('superadmin.faculty.index');
+        Route::get('faculty/create', [AdminFacultyController::class, 'create'])->name('superadmin.faculty.create');
+        Route::post('faculty', [AdminFacultyController::class, 'store'])->name('superadmin.faculty.store');
+        Route::get('faculty/{faculty}', [AdminFacultyController::class, 'show'])->name('superadmin.faculty.show');
+        Route::get('faculty/{faculty}/edit', [AdminFacultyController::class, 'edit'])->name('superadmin.faculty.edit');
+        Route::put('faculty/{faculty}', [AdminFacultyController::class, 'update'])->name('superadmin.faculty.update');
+        Route::delete('faculty/{faculty}', [AdminFacultyController::class, 'destroy'])->name('superadmin.faculty.destroy');
 
-        // Student management routes - with permission checks
-        Route::middleware('can:manage-students')->group(function () {
-            Route::get('students', [AdminStudentController::class, 'index'])->name('superadmin.students.index');
-            Route::get('students/create', [AdminStudentController::class, 'create'])->name('superadmin.students.create');
-            Route::post('students', [AdminStudentController::class, 'store'])->name('superadmin.students.store');
-            Route::get('students/{student}', [AdminStudentController::class, 'show'])->name('superadmin.students.show');
-            Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('superadmin.students.edit');
-            Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('superadmin.students.update');
-            Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('superadmin.students.destroy');
-        });
+        // Student management routes
+        Route::get('students', [AdminStudentController::class, 'index'])->name('superadmin.students.index');
+        Route::get('students/create', [AdminStudentController::class, 'create'])->name('superadmin.students.create');
+        Route::post('students', [AdminStudentController::class, 'store'])->name('superadmin.students.store');
+        Route::get('students/{student}', [AdminStudentController::class, 'show'])->name('superadmin.students.show');
+        Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('superadmin.students.edit');
+        Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('superadmin.students.update');
+        Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('superadmin.students.destroy');
 
         // ====================================================================
         // PROFILE PICTURE MANAGEMENT (RBAC: manage-admin-profiles)
         // ====================================================================
 
-        Route::middleware('can:manage-admin-profiles')->group(function () {
-            // Admin profile picture management routes
-            Route::post('admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.admins.upload-picture');
-            Route::delete('admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.admins.remove-picture');
+        // Admin profile picture management routes
+        Route::post('admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.admins.upload-picture');
+        Route::delete('admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.admins.remove-picture');
 
-            // Office Admin profile picture management routes
-            Route::post('office-admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.office-admins.upload-picture');
-            Route::delete('office-admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.office-admins.remove-picture');
-        });
+        // Office Admin profile picture management routes
+        Route::post('office-admins/{admin}/upload-picture', [SuperAdminProfileController::class, 'uploadProfilePicture'])->name('superadmin.office-admins.upload-picture');
+        Route::delete('office-admins/{admin}/remove-picture', [SuperAdminProfileController::class, 'removeProfilePicture'])->name('superadmin.office-admins.remove-picture');
     });
 });
 
