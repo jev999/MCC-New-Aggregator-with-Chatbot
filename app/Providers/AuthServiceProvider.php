@@ -54,7 +54,29 @@ class AuthServiceProvider extends ServiceProvider
             return false;
         });
 
+        // Dashboard Access
+        Gate::define('view-admin-dashboard', function ($user) {
+            if (method_exists($user, 'isSuperAdmin')) {
+                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+            }
+            return false;
+        });
+
+        Gate::define('view-superadmin-dashboard', function ($user) {
+            if (method_exists($user, 'isSuperAdmin')) {
+                return $user->isSuperAdmin();
+            }
+            return false;
+        });
+
         // Content Management - Announcements
+        Gate::define('view-announcements', function ($user) {
+            if (method_exists($user, 'isSuperAdmin')) {
+                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+            }
+            return false;
+        });
+
         Gate::define('create-announcements', function ($user) {
             if (method_exists($user, 'isSuperAdmin')) {
                 return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
@@ -77,6 +99,13 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         // Content Management - Events
+        Gate::define('view-events', function ($user) {
+            if (method_exists($user, 'isSuperAdmin')) {
+                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+            }
+            return false;
+        });
+
         Gate::define('create-events', function ($user) {
             if (method_exists($user, 'isSuperAdmin')) {
                 return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
@@ -99,6 +128,13 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         // Content Management - News
+        Gate::define('view-news', function ($user) {
+            if (method_exists($user, 'isSuperAdmin')) {
+                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+            }
+            return false;
+        });
+
         Gate::define('create-news', function ($user) {
             if (method_exists($user, 'isSuperAdmin')) {
                 return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();

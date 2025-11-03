@@ -623,6 +623,72 @@ Route::get('/debug-clear-superadmin-attempts', function() {
     ]);
 })->name('debug.clear.superadmin.attempts');
 
+// Debug route to check current authentication status
+Route::get('/debug-current-auth', function() {
+    $isAuthenticated = auth('admin')->check();
+    $currentUser = auth('admin')->user();
+    
+    $gates = [];
+    if ($currentUser) {
+        $gates = [
+            'view-admin-dashboard' => \Gate::allows('view-admin-dashboard'),
+            'view-superadmin-dashboard' => \Gate::allows('view-superadmin-dashboard'),
+            'view-announcements' => \Gate::allows('view-announcements'),
+            'create-announcements' => \Gate::allows('create-announcements'),
+            'edit-announcements' => \Gate::allows('edit-announcements'),
+            'delete-announcements' => \Gate::allows('delete-announcements'),
+        ];
+    }
+    
+    return response()->json([
+        'authenticated' => $isAuthenticated,
+        'guard' => 'admin',
+        'user' => $currentUser ? [
+            'id' => $currentUser->id,
+            'username' => $currentUser->username,
+            'role' => $currentUser->role,
+            'is_superadmin' => $currentUser->isSuperAdmin(),
+            'is_department_admin' => $currentUser->isDepartmentAdmin(),
+            'is_office_admin' => $currentUser->isOfficeAdmin(),
+        ] : null,
+        'gates' => $gates,
+        'session_data' => array_keys(session()->all()),
+        'admin_session_snapshot' => session('admin_session_snapshot')
+    ]);
+})->name('debug.current.auth');
+
+// Test route for announcements index (bypass middleware)
+Route::get('/test-announcements-index', function() {
+    try {
+        $admin = auth('admin')->user();
+        if (!$admin) {
+            return response()->json(['error' => 'Not authenticated']);
+        }
+        
+        $announcements = \App\Models\Announcement::with('admin')->latest()->get();
+        
+        return response()->json([
+            'success' => true,
+            'admin' => [
+                'id' => $admin->id,
+                'username' => $admin->username,
+                'role' => $admin->role,
+                'is_superadmin' => $admin->isSuperAdmin(),
+            ],
+            'announcements_count' => $announcements->count(),
+            'controller_class' => \App\Http\Controllers\AnnouncementController::class,
+            'route_exists' => \Route::has('superadmin.announcements.index'),
+            'can_view_announcements' => \Gate::allows('view-announcements'),
+            'can_create_announcements' => \Gate::allows('create-announcements'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('test.announcements.index');
+
 // Debug route to check superadmin credentials and permissions
 Route::get('/debug-superadmin-auth', function() {
     $admin = \App\Models\Admin::where('username', 'superadmin')->first();
@@ -1715,10 +1781,10 @@ Route::prefix('superadmin')->group(function () {
         // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
         // ====================================================================
 
-        // Announcements CRUD - with permission checks
-        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('superadmin.announcements.store');
-        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('superadmin.announcements.update');
-        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('superadmin.announcements.destroy');
+        // Announcements CRUD - SuperAdminAuth middleware already provides authorization
+        Route::post('announcements', [AnnouncementController::class, 'store'])->name('superadmin.announcements.store');
+        Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('superadmin.announcements.update');
+        Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('superadmin.announcements.destroy');
         Route::get('announcements', [AnnouncementController::class, 'index'])->name('superadmin.announcements.index');
         Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('superadmin.announcements.create');
         Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('superadmin.announcements.show');
@@ -1728,19 +1794,19 @@ Route::prefix('superadmin')->group(function () {
         Route::get('announcements/{announcement}/modal-show', [AnnouncementController::class, 'showModal'])->name('superadmin.announcements.modal-show');
         Route::get('announcements/{announcement}/modal-edit', [AnnouncementController::class, 'editModal'])->name('superadmin.announcements.modal-edit');
 
-        // Events CRUD - with permission checks
-        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('superadmin.events.store');
-        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('superadmin.events.update');
-        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('superadmin.events.destroy');
+        // Events CRUD - SuperAdminAuth middleware already provides authorization
+        Route::post('events', [EventController::class, 'store'])->name('superadmin.events.store');
+        Route::put('events/{event}', [EventController::class, 'update'])->name('superadmin.events.update');
+        Route::delete('events/{event}', [EventController::class, 'destroy'])->name('superadmin.events.destroy');
         Route::get('events', [EventController::class, 'index'])->name('superadmin.events.index');
         Route::get('events/create', [EventController::class, 'create'])->name('superadmin.events.create');
         Route::get('events/{event}', [EventController::class, 'show'])->name('superadmin.events.show');
         Route::get('events/{event}/edit', [EventController::class, 'edit'])->name('superadmin.events.edit');
 
-        // News CRUD - with permission checks
-        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('superadmin.news.store');
-        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('superadmin.news.update');
-        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('superadmin.news.destroy');
+        // News CRUD - SuperAdminAuth middleware already provides authorization
+        Route::post('news', [NewsController::class, 'store'])->name('superadmin.news.store');
+        Route::put('news/{news}', [NewsController::class, 'update'])->name('superadmin.news.update');
+        Route::delete('news/{news}', [NewsController::class, 'destroy'])->name('superadmin.news.destroy');
         Route::get('news', [NewsController::class, 'index'])->name('superadmin.news.index');
         Route::get('news/create', [NewsController::class, 'create'])->name('superadmin.news.create');
         Route::get('news/{news}', [NewsController::class, 'show'])->name('superadmin.news.show');
