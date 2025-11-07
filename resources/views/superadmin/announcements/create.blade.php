@@ -231,9 +231,9 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" name="action" value="save_and_publish" class="btn btn-create">
+                    <button type="submit" class="btn btn-create">
                         <div class="btn-shine"></div>
-                        <span><i class="fas fa-paper-plane"></i> Create Announcement</span>
+                        <span><i class="fas fa-save"></i> Create Announcement</span>
                     </button>
                     <a href="{{ route('superadmin.announcements.index') }}" class="btn btn-cancel">
                         <div class="btn-shine"></div>
@@ -244,7 +244,6 @@
         </div>
     </div>
 </div>
-
 
 <style>
     .header {
@@ -609,6 +608,10 @@
         letter-spacing: 0.5px;
         min-width: 160px;
         z-index: 1;
+    }
+
+    .btn * {
+        pointer-events: none; /* Prevent nested elements from blocking clicks */
     }
 
     .btn span {
@@ -1209,60 +1212,6 @@
                 console.log('Auto-saving...');
             }, 2000);
         });
-    });
-
-    // Toggle target options based on visibility scope
-    function toggleTargetOptions() {
-        const visibilityScope = document.querySelector('input[name="visibility_scope"]:checked').value;
-        const departmentGroup = document.getElementById('target-department-group');
-        const officeGroup = document.getElementById('target-office-group');
-
-        // Hide all target groups first
-        departmentGroup.style.display = 'none';
-        officeGroup.style.display = 'none';
-
-        // Show appropriate target group
-        if (visibilityScope === 'department') {
-            departmentGroup.style.display = 'block';
-        } else if (visibilityScope === 'office') {
-            officeGroup.style.display = 'block';
-        }
-    }
-
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleTargetOptions();
-    });
-
-    // Handle form submission
-    document.getElementById('createAnnouncementForm').addEventListener('submit', function(e) {
-        console.log('Form submission triggered');
-        
-        // Validate required fields
-        const title = document.getElementById('title').value.trim();
-        const content = document.getElementById('content').value.trim();
-        
-        if (!title) {
-            e.preventDefault();
-            alert('Please enter a title for the announcement.');
-            return false;
-        }
-        
-        if (!content) {
-            e.preventDefault();
-            alert('Please enter content for the announcement.');
-            return false;
-        }
-        
-        // Show loading state
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-        }
-        
-        console.log('Form validation passed, submitting...');
-        return true;
     });
 </script>
 @endsection
