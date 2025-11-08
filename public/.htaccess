@@ -5,6 +5,31 @@
 
     RewriteEngine On
 
+    # -----------------------------
+    # 🔒 Security Headers (Additional Layer)
+    # Note: These complement the SecurityHeaders middleware
+    # -----------------------------
+    <IfModule mod_headers.c>
+        # Enforce HTTPS (HSTS) - Only in production
+        # Uncomment when using HTTPS in production
+        # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent Clickjacking
+        Header always set X-Frame-Options "SAMEORIGIN"
+
+        # Prevent MIME type sniffing
+        Header always set X-Content-Type-Options "nosniff"
+
+        # XSS Protection (legacy browsers)
+        Header always set X-XSS-Protection "1; mode=block"
+
+        # Control referrer information
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Control browser features (Permissions Policy)
+        Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), fullscreen=(self), picture-in-picture=(self)"
+    </IfModule>
+
     # Redirect HTTP to HTTPS (optional - uncomment if using HTTPS)
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
