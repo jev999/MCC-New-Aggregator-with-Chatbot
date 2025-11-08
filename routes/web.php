@@ -1745,6 +1745,14 @@ Route::prefix('superadmin')->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
 
         // ====================================================================
+        // DATABASE BACKUP
+        // ====================================================================
+        Route::get('backup', [App\Http\Controllers\BackupController::class, 'index'])->name('superadmin.backup');
+        Route::post('backup/create', [App\Http\Controllers\BackupController::class, 'create'])->name('superadmin.backup.create');
+        Route::get('backup/download/{filename}', [App\Http\Controllers\BackupController::class, 'download'])->name('superadmin.backup.download');
+        Route::delete('backup/delete/{filename}', [App\Http\Controllers\BackupController::class, 'delete'])->name('superadmin.backup.delete');
+
+        // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)
         // ====================================================================
         Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
