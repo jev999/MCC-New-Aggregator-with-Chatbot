@@ -618,7 +618,7 @@
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`{{ route('superadmin.backup.delete', '') }}/${filename}`, {
+                    const response = await fetch(`/superadmin/backup/delete/${filename}`, {
                         method: 'DELETE',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
