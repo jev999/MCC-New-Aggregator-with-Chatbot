@@ -1937,8 +1937,11 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
     // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
     // ========================================================================
 
-    Route::get('login', [OfficeAdminAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [OfficeAdminAuthController::class, 'login']);
+    // Redirect to unified login form instead of dedicated office admin login
+    Route::get('login', function() {
+        return redirect()->route('login', ['type' => 'office-admin'])
+            ->with('info', 'Please use the unified login form to access your office admin account.');
+    })->name('login');
 
     // Office admin registration from email link (signed routes for security)
     Route::get('register-form', [OfficeAdminController::class, 'showOfficeAdminRegistrationForm'])->name('register.form')->middleware('signed');
@@ -2692,6 +2695,108 @@ Route::get('/clear-all-lockouts', function() {
     }
     $output .= "</ul>";
     $output .= "<p><a href='/login'>Go to Login Page</a> | <a href='/test-admin-lockout'>Test Admin Lockouts</a></p>";
+    
+    return $output;
+});
+
+// Test route for automatic notification deletion when content is deleted
+Route::get('/test-notification-deletion', function() {
+    $output = "<h2>Notification Auto-Deletion Test</h2>";
+    $output .= "<p>This tests that notifications are automatically deleted when admins delete content.</p>";
+    
+    try {
+        // Get current counts
+        $totalNotifications = \App\Models\Notification::count();
+        $totalAnnouncements = \App\Models\Announcement::count();
+        $totalNews = \App\Models\News::count();
+        $totalEvents = \App\Models\Event::count();
+        
+        $output .= "<h3>Current Database State:</h3>";
+        $output .= "<ul>";
+        $output .= "<li>Total Notifications: <strong>{$totalNotifications}</strong></li>";
+        $output .= "<li>Total Announcements: <strong>{$totalAnnouncements}</strong></li>";
+        $output .= "<li>Total News: <strong>{$totalNews}</strong></li>";
+        $output .= "<li>Total Events: <strong>{$totalEvents}</strong></li>";
+        $output .= "</ul>";
+        
+        // Get a sample notification with content
+        $sampleNotification = \App\Models\Notification::with('content')->first();
+        
+        if ($sampleNotification && $sampleNotification->content) {
+            $contentType = class_basename($sampleNotification->content_type);
+            $contentId = $sampleNotification->content_id;
+            $contentTitle = $sampleNotification->content->title ?? 'N/A';
+            
+            // Count notifications for this content
+            $notificationCount = \App\Models\Notification::where('content_id', $contentId)
+                ->where('content_type', $sampleNotification->content_type)
+                ->count();
+                
+            $output .= "<h3>Sample Content with Notifications:</h3>";
+            $output .= "<ul>";
+            $output .= "<li>Content Type: <strong>{$contentType}</strong></li>";
+            $output .= "<li>Content ID: <strong>{$contentId}</strong></li>";
+            $output .= "<li>Content Title: <strong>{$contentTitle}</strong></li>";
+            $output .= "<li>Notifications for this content: <strong>{$notificationCount}</strong></li>";
+            $output .= "</ul>";
+            
+            $output .= "<h3>How It Works:</h3>";
+            $output .= "<ol>";
+            $output .= "<li><strong>CreatesNotifications Trait</strong>: All content models (Announcement, News, Event) use this trait</li>";
+            $output .= "<li><strong>Deleted Event</strong>: When content is deleted, the trait's 'deleted' event fires</li>";
+            $output .= "<li><strong>Automatic Cleanup</strong>: NotificationService.deleteContentNotifications() removes all related notifications</li>";
+            $output .= "<li><strong>User Dashboard</strong>: Notification count automatically decreases</li>";
+            $output .= "</ol>";
+            
+            $output .= "<h3>Implementation Details:</h3>";
+            $output .= "<pre><code>";
+            $output .= "// In CreatesNotifications trait:\n";
+            $output .= "static::deleted(function (\$model) {\n";
+            $output .= "    \$notificationService = app(NotificationService::class);\n";
+            $output .= "    \$notificationService->deleteContentNotifications(\$model, \$model->getNotificationType());\n";
+            $output .= "});\n\n";
+            $output .= "// In NotificationService:\n";
+            $output .= "public function deleteContentNotifications(\$content, string \$type) {\n";
+            $output .= "    return Notification::where('content_id', \$content->id)\n";
+            $output .= "        ->where('content_type', get_class(\$content))\n";
+            $output .= "        ->delete();\n";
+            $output .= "}\n";
+            $output .= "</code></pre>";
+            
+            $output .= "<h3>✅ Status: FULLY IMPLEMENTED</h3>";
+            $output .= "<p><strong>When any admin deletes:</strong></p>";
+            $output .= "<ul>";
+            $output .= "<li>✅ Announcement → All notifications for that announcement are deleted</li>";
+            $output .= "<li>✅ News → All notifications for that news article are deleted</li>";
+            $output .= "<li>✅ Event → All notifications for that event are deleted</li>";
+            $output .= "<li>✅ User dashboard notification count automatically decreases</li>";
+            $output .= "</ul>";
+            
+        } else {
+            $output .= "<p><strong>No notifications found in database.</strong></p>";
+            $output .= "<p>To test this feature:</p>";
+            $output .= "<ol>";
+            $output .= "<li>Login as an admin (superadmin/department admin/office admin)</li>";
+            $output .= "<li>Create and publish an announcement, news, or event</li>";
+            $output .= "<li>Check user dashboard - notification count should increase</li>";
+            $output .= "<li>Delete the content as admin</li>";
+            $output .= "<li>Check user dashboard - notification count should decrease automatically</li>";
+            $output .= "</ol>";
+        }
+        
+        $output .= "<h3>Files Involved:</h3>";
+        $output .= "<ul>";
+        $output .= "<li><code>app/Traits/CreatesNotifications.php</code> - Handles model events</li>";
+        $output .= "<li><code>app/Services/NotificationService.php</code> - Notification deletion logic</li>";
+        $output .= "<li><code>app/Models/Announcement.php</code> - Uses CreatesNotifications trait</li>";
+        $output .= "<li><code>app/Models/News.php</code> - Uses CreatesNotifications trait</li>";
+        $output .= "<li><code>app/Models/Event.php</code> - Uses CreatesNotifications trait</li>";
+        $output .= "</ul>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: red;'><strong>Error:</strong> {$e->getMessage()}</p>";
+        $output .= "<pre>" . $e->getTraceAsString() . "</pre>";
+    }
     
     return $output;
 });

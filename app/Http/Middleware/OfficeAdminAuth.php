@@ -11,7 +11,7 @@ class OfficeAdminAuth
     public function handle(Request $request, Closure $next)
     {
         if (!Auth::guard('admin')->check()) {
-            return redirect()->route('office-admin.login');
+            return redirect()->route('login', ['type' => 'office-admin']);
         }
 
         $admin = Auth::guard('admin')->user();
@@ -23,7 +23,7 @@ class OfficeAdminAuth
             } elseif ($admin->isDepartmentAdmin()) {
                 return redirect()->route('department-admin.dashboard')->with('error', 'Access denied. Office admin privileges required.');
             } else {
-                return redirect()->route('office-admin.login')->with('error', 'Access denied. Office admin privileges required.');
+                return redirect()->route('login', ['type' => 'office-admin'])->with('error', 'Access denied. Office admin privileges required.');
             }
         }
 

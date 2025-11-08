@@ -502,7 +502,7 @@
                         if (usernameInput) usernameInput.required = true;
                         if (passwordInput) passwordInput.required = true;
                         if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-clipboard-list"></i> Login as Office Admin';
-                        if (unifiedForm) unifiedForm.action = '{{ route("office-admin.login") }}';
+                        if (unifiedForm) unifiedForm.action = '{{ route("unified.login") }}';
                         break;
                 }
             }

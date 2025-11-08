@@ -1493,9 +1493,202 @@
                 height: 150px !important;
             }
         }
+        
+        /* Toast Notification Styles */
+        .toast-notification {
+            position: fixed;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 500px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            cursor: pointer;
+            user-select: none;
+            touch-action: pan-y;
+        }
+        
+        .toast-notification.show {
+            top: 20px;
+        }
+        
+        .toast-notification.swiping {
+            transition: transform 0.1s linear;
+        }
+        
+        .toast-notification.dismissed {
+            animation: slideOutUp 0.4s ease-out forwards;
+        }
+        
+        @keyframes slideOutUp {
+            to {
+                transform: translateX(-50%) translateY(-200px);
+                opacity: 0;
+            }
+        }
+        
+        .toast-content {
+            padding: 1rem 1.5rem;
+            color: white;
+            position: relative;
+        }
+        
+        .toast-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .toast-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+            animation: bellRing 1s ease-in-out;
+        }
+        
+        @keyframes bellRing {
+            0%, 100% { transform: rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+            20%, 40%, 60%, 80% { transform: rotate(10deg); }
+        }
+        
+        .toast-title {
+            font-weight: 600;
+            font-size: 1rem;
+            flex: 1;
+        }
+        
+        .toast-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toast-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .toast-message {
+            font-size: 0.875rem;
+            opacity: 0.95;
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+        }
+        
+        .toast-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+        
+        .toast-time {
+            display: flex;
+            align-items: center;
+        }
+        
+        .toast-swipe-hint {
+            display: flex;
+            align-items: center;
+            opacity: 0.6;
+        }
+        
+        .toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 0 0 0 12px;
+            animation: progress-shrink 5s linear forwards;
+        }
+        
+        @keyframes progress-shrink {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        
+        /* Mobile responsive toast */
+        @media (max-width: 640px) {
+            .toast-notification {
+                width: 95%;
+                max-width: none;
+            }
+            
+            .toast-notification.show {
+                top: 10px;
+            }
+            
+            .toast-content {
+                padding: 0.875rem 1.25rem;
+            }
+            
+            .toast-title {
+                font-size: 0.875rem;
+            }
+            
+            .toast-message {
+                font-size: 0.8125rem;
+            }
+            
+            .toast-icon {
+                font-size: 1.25rem;
+            }
+        }
     </style>
 </head>
 <body class="py-8 px-4" x-data="dashboardData()">
+    <!-- Toast Notification Popup -->
+    <div x-show="toastVisible" 
+         x-ref="toast"
+         class="toast-notification"
+         :class="{ 'show': toastVisible, 'dismissed': toastDismissed }"
+         @click="handleToastClick()"
+         @touchstart="handleTouchStart($event)"
+         @touchmove="handleTouchMove($event)"
+         @touchend="handleTouchEnd($event)"
+         x-transition:leave="transition ease-in duration-300"
+         x-transition:leave-start="opacity-100 transform translateY(0)"
+         x-transition:leave-end="opacity-0 transform translateY(-100px)">
+        <div class="toast-content" x-show="currentToast">
+            <div class="toast-header">
+                <div class="flex items-center flex-1">
+                    <i class="fas fa-bell toast-icon"></i>
+                    <span class="toast-title" x-text="currentToast?.title || 'New Content Posted!'"></span>
+                </div>
+                <button @click.stop="dismissToast()" class="toast-close">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="toast-message" x-text="currentToast?.message"></div>
+            <div class="toast-footer">
+                <div class="toast-time">
+                    <i class="fas fa-clock mr-1"></i>
+                    <span>Just now</span>
+                </div>
+                <div class="toast-swipe-hint">
+                    <i class="fas fa-hand-pointer mr-1"></i>
+                    <span>Swipe up to dismiss</span>
+                </div>
+            </div>
+            <div class="toast-progress"></div>
+        </div>
+    </div>
+    
     <div class="container mx-auto max-w-7xl">
         <header class="mb-8 text-center relative">
             <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
@@ -2455,6 +2648,14 @@
                 notificationCount: 0,
                 notifications: [],
                 showNotifications: false,
+                toastVisible: false,
+                currentToast: null,
+                toastDismissed: false,
+                toastQueue: [],
+                lastNotificationIds: new Set(),
+                touchStartY: 0,
+                touchCurrentY: 0,
+                isSwiping: false,
                 
                 // Comments are now always visible, no toggle needed
                 
@@ -2903,13 +3104,127 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.notifications !== undefined) {
+                            // Detect new notifications
+                            const newNotifications = data.notifications.filter(notification => {
+                                return !this.lastNotificationIds.has(notification.id);
+                            });
+                            
+                            // Update notifications
                             this.notifications = data.notifications;
                             this.notificationCount = data.unread_count || 0;
+                            
+                            // Update last notification IDs
+                            this.lastNotificationIds = new Set(data.notifications.map(n => n.id));
+                            
+                            // Show toast for new notifications
+                            if (newNotifications.length > 0) {
+                                newNotifications.forEach(notification => {
+                                    this.queueToast(notification);
+                                });
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Error loading notifications:', error);
                     });
+                },
+                
+                queueToast(notification) {
+                    // Add to queue
+                    this.toastQueue.push(notification);
+                    
+                    // If no toast is currently showing, show this one
+                    if (!this.toastVisible) {
+                        this.showNextToast();
+                    }
+                },
+                
+                showNextToast() {
+                    if (this.toastQueue.length === 0) {
+                        return;
+                    }
+                    
+                    // Get next toast from queue
+                    this.currentToast = this.toastQueue.shift();
+                    this.toastVisible = true;
+                    this.toastDismissed = false;
+                    
+                    // Auto-dismiss after 5 seconds (minimum 2 seconds display)
+                    setTimeout(() => {
+                        if (this.toastVisible && !this.toastDismissed) {
+                            this.dismissToast();
+                        }
+                    }, 5000);
+                },
+                
+                dismissToast() {
+                    this.toastDismissed = true;
+                    
+                    // Wait for dismiss animation
+                    setTimeout(() => {
+                        this.toastVisible = false;
+                        this.currentToast = null;
+                        this.toastDismissed = false;
+                        
+                        // Show next toast if any in queue
+                        if (this.toastQueue.length > 0) {
+                            setTimeout(() => {
+                                this.showNextToast();
+                            }, 300);
+                        }
+                    }, 400);
+                },
+                
+                handleToastClick() {
+                    if (this.currentToast) {
+                        // Open the notification content
+                        this.openContentFromNotification(this.currentToast);
+                        this.dismissToast();
+                    }
+                },
+                
+                handleTouchStart(event) {
+                    this.touchStartY = event.touches[0].clientY;
+                    this.isSwiping = false;
+                },
+                
+                handleTouchMove(event) {
+                    if (!this.touchStartY) return;
+                    
+                    this.touchCurrentY = event.touches[0].clientY;
+                    const deltaY = this.touchStartY - this.touchCurrentY;
+                    
+                    // Only handle upward swipes
+                    if (deltaY > 10) {
+                        this.isSwiping = true;
+                        const toast = this.$refs.toast;
+                        if (toast) {
+                            toast.classList.add('swiping');
+                            const translateY = Math.min(0, -deltaY);
+                            toast.style.transform = `translateX(-50%) translateY(${translateY}px)`;
+                        }
+                    }
+                },
+                
+                handleTouchEnd(event) {
+                    if (!this.isSwiping) return;
+                    
+                    const deltaY = this.touchStartY - this.touchCurrentY;
+                    const toast = this.$refs.toast;
+                    
+                    if (toast) {
+                        toast.classList.remove('swiping');
+                        toast.style.transform = '';
+                    }
+                    
+                    // If swiped up more than 50px, dismiss
+                    if (deltaY > 50) {
+                        this.dismissToast();
+                    }
+                    
+                    this.touchStartY = 0;
+                    this.touchCurrentY = 0;
+                    this.isSwiping = false;
                 },
                 
                 // Name validation functions
