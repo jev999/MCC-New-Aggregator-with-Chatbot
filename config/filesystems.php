@@ -47,6 +47,17 @@ return [
             'report' => false,
         ],
 
+        // Alternative disk that stores files directly in public/ (no symlink needed)
+        // Use this if your hosting provider doesn't support symbolic links
+        'public_uploads' => [
+            'driver' => 'local',
+            'root' => public_path('uploads'),
+            'url' => env('APP_URL').'/uploads',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
