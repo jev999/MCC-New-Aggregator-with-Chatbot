@@ -42,6 +42,11 @@ Route::get('/test-chatbot', function () {
     return view('test-chatbot');
 })->name('test.chatbot');
 
+// Test security headers implementation
+Route::get('/test-security-headers', function () {
+    return view('test-security-headers');
+})->name('test.security-headers');
+
 // Legal pages routes
 Route::get('/terms-and-conditions', [App\Http\Controllers\LegalController::class, 'termsAndConditions'])->name('legal.terms');
 Route::get('/privacy-policy', [App\Http\Controllers\LegalController::class, 'privacyPolicy'])->name('legal.privacy');
