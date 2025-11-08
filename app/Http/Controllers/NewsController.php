@@ -13,6 +13,10 @@ class NewsController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only see their own news
         if ($admin->isDepartmentAdmin()) {
             $news = News::with('admin')
@@ -47,6 +51,10 @@ class NewsController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         if ($admin->isDepartmentAdmin()) {
             return view('department-admin.news.create');
         }
@@ -75,6 +83,10 @@ class NewsController extends Controller
         ]);
 
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Different validation rules based on admin type
         $validationRules = [
@@ -233,6 +245,10 @@ class NewsController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Check if admin can view this news
         if ($admin->isDepartmentAdmin() && $news->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to news article.');
@@ -261,6 +277,10 @@ class NewsController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         // Check if admin can view this news
         if ($admin->isDepartmentAdmin() && $news->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to news article.');
@@ -288,6 +308,10 @@ class NewsController extends Controller
     public function edit(News $news)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Department admins can only edit their own news
         if ($admin->isDepartmentAdmin() && $news->admin_id !== $admin->id) {
@@ -323,6 +347,10 @@ class NewsController extends Controller
     public function update(Request $request, News $news)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Department admins can only update their own news
         if ($admin->isDepartmentAdmin() && $news->admin_id !== $admin->id) {
@@ -560,6 +588,10 @@ class NewsController extends Controller
     public function destroy(News $news)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Department admins can only delete their own news
         if ($admin->isDepartmentAdmin() && $news->admin_id !== $admin->id) {

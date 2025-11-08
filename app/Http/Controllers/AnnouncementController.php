@@ -12,6 +12,10 @@ class AnnouncementController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only see their own announcements
         if ($admin->isDepartmentAdmin()) {
             $announcements = Announcement::with('admin')
@@ -45,6 +49,10 @@ class AnnouncementController extends Controller
     public function create()
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         if ($admin->isDepartmentAdmin()) {
             return view('department-admin.announcements.create');
@@ -299,6 +307,11 @@ class AnnouncementController extends Controller
     public function show($id)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         $announcement = Announcement::findOrFail($id);
 
         // Check if the admin has permission to view this announcement
@@ -336,6 +349,10 @@ class AnnouncementController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only edit their own announcements
         if ($admin->isDepartmentAdmin() && $announcement->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to this announcement.');
@@ -370,6 +387,10 @@ class AnnouncementController extends Controller
     public function update(Request $request, Announcement $announcement)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         $validationRules = [
             'title' => 'required|string|max:255',
@@ -620,6 +641,10 @@ class AnnouncementController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only delete their own announcements
         if ($admin->isDepartmentAdmin() && $announcement->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to this announcement.');
@@ -674,6 +699,10 @@ class AnnouncementController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
         // Check permissions
         if ($admin->isDepartmentAdmin() && $announcement->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to this announcement.');
@@ -703,6 +732,10 @@ class AnnouncementController extends Controller
     public function editModal(Announcement $announcement)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
 
         // Check permissions
         if ($admin->isDepartmentAdmin() && $announcement->admin_id !== $admin->id) {

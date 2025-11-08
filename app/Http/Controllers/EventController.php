@@ -13,6 +13,11 @@ class EventController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        // If admin is not authenticated, redirect to login
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only see their own events
         if ($admin->isDepartmentAdmin()) {
             $events = Event::with('admin')
@@ -47,6 +52,10 @@ class EventController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         if ($admin->isDepartmentAdmin()) {
             return view('department-admin.events.create');
         }
@@ -66,6 +75,10 @@ class EventController extends Controller
     public function store(Request $request)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Different validation rules based on admin type
         $validationRules = [
@@ -225,6 +238,10 @@ class EventController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
+
         // Department admins can only view their own events
         if ($admin->isDepartmentAdmin() && $event->admin_id !== $admin->id) {
             abort(403, 'Unauthorized access to this event.');
@@ -254,6 +271,10 @@ class EventController extends Controller
     public function edit(Event $event)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Department admins can only edit their own events
         if ($admin->isDepartmentAdmin() && $event->admin_id !== $admin->id) {
@@ -292,6 +313,10 @@ class EventController extends Controller
         ]);
 
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Handle different datetime input formats based on admin type
         $validationRules = [
@@ -562,6 +587,10 @@ class EventController extends Controller
     public function destroy(Event $event)
     {
         $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return redirect()->route('login')->with('error', 'Please log in to access this page.');
+        }
 
         // Department admins can only delete their own events
         if ($admin->isDepartmentAdmin() && $event->admin_id !== $admin->id) {

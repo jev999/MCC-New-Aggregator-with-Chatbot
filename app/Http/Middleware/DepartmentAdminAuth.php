@@ -11,7 +11,7 @@ class DepartmentAdminAuth
     public function handle(Request $request, Closure $next)
     {
         if (!Auth::guard('admin')->check()) {
-            return redirect()->route('department-admin.login');
+            return redirect()->route('login', ['type' => 'department-admin']);
         }
 
         $admin = Auth::guard('admin')->user();

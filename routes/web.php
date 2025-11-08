@@ -1858,8 +1858,13 @@ Route::prefix('department-admin')->group(function () {
     // PUBLIC AUTHENTICATION ROUTES (No RBAC Required)
     // ========================================================================
 
-    Route::get('login', [DepartmentAdminAuthController::class, 'showLoginForm'])->name('department-admin.login');
-    Route::post('login', [DepartmentAdminAuthController::class, 'login']);
+    // Redirect to unified login form - no dedicated department admin login
+    Route::get('login', function() {
+        return redirect()->route('login', ['type' => 'department-admin'])
+            ->with('info', 'Please use the unified login form to access your department admin account.');
+    })->name('department-admin.login');
+
+    // Only logout route needed
     Route::post('logout', [DepartmentAdminAuthController::class, 'logout'])->name('department-admin.logout');
 
     // ========================================================================
