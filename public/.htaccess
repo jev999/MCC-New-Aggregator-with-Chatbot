@@ -10,9 +10,9 @@
     # Note: These complement the SecurityHeaders middleware
     # -----------------------------
     <IfModule mod_headers.c>
-        # Enforce HTTPS (HSTS) - Only in production
-        # Uncomment when using HTTPS in production
-        # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Enforce HTTPS (HSTS) - Active in production
+        # This forces browsers to use HTTPS for 1 year
+        Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 
         # Prevent Clickjacking
         Header always set X-Frame-Options "SAMEORIGIN"
