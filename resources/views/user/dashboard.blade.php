@@ -2994,12 +2994,13 @@
                                     ? `Date: ${content.event_date ? new Date(content.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}`
                                     : `Posted: ${new Date(content.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
                                 media: content.hasMedia || 'none',
-                                mediaUrl: content.mediaUrl ? `{{ asset('storage/') }}/${content.mediaUrl}` : '',
+                                // Model already returns full URLs via buildPublicUrl(), no need to wrap
+                                mediaUrl: content.mediaUrl || '',
                                 allImageUrls: content.allImageUrls || [],
                                 allVideoUrls: content.allVideoUrls || [],
                                 videoUrl: content.hasMedia === 'both' && content.allVideoUrls 
-                                    ? `{{ asset('storage/') }}/${content.allVideoUrls[0]}` 
-                                    : (content.hasMedia === 'video' ? `{{ asset('storage/') }}/${content.mediaUrl}` : ''),
+                                    ? content.allVideoUrls[0]
+                                    : (content.hasMedia === 'video' ? content.mediaUrl : ''),
                                 publisher: content.admin.role === 'superadmin' 
                                     ? 'MCC Administration' 
                                     : (content.admin.role === 'department_admin' 
