@@ -1,4 +1,43 @@
-# Security Headers removed
+# ============================================
+# Security Headers - Hardened Web Application
+# ============================================
+
+<IfModule mod_headers.c>
+    # Force HTTPS (Strict Transport Security)
+    # Tells browsers to only access this site via HTTPS for 1 year
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+    # Prevent Clickjacking - only allow same origin framing
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Referrer Policy - control what referrer info is sent
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions Policy (formerly Feature Policy)
+    # Disable geolocation, microphone, camera for privacy
+    Header always set Permissions-Policy "geolocation=(self), microphone=(), camera=(), payment=(), usb=()"
+
+    # X-XSS-Protection for older browsers
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Content Security Policy (CSP) - Customized for MCC News Aggregator
+    # Allows Google reCAPTCHA, maps, SweetAlert2, Font Awesome, Google Fonts, Leaflet
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com https://nominatim.openstreetmap.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https: http:; connect-src 'self' https://www.google.com https://nominatim.openstreetmap.org https://tile.openstreetmap.org; frame-src 'self' https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+
+    # Remove Server signature for security
+    Header always unset X-Powered-By
+    Header unset X-Powered-By
+
+    # Prevent browser caching of sensitive pages
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
 
 # Directory Listing Protection
 Options -Indexes

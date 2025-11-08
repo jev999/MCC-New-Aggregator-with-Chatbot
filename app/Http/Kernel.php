@@ -14,7 +14,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        // \App\Http\Middleware\SecurityHeaders::class, // Registered in bootstrap/app.php
+        \App\Http\Middleware\SecureHeaders::class, // Security headers for all requests
     ];
 
     protected $middlewareGroups = [
