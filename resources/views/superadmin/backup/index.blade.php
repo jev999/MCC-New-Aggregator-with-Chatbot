@@ -434,19 +434,7 @@
             </ul>
         </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="header">
-                <h1><i class="fas fa-database"></i> Database Backup</h1>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    @auth('admin')
-                        <span style="color: #666;">Welcome, {{ auth('admin')->user()->username }}</span>
-                        <button onclick="handleLogout()" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    @endauth
-                </div>
-            </div>
+        
 
             <!-- Database Statistics -->
             <div class="stats-grid">

@@ -55,39 +55,71 @@ class BackupController extends Controller
     public function create(Request $request)
     {
         try {
+            // Log the start of backup creation
+            \Log::info('Backup creation started', [
+                'user' => auth('admin')->user()->username ?? 'unknown',
+                'ip' => $request->ip(),
+                'timestamp' => now()
+            ]);
+
             $database = env('DB_DATABASE');
             $username = env('DB_USERNAME');
             $password = env('DB_PASSWORD');
             $host = env('DB_HOST');
-            
+
             $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
             $filepath = $this->backupPath . '/' . $filename;
 
-            // Create mysqldump command
-            $command = sprintf(
-                'mysqldump --user=%s --password=%s --host=%s %s > %s',
-                escapeshellarg($username),
-                escapeshellarg($password),
-                escapeshellarg($host),
-                escapeshellarg($database),
-                escapeshellarg($filepath)
-            );
+            // Check if mysqldump is available (only on Unix-like systems)
+            $mysqldumpAvailable = $this->isMysqldumpAvailable();
 
-            // Execute backup
-            exec($command, $output, $returnVar);
+            if ($mysqldumpAvailable) {
+                // Create mysqldump command
+                $command = sprintf(
+                    'mysqldump --user=%s --password=%s --host=%s %s > %s',
+                    escapeshellarg($username),
+                    escapeshellarg($password),
+                    escapeshellarg($host),
+                    escapeshellarg($database),
+                    escapeshellarg($filepath)
+                );
 
-            if ($returnVar === 0 && File::exists($filepath)) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Database backup created successfully!',
-                    'filename' => $filename,
-                    'size' => $this->formatBytes(File::size($filepath))
-                ]);
+                // Execute backup
+                exec($command, $output, $returnVar);
+
+                if ($returnVar === 0 && File::exists($filepath)) {
+                    \Log::info('Backup created successfully using mysqldump', [
+                        'filename' => $filename,
+                        'size' => $this->formatBytes(File::size($filepath))
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Database backup created successfully!',
+                        'filename' => $filename,
+                        'size' => $this->formatBytes(File::size($filepath))
+                    ]);
+                } else {
+                    \Log::warning('Mysqldump failed, falling back to Laravel method', [
+                        'return_var' => $returnVar,
+                        'output' => $output,
+                        'filepath_exists' => File::exists($filepath)
+                    ]);
+                }
             } else {
-                // Fallback: Use Laravel DB backup
-                return $this->createLaravelBackup($filename);
+                \Log::info('Mysqldump not available, using Laravel backup method');
             }
+
+            // Fallback: Use Laravel DB backup
+            return $this->createLaravelBackup($filename);
+
         } catch (\Exception $e) {
+            \Log::error('Backup creation failed with exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user' => auth('admin')->user()->username ?? 'unknown'
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create backup: ' . $e->getMessage()
@@ -181,15 +213,33 @@ class BackupController extends Controller
      */
     protected function getAllTables()
     {
-        $tables = [];
-        $results = DB::select('SHOW TABLES');
-        $dbName = 'Tables_in_' . env('DB_DATABASE');
+        try {
+            \Log::info('Getting all tables from database', [
+                'connection' => config('database.default'),
+                'host' => config('database.connections.mysql.host'),
+                'database' => config('database.connections.mysql.database')
+            ]);
 
-        foreach ($results as $result) {
-            $tables[] = $result->$dbName;
+            $results = DB::select('SHOW TABLES');
+            $tables = [];
+
+            $dbName = 'Tables_in_' . env('DB_DATABASE');
+
+            foreach ($results as $result) {
+                $tables[] = $result->$dbName;
+            }
+
+            \Log::info('Successfully retrieved tables', ['count' => count($tables)]);
+            return $tables;
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to get tables', [
+                'error' => $e->getMessage(),
+                'connection' => config('database.default'),
+                'host' => config('database.connections.mysql.host')
+            ]);
+            throw $e;
         }
-
-        return $tables;
     }
 
     /**
@@ -275,5 +325,21 @@ class BackupController extends Controller
         }
 
         return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Check if mysqldump command is available on the system
+     */
+    protected function isMysqldumpAvailable()
+    {
+        // Only check on Unix-like systems (Linux/Mac), not Windows
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return false;
+        }
+
+        $command = 'which mysqldump 2>/dev/null';
+        exec($command, $output, $returnVar);
+
+        return $returnVar === 0 && !empty($output);
     }
 }
