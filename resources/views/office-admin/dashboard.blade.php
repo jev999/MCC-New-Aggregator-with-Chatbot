@@ -1708,6 +1708,77 @@
                 form.submit();
             }
         }
+
+        // =================================================================
+        // GPS LOCATION CAPTURE - Get exact location from device
+        // =================================================================
+        function captureGPSLocation() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser.');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+
+                    console.log('GPS Location captured:', {
+                        latitude: latitude,
+                        longitude: longitude,
+                        accuracy: accuracy + ' meters'
+                    });
+
+                    fetch('{{ route('admin.update-gps-location') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('GPS location updated successfully:', data.location);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending GPS coordinates:', error);
+                    });
+                },
+                function(error) {
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            console.log('User denied GPS location permission.');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            console.log('GPS location information is unavailable.');
+                            break;
+                        case error.TIMEOUT:
+                            console.log('GPS location request timed out.');
+                            break;
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // Capture GPS location on page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                captureGPSLocation();
+            }, 2000);
+        });
     </script>
 </body>
 </html>

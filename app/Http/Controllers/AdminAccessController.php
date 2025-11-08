@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AdminAccessLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AdminAccessController extends Controller
 {
@@ -89,6 +91,182 @@ class AdminAccessController extends Controller
             ];
             return view('superadmin.access_logs', compact('logs', 'stats'));
         }
+    }
+
+    /**
+     * Update admin access log with GPS coordinates from browser
+     */
+    public function updateGpsLocation(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180'
+        ]);
+
+        try {
+            // Get the current admin
+            $admin = Auth::guard('admin')->user();
+            
+            if (!$admin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No authenticated admin found.'
+                ], 401);
+            }
+
+            // Find the most recent active access log for this admin
+            $log = AdminAccessLog::where('admin_id', $admin->id)
+                ->where('status', 'success')
+                ->whereNull('time_out')
+                ->latest('time_in')
+                ->first();
+
+            if (!$log) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active access log found.'
+                ], 404);
+            }
+
+            $latitude = $request->latitude;
+            $longitude = $request->longitude;
+
+            // Use reverse geocoding to get exact address from GPS coordinates
+            $locationDetails = $this->reverseGeocodeCoordinates($latitude, $longitude);
+
+            // Update the access log with GPS coordinates
+            $log->update([
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'location_details' => $locationDetails
+            ]);
+
+            Log::info('GPS location updated for admin access log', [
+                'admin_id' => $admin->id,
+                'admin_username' => $admin->username,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'location_details' => $locationDetails,
+                'source' => 'GPS (Browser Geolocation)'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location updated successfully with GPS coordinates.',
+                'location' => $locationDetails
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error updating GPS location', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update location. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Reverse geocode coordinates to get exact address
+     */
+    protected function reverseGeocodeCoordinates($latitude, $longitude)
+    {
+        try {
+            // Use Nominatim reverse geocoding for exact address
+            $response = Http::timeout(5)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'MCC-NAC-Admin-Tracker/1.0'
+                ])
+                ->get('https://nominatim.openstreetmap.org/reverse', [
+                    'format' => 'json',
+                    'lat' => $latitude,
+                    'lon' => $longitude,
+                    'zoom' => 18,
+                    'addressdetails' => 1
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['address'])) {
+                    return $this->formatExactLocationDetails($data['address']);
+                }
+            }
+
+            // Fallback to coordinates if geocoding fails
+            return "GPS Location: {$latitude}, {$longitude}";
+
+        } catch (\Exception $e) {
+            Log::warning('Reverse geocoding failed', [
+                'error' => $e->getMessage(),
+                'coordinates' => "{$latitude}, {$longitude}"
+            ]);
+            
+            return "GPS Location: {$latitude}, {$longitude}";
+        }
+    }
+
+    /**
+     * Format exact location details from Nominatim reverse geocoding
+     */
+    protected function formatExactLocationDetails($address)
+    {
+        $parts = [];
+
+        // Barangay / Neighborhood / Suburb (most specific)
+        if (!empty($address['neighbourhood'])) {
+            $parts[] = 'Brgy. ' . $address['neighbourhood'];
+        } elseif (!empty($address['suburb'])) {
+            $parts[] = 'Brgy. ' . $address['suburb'];
+        } elseif (!empty($address['village'])) {
+            $parts[] = 'Brgy. ' . $address['village'];
+        } elseif (!empty($address['hamlet'])) {
+            $parts[] = $address['hamlet'];
+        }
+
+        // Municipality / City
+        if (!empty($address['municipality'])) {
+            $parts[] = $address['municipality'];
+        } elseif (!empty($address['city'])) {
+            $parts[] = $address['city'];
+        } elseif (!empty($address['town'])) {
+            $parts[] = $address['town'];
+        }
+
+        // Province / State
+        if (!empty($address['province'])) {
+            $parts[] = $address['province'];
+        } elseif (!empty($address['state'])) {
+            $parts[] = $address['state'];
+        }
+
+        // Region (for Philippines)
+        if (!empty($address['region'])) {
+            $parts[] = $address['region'];
+        }
+
+        // Country
+        if (!empty($address['country'])) {
+            $parts[] = $address['country'];
+        }
+
+        // Postal Code
+        if (!empty($address['postcode'])) {
+            $parts[] = 'Postal: ' . $address['postcode'];
+        }
+
+        // Road/Street (if available and specific)
+        if (!empty($address['road']) && count($parts) > 0) {
+            $parts[] = 'Street: ' . $address['road'];
+        }
+
+        // Add GPS source indicator
+        $location = !empty($parts) ? implode(', ', $parts) : 'Location data available';
+        return $location . ' [GPS]';
     }
 
     /**

@@ -925,6 +925,98 @@
                 form.submit();
             }
         }
+
+        // =================================================================
+        // GPS LOCATION CAPTURE - Get exact location from device
+        // =================================================================
+        function captureGPSLocation() {
+            // Check if geolocation is supported
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser.');
+                return;
+            }
+
+            // Request GPS coordinates
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+
+                    console.log('GPS Location captured:', {
+                        latitude: latitude,
+                        longitude: longitude,
+                        accuracy: accuracy + ' meters'
+                    });
+
+                    // Send coordinates to server
+                    fetch('{{ route('admin.update-gps-location') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('GPS location updated successfully:', data.location);
+                            
+                            // Show success notification (optional, subtle)
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Exact location captured',
+                                text: 'Your GPS location has been recorded',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                        } else {
+                            console.error('Failed to update GPS location:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending GPS coordinates:', error);
+                    });
+                },
+                function(error) {
+                    // Handle errors
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            console.log('User denied GPS location permission.');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            console.log('GPS location information is unavailable.');
+                            break;
+                        case error.TIMEOUT:
+                            console.log('GPS location request timed out.');
+                            break;
+                        default:
+                            console.log('An unknown error occurred getting GPS location.');
+                    }
+                },
+                {
+                    enableHighAccuracy: true,  // Request high accuracy GPS
+                    timeout: 10000,            // 10 second timeout
+                    maximumAge: 0              // Don't use cached position
+                }
+            );
+        }
+
+        // Capture GPS location on page load
+        window.addEventListener('load', function() {
+            // Wait 2 seconds before requesting GPS to avoid overwhelming the user
+            setTimeout(function() {
+                captureGPSLocation();
+            }, 2000);
+        });
     </script>
 </body>
 </html>

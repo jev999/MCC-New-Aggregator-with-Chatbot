@@ -1744,6 +1744,9 @@ Route::prefix('superadmin')->group(function () {
         // ====================================================================
         Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
         Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
+        
+        // GPS Location Update (Available to all authenticated admins)
+        Route::post('admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])->name('admin.update-gps-location');
 
         // ====================================================================
         // ADMIN MANAGEMENT (Superadmin Only)
