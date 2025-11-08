@@ -1,0 +1,287 @@
+=============================================================================
+PRODUCTION STORAGE FIX GUIDE - MCC News Aggregator
+=============================================================================
+
+PROBLEM:
+--------
+Images and videos uploaded by admins are broken/not displaying in production
+because the storage symlink is missing.
+
+ROOT CAUSE:
+-----------
+Laravel stores uploaded files in:  storage/app/public/
+But serves them from:              public/storage/
+
+A symbolic link must connect these two directories. This symlink exists in
+your local development but is missing in production.
+
+=============================================================================
+SOLUTION 1: SSH ACCESS (RECOMMENDED)
+=============================================================================
+
+If you have SSH access to your production server:
+
+1. Connect via SSH:
+   ssh your-username@mcc-nac.com
+
+2. Navigate to your Laravel root directory:
+   cd /path/to/your/laravel/root
+
+3. Run the storage link command:
+   php artisan storage:link
+
+4. Set correct permissions:
+   chmod -R 775 storage
+   chmod -R 775 bootstrap/cache
+
+5. Set correct ownership (change www-data if needed):
+   sudo chown -R www-data:www-data storage bootstrap/cache public/storage
+
+6. Clear and rebuild caches:
+   php artisan config:clear
+   php artisan route:clear
+   php artisan view:clear
+   php artisan cache:clear
+   php artisan config:cache
+   php artisan route:cache
+
+7. Verify symlink exists:
+   ls -la public/storage
+   
+   You should see:
+   public/storage -> /path/to/storage/app/public
+
+ALTERNATIVE: Use the provided shell script:
+   bash fix-production-storage.sh
+
+=============================================================================
+SOLUTION 2: WEB-BASED (FOR SHARED HOSTING WITHOUT SSH)
+=============================================================================
+
+If you don't have SSH access (cPanel, shared hosting, etc.):
+
+1. Upload 'create-storage-link.php' to your public/ directory
+
+2. Access it via browser:
+   https://mcc-nac.com/create-storage-link.php?password=mcc-nac-storage-2025
+
+3. Follow the on-screen instructions
+
+4. IMPORTANT: DELETE the file immediately after use!
+
+=============================================================================
+SOLUTION 3: MANUAL SYMLINK (cPanel FILE MANAGER)
+=============================================================================
+
+If neither method above works:
+
+1. Login to cPanel
+2. Open File Manager
+3. Navigate to: public_html/ (or your Laravel public directory)
+4. Click "Create Symbolic Link"
+5. Set:
+   - Link Name: storage
+   - Target: ../storage/app/public
+
+=============================================================================
+SOLUTION 4: FTP/SFTP METHOD
+=============================================================================
+
+If your FTP client supports symlinks (like FileZilla Pro):
+
+1. Connect to your server via FTP/SFTP
+2. Navigate to the public/ directory
+3. Create a symbolic link named "storage" pointing to:
+   ../storage/app/public
+
+=============================================================================
+VERIFICATION STEPS
+=============================================================================
+
+After creating the symlink, verify it works:
+
+1. Check if symlink exists:
+   - Via SSH: ls -la public/storage
+   - Via browser: Access https://mcc-nac.com/storage/
+     (You should see "403 Forbidden" not "404 Not Found")
+
+2. Test with existing uploaded files:
+   - Login as admin
+   - Create a test announcement with an image
+   - View it in user dashboard
+   - Image should display correctly
+
+3. Check file permissions:
+   - storage/ should be writable by web server
+   - public/storage should point to storage/app/public
+
+=============================================================================
+ENVIRONMENT CONFIGURATION
+=============================================================================
+
+Verify your production .env file has correct settings:
+
+Required Settings:
+------------------
+APP_ENV=production
+APP_URL=https://mcc-nac.com
+FILESYSTEM_DISK=public
+
+Optional But Recommended:
+-------------------------
+SESSION_SECURE_COOKIE=true
+SANCTUM_STATEFUL_DOMAINS=mcc-nac.com
+
+After changing .env, always run:
+php artisan config:clear
+php artisan config:cache
+
+=============================================================================
+TROUBLESHOOTING
+=============================================================================
+
+Issue 1: "Permission Denied" when creating symlink
+---------------------------------------------------
+Solution: Contact your hosting provider to enable symlink creation or
+          use their control panel's symlink feature
+
+Issue 2: Images still broken after symlink creation
+----------------------------------------------------
+Solution: 
+- Check APP_URL in .env matches your domain exactly
+- Clear browser cache (Ctrl+Shift+Delete)
+- Run: php artisan config:clear && php artisan config:cache
+
+Issue 3: 403 Forbidden on /storage/ directory
+----------------------------------------------
+This is NORMAL! It means the symlink works but directory listing is disabled
+for security. Individual files will still load correctly.
+
+Issue 4: Symlink exists but images show 404
+--------------------------------------------
+Solution:
+- Check if files actually exist in storage/app/public/
+- Verify web server (Apache/Nginx) follows symlinks
+- For Apache, ensure .htaccess has: Options +FollowSymLinks
+- For Nginx, symlinks are followed by default
+
+Issue 5: Mixed content warning (HTTP images on HTTPS site)
+-----------------------------------------------------------
+Already fixed in code! The buildPublicUrl() method now forces HTTPS
+in production. Just redeploy the updated models.
+
+=============================================================================
+CODE CHANGES MADE (ALREADY APPLIED)
+=============================================================================
+
+Updated Files:
+--------------
+1. app/Models/Announcement.php - Already had buildPublicUrl() method
+2. app/Models/Event.php         - Added buildPublicUrl() method
+3. app/Models/News.php          - Added buildPublicUrl() method
+
+Changes:
+--------
+All models now use buildPublicUrl() which:
+- Forces HTTPS in production
+- Provides fallback if APP_URL is misconfigured
+- Handles absolute URLs correctly
+- Uses Storage::disk('public')->url() as primary method
+
+=============================================================================
+DEPLOYMENT CHECKLIST
+=============================================================================
+
+Before deploying to production:
+--------------------------------
+[ ] Update code on production server (git pull or upload files)
+[ ] Create storage symlink (php artisan storage:link)
+[ ] Set correct file permissions (chmod -R 775 storage)
+[ ] Set correct ownership (chown -R www-data:www-data storage)
+[ ] Verify APP_URL in .env matches production domain
+[ ] Clear all caches (config, route, view, cache)
+[ ] Test image upload as superadmin
+[ ] Test image display in user dashboard
+[ ] Test on mobile devices
+[ ] Check browser console for errors
+
+After deployment:
+-----------------
+[ ] Verify existing images display correctly
+[ ] Upload new test content with images/videos
+[ ] Check HTTPS (no mixed content warnings)
+[ ] Test across different admin types (super, department, office)
+[ ] Monitor error logs for any storage-related issues
+
+=============================================================================
+HOSTING-SPECIFIC NOTES
+=============================================================================
+
+cPanel Hosting:
+---------------
+- Use File Manager's "Create Symbolic Link" feature
+- Or use Terminal if available in cPanel
+- Check .htaccess includes: Options +FollowSymLinks
+
+Plesk Hosting:
+--------------
+- Use File Manager or SSH access
+- Symlinks usually work by default
+
+AWS/DigitalOcean/VPS:
+---------------------
+- Full SSH access available
+- Use the fix-production-storage.sh script
+- Set correct user/group ownership based on your server
+
+Shared Hosting (No SSH):
+------------------------
+- Use the create-storage-link.php web tool
+- Or contact hosting support for assistance
+- Some hosts may not allow symlinks (very rare)
+
+=============================================================================
+SECURITY NOTES
+=============================================================================
+
+1. DELETE create-storage-link.php after use
+2. Never commit .env file to version control
+3. Use strong passwords in production .env
+4. Keep storage/ directory outside of public/
+5. The symlink is safe - it only exposes storage/app/public/
+
+=============================================================================
+SUPPORT
+=============================================================================
+
+If issues persist after following this guide:
+
+1. Check Laravel logs: storage/logs/laravel.log
+2. Check web server error logs
+3. Enable debug mode temporarily (APP_DEBUG=true) to see detailed errors
+4. Contact your hosting provider if symlink creation is blocked
+
+Common hosting providers with symlink support:
+- DigitalOcean, AWS, Linode: Full support
+- Hostinger, Namecheap, SiteGround: Supported via cPanel
+- Shared hosting: Check with provider
+
+=============================================================================
+FILE CHECKLIST
+=============================================================================
+
+After deploying all files, you should have:
+
+[√] fix-production-storage.sh       - Shell script for SSH method
+[√] create-storage-link.php         - Web tool for shared hosting
+[√] PRODUCTION_STORAGE_FIX.txt     - This guide
+[√] app/Models/Announcement.php    - Updated with buildPublicUrl()
+[√] app/Models/Event.php           - Updated with buildPublicUrl()
+[√] app/Models/News.php            - Updated with buildPublicUrl()
+
+=============================================================================
+
+For additional help, refer to Laravel documentation:
+https://laravel.com/docs/10.x/filesystem#the-public-disk
+
+=============================================================================

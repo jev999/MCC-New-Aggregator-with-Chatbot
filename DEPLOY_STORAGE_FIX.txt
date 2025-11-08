@@ -1,0 +1,81 @@
+=============================================================================
+QUICK DEPLOYMENT GUIDE - Storage Fix
+=============================================================================
+
+WHAT WAS FIXED:
+---------------
+1. Added buildPublicUrl() method to Event and News models
+2. Updated URL generation to force HTTPS in production
+3. Created automated fix scripts for deployment
+
+FILES TO DEPLOY:
+----------------
+1. app/Models/Event.php (UPDATED)
+2. app/Models/News.php (UPDATED)
+3. fix-production-storage.sh (NEW)
+4. create-storage-link.php (NEW)
+
+=============================================================================
+QUICK FIX - METHOD 1: SSH ACCESS
+=============================================================================
+
+1. Upload updated files to server
+2. SSH into your server:
+   ssh your-user@mcc-nac.com
+
+3. Navigate to Laravel root:
+   cd /path/to/your/laravel
+
+4. Run the fix script:
+   bash fix-production-storage.sh
+
+5. Done! Test by uploading content
+
+=============================================================================
+QUICK FIX - METHOD 2: NO SSH (CPANEL/SHARED HOSTING)
+=============================================================================
+
+1. Upload updated files to server via FTP/File Manager
+
+2. Upload 'create-storage-link.php' to public/ directory
+
+3. Visit in browser:
+   https://mcc-nac.com/create-storage-link.php?password=mcc-nac-storage-2025
+
+4. Follow instructions, then DELETE the file
+
+5. Done! Test by uploading content
+
+=============================================================================
+ONE-LINE FIX (IF YOU HAVE SSH):
+=============================================================================
+
+ssh your-user@mcc-nac.com "cd /path/to/laravel && php artisan storage:link && chmod -R 775 storage && php artisan config:cache"
+
+=============================================================================
+VERIFICATION:
+=============================================================================
+
+1. Login as superadmin/department admin/office admin
+2. Create new announcement with image
+3. Publish it
+4. Check user dashboard - image should display
+5. Check browser console - no 404 errors
+
+=============================================================================
+WHAT THIS FIXES:
+=============================================================================
+
+BEFORE:
+- Images show as broken in user dashboard
+- Videos don't play
+- Browser shows 404 errors for /storage/ files
+- Mixed content warnings on HTTPS
+
+AFTER:
+- All images display correctly
+- Videos play properly
+- Proper HTTPS URLs
+- No console errors
+
+=============================================================================
