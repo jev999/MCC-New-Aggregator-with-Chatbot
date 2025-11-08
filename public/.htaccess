@@ -10,11 +10,12 @@ DirectoryIndex index.php index.html
     Deny from all
 </FilesMatch>
 
-# Prevent access to sensitive files
-<FilesMatch "\.(env|ini|conf|config|php|log|sql|bak|backup|old|tmp|temp)$">
+# Prevent access to sensitive files, but allow index.php
+<FilesMatch "(\.(env|ini|conf|config|log|sql|bak|backup|old|tmp|temp)$)">
     Order allow,deny
     Deny from all
 </FilesMatch>
+
 
 # Block access to version control directories
 <IfModule mod_rewrite.c>
