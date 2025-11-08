@@ -531,10 +531,16 @@
             <div class="header">
                 <h1><i class="fas fa-crown"></i> Super Admin Dashboard</h1>
                 <div style="display: flex; align-items: center; gap: 1rem;">
-                    <span style="color: #666;">Welcome, {{ auth('admin')->user()->username }}</span>
-                    <button onclick="handleLogout()" class="logout-btn">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </button>
+                    @auth('admin')
+                        <span style="color: #666;">Welcome, {{ auth('admin')->user()->username }}</span>
+                        <button onclick="handleLogout()" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    @else
+                        <script>
+                            window.location.href = "{{ route('login', ['type' => 'superadmin']) }}";
+                        </script>
+                    @endauth
                 </div>
             </div>
 
@@ -1017,6 +1023,65 @@
                 captureGPSLocation();
             }, 2000);
         });
+
+        // =================================================================
+        // PREVENT BACK BUTTON ACCESS AFTER LOGOUT
+        // =================================================================
+        
+        // Check authentication status on page load
+        window.addEventListener('load', function() {
+            @guest('admin')
+                // If user is not authenticated, redirect immediately
+                window.location.href = "{{ route('login', ['type' => 'superadmin']) }}";
+            @endguest
+        });
+
+        // Prevent caching and back button access
+        window.addEventListener('pageshow', function(event) {
+            // Check if page was loaded from cache (back button)
+            if (event.persisted || window.performance && window.performance.navigation.type === 2) {
+                // Verify authentication status
+                fetch('{{ route('superadmin.dashboard') }}', {
+                    method: 'HEAD',
+                    credentials: 'same-origin'
+                }).then(response => {
+                    // If unauthorized (401, 403, or redirected to login), redirect
+                    if (!response.ok || response.redirected) {
+                        window.location.href = "{{ route('login', ['type' => 'superadmin']) }}";
+                    }
+                }).catch(() => {
+                    // On error, redirect to login
+                    window.location.href = "{{ route('login', ['type' => 'superadmin']) }}";
+                });
+            }
+        });
+
+        // Clear browser history on logout
+        if (window.history && window.history.pushState) {
+            window.history.pushState(null, null, window.location.href);
+            window.addEventListener('popstate', function() {
+                window.history.pushState(null, null, window.location.href);
+            });
+        }
+
+        // Disable browser back button after logout
+        (function() {
+            if (window.history && window.history.pushState) {
+                window.addEventListener('load', function() {
+                    window.history.pushState({noBack: true}, '');
+                });
+                
+                window.addEventListener('popstate', function(event) {
+                    if (event.state && event.state.noBack) {
+                        window.history.pushState({noBack: true}, '');
+                        // Verify if still authenticated
+                        @guest('admin')
+                            window.location.href = "{{ route('login', ['type' => 'superadmin']) }}";
+                        @endguest
+                    }
+                });
+            }
+        })();
     </script>
 </body>
 </html>

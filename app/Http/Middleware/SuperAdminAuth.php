@@ -17,7 +17,8 @@ class SuperAdminAuth
             if ($snapshot && ($snapshot['role'] ?? null) === 'superadmin') {
                 return $next($request);
             }
-            return redirect()->route('login')->with('info', 'Please login as Super Admin using the unified login form.');
+            return redirect()->route('login', ['type' => 'superadmin'])
+                ->with('info', 'Please login as Super Admin using the unified login form.');
         }
         
         if (!$admin->isSuperAdmin()) {
@@ -25,10 +26,15 @@ class SuperAdminAuth
             if ($admin->isDepartmentAdmin()) {
                 return redirect()->route('department-admin.dashboard')->with('error', 'Access denied. Super admin privileges required.');
             } else {
-                return redirect()->route('admin.login')->with('error', 'Access denied. Super admin privileges required.');
+                return redirect()->route('login', ['type' => 'superadmin'])->with('error', 'Access denied. Super admin privileges required.');
             }
         }
 
-        return $next($request);
+        // Add cache control headers to prevent back button access after logout
+        $response = $next($request);
+        
+        return $response->header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+                       ->header('Pragma', 'no-cache')
+                       ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 }

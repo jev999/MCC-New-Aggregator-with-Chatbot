@@ -144,24 +144,23 @@ class SuperAdminAuthController extends Controller
             'timestamp' => now()->toISOString()
         ]);
         
+        // Logout from admin guard
         Auth::guard('admin')->logout();
 
-        // Clear authenticated accounts session data
-        $request->session()->forget('authenticated_accounts');
+        // Completely invalidate the session
+        $request->session()->invalidate();
         
-        // Clear login attempt data but preserve other session data
-        $sessionData = $request->session()->all();
-        foreach ($sessionData as $key => $value) {
-            if (strpos($key, 'login_attempts_') === 0 || strpos($key, 'lockout_time_') === 0) {
-                $request->session()->forget($key);
-            }
-        }
-        
-        // Regenerate session ID for security but don't invalidate everything
-        $request->session()->regenerate(true);
+        // Regenerate CSRF token for security
+        $request->session()->regenerateToken();
 
-        return redirect()->route('login')
-                        ->with('success', 'You have been logged out successfully.');
+        // Create response with cache control headers to prevent back button access
+        return redirect()->route('login', ['type' => 'superadmin'])
+                        ->with('success', 'You have been logged out successfully.')
+                        ->withHeaders([
+                            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+                            'Pragma' => 'no-cache',
+                            'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT'
+                        ]);
     }
 
     /**
