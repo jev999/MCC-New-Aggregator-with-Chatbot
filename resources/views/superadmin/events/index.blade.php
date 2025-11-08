@@ -44,7 +44,9 @@
                 <i class="fas fa-clipboard-list"></i> Admin Access Logs
             </a></li>
             <li>
-               
+            <li><a href="{{ route('superadmin.backup') }}">
+                    <i class="fas fa-database"></i> Database Backup
+                </a></li>
             </li>
         </ul>
     </div>

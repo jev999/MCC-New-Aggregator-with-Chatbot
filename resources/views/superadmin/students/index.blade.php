@@ -42,13 +42,11 @@
             <li><a href="{{ route('superadmin.admin-access') }}">
                 <i class="fas fa-clipboard-list"></i> Admin Access Logs
             </a></li>
+            <li><a href="{{ route('superadmin.backup') }}">
+                    <i class="fas fa-database"></i> Database Backup
+                </a></li>
             @endif
-            <li>
-                <form method="POST" action="{{ route('superadmin.logout') }}" style="display: inline; width: 100%;">
-                    @csrf
-                   
-                </form>
-            </li>
+            
         </ul>
     </div>
     
