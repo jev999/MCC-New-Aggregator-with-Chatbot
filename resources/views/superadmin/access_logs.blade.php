@@ -779,6 +779,41 @@
                 padding: 0.125rem 0.25rem;
             }
         }
+
+        /* Custom Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .leaflet-popup-content {
+            margin: 16px;
+        }
+
+        .leaflet-popup-tip {
+            box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        .custom-marker {
+            filter: drop-shadow(0 4px 12px rgba(239, 68, 68, 0.4));
+        }
+
+        /* Map Controls Styling */
+        .leaflet-control-zoom a {
+            background: linear-gradient(135deg, #3b82f6, #1e40af) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: linear-gradient(135deg, #1e40af, #1e3a8a) !important;
+        }
+
+        .leaflet-control-scale-line {
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -1191,22 +1226,71 @@
                     map.remove();
                 }
 
-                map = L.map('locationMap').setView([lat, lng], 13);
+                // Use zoom level 16 for neighborhood/barangay level detail
+                map = L.map('locationMap').setView([lat, lng], 16);
 
-                // Add tile layer
+                // Add detailed tile layer with labels
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors',
-                    maxZoom: 19
+                    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19,
+                    minZoom: 10
                 }).addTo(map);
 
-                // Add marker
-                const marker = L.marker([lat, lng]).addTo(map);
+                // Add custom marker with better styling
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; padding: 8px 12px; border-radius: 20px 20px 20px 0; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); font-weight: 700; white-space: nowrap; font-size: 12px;">
+                        <i class="fas fa-map-marker-alt"></i> ${adminName}
+                    </div>`,
+                    iconSize: [120, 40],
+                    iconAnchor: [20, 40]
+                });
+
+                const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+                
+                // Add detailed popup with exact location
                 marker.bindPopup(`
-                    <div style="text-align: center;">
-                        <strong>${adminName}</strong><br>
-                        <small>${locationDetails}</small>
+                    <div style="text-align: left; min-width: 250px;">
+                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #1e40af; border-bottom: 2px solid #3b82f6; padding-bottom: 6px;">
+                            <i class="fas fa-user-shield"></i> ${adminName}
+                        </div>
+                        <div style="font-size: 12px; color: #475569; line-height: 1.6;">
+                            <div style="margin-bottom: 6px;">
+                                <i class="fas fa-map-marked-alt" style="color: #059669; width: 16px;"></i> 
+                                <strong>Location:</strong><br>
+                                <span style="margin-left: 22px;">${locationDetails}</span>
+                            </div>
+                            <div style="margin-bottom: 6px;">
+                                <i class="fas fa-crosshairs" style="color: #f59e0b; width: 16px;"></i> 
+                                <strong>Coordinates:</strong><br>
+                                <span style="margin-left: 22px; font-family: monospace;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+                            </div>
+                            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #64748b;">
+                                <i class="fas fa-info-circle"></i> Exact location based on reverse geocoding
+                            </div>
+                        </div>
                     </div>
-                `).openPopup();
+                `, {
+                    maxWidth: 300,
+                    className: 'custom-popup'
+                }).openPopup();
+
+                // Add circle to show approximate accuracy area (100m radius)
+                L.circle([lat, lng], {
+                    color: '#3b82f6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.1,
+                    radius: 100
+                }).addTo(map);
+
+                // Add zoom control with custom position
+                map.zoomControl.setPosition('topright');
+
+                // Add scale control
+                L.control.scale({
+                    imperial: false,
+                    metric: true
+                }).addTo(map);
             }, 100);
         }
 

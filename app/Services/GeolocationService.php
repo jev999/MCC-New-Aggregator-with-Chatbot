@@ -28,19 +28,22 @@ class GeolocationService
             // Try primary provider: ipapi.co (most accurate, free tier 30k/month)
             $location = $this->getFromIpapiCo($ip);
             if ($location) {
-                return $location;
+                // Enhance with reverse geocoding for exact address
+                return $this->enhanceWithReverseGeocoding($location);
             }
 
             // Fallback to ip-api.com (free, 45/min limit)
             $location = $this->getFromIpApi($ip);
             if ($location) {
-                return $location;
+                // Enhance with reverse geocoding for exact address
+                return $this->enhanceWithReverseGeocoding($location);
             }
 
             // Second fallback: ipinfo.io (free, 50k/month)
             $location = $this->getFromIpInfo($ip);
             if ($location) {
-                return $location;
+                // Enhance with reverse geocoding for exact address
+                return $this->enhanceWithReverseGeocoding($location);
             }
 
             // If all providers fail, return null
@@ -55,6 +58,139 @@ class GeolocationService
             ]);
             return null;
         }
+    }
+
+    /**
+     * Enhance location data with reverse geocoding for exact address details
+     * Uses Nominatim (OpenStreetMap) to get exact province, municipality, barangay
+     * 
+     * @param array $location
+     * @return array
+     */
+    protected function enhanceWithReverseGeocoding($location)
+    {
+        // If coordinates are not available, return original location
+        if (empty($location['latitude']) || empty($location['longitude'])) {
+            return $location;
+        }
+
+        try {
+            $lat = $location['latitude'];
+            $lng = $location['longitude'];
+
+            // Use Nominatim reverse geocoding for exact address
+            // Zoom level 18 for exact address, includes barangay/neighborhood
+            $response = Http::timeout(5)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'MCC-NAC-Admin-Tracker/1.0'
+                ])
+                ->get('https://nominatim.openstreetmap.org/reverse', [
+                    'format' => 'json',
+                    'lat' => $lat,
+                    'lon' => $lng,
+                    'zoom' => 18,
+                    'addressdetails' => 1,
+                    'extratags' => 1,
+                    'namedetails' => 1
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                if (isset($data['address'])) {
+                    // Format exact location details from reverse geocoding
+                    $exactLocation = $this->formatExactLocationDetails($data['address']);
+                    
+                    // Update location details with exact address
+                    $location['location_details'] = $exactLocation;
+                    
+                    Log::info('Reverse geocoding successful', [
+                        'coordinates' => "$lat, $lng",
+                        'exact_location' => $exactLocation
+                    ]);
+                }
+            } else {
+                Log::warning('Nominatim reverse geocoding failed', [
+                    'status' => $response->status(),
+                    'coordinates' => "$lat, $lng"
+                ]);
+            }
+        } catch (\Exception $e) {
+            // If reverse geocoding fails, just use the original location
+            Log::warning('Reverse geocoding error', [
+                'error' => $e->getMessage(),
+                'coordinates' => ($location['latitude'] ?? 'N/A') . ', ' . ($location['longitude'] ?? 'N/A')
+            ]);
+        }
+
+        return $location;
+    }
+
+    /**
+     * Format exact location details from Nominatim reverse geocoding
+     * Prioritizes Philippine administrative divisions: Barangay, Municipality, Province, Region
+     * 
+     * @param array $address
+     * @return string
+     */
+    protected function formatExactLocationDetails($address)
+    {
+        $parts = [];
+
+        // Barangay / Neighborhood / Suburb (most specific)
+        if (!empty($address['neighbourhood'])) {
+            $parts[] = 'Brgy. ' . $address['neighbourhood'];
+        } elseif (!empty($address['suburb'])) {
+            $parts[] = 'Brgy. ' . $address['suburb'];
+        } elseif (!empty($address['village'])) {
+            $parts[] = 'Brgy. ' . $address['village'];
+        } elseif (!empty($address['hamlet'])) {
+            $parts[] = $address['hamlet'];
+        }
+
+        // Municipality / City
+        if (!empty($address['municipality'])) {
+            $parts[] = $address['municipality'];
+        } elseif (!empty($address['city'])) {
+            $parts[] = $address['city'];
+        } elseif (!empty($address['town'])) {
+            $parts[] = $address['town'];
+        }
+
+        // Province / State
+        if (!empty($address['province'])) {
+            $parts[] = $address['province'];
+        } elseif (!empty($address['state'])) {
+            $parts[] = $address['state'];
+        }
+
+        // Region (for Philippines)
+        if (!empty($address['region'])) {
+            $parts[] = $address['region'];
+        }
+
+        // Country
+        if (!empty($address['country'])) {
+            $parts[] = $address['country'];
+        }
+
+        // Postal Code
+        if (!empty($address['postcode'])) {
+            $parts[] = 'Postal: ' . $address['postcode'];
+        }
+
+        // Road/Street (if available and specific)
+        if (!empty($address['road']) && count($parts) > 0) {
+            $parts[] = 'Street: ' . $address['road'];
+        }
+
+        // If we have no parts, return a default message
+        if (empty($parts)) {
+            return 'Exact location: Lat ' . ($address['lat'] ?? 'N/A') . ', Lon ' . ($address['lon'] ?? 'N/A');
+        }
+
+        return implode(', ', $parts);
     }
 
     /**
