@@ -60,4 +60,12 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+
+# -------------------------------------------------------------
+# ✅ Fix Laravel Storage (Serve Uploaded Files from /storage)
+# -------------------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^storage/(.*)$ storage/app/public/$1 [L]
+
 </IfModule>
