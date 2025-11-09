@@ -43,14 +43,6 @@
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # -------------------------------------------------------------
-    # ✅ Allow access to storage files (uploaded media)
-    # This ensures images/videos from storage/app/public are accessible
-    # -------------------------------------------------------------
-    RewriteCond %{REQUEST_URI} ^/storage/
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
-
-    # -------------------------------------------------------------
     # ✅ Hide .php extension from URL (safe & 403-free)
     # Example: /about will load /about.php if it exists
     # -------------------------------------------------------------
