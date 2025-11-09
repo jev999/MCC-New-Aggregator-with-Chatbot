@@ -341,7 +341,7 @@
         
         <div class="header">
             <h2>Super Admin OTP Verification</h2>
-            <p>Enter the 6-digit code sent to your MS365 email</p>
+            <p>Enter the 6-digit code sent to your MS365 email (check your Outlook app)</p>
         </div>
         <div class="content">
             @if(session('status'))
@@ -362,7 +362,7 @@
                 </div>
                 <button type="submit" class="btn">Verify and Continue</button>
             </form>
-            <p class="note">Code expires in 10 minutes. Maximum 5 attempts.</p>
+            <p class="note">Code expires in 10 minutes. Maximum 5 attempts. The code will arrive in your Outlook app inbox.</p>
         </div>
     </div>
 </body>
