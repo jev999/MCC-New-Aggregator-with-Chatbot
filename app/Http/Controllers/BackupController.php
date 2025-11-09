@@ -55,9 +55,31 @@ class BackupController extends Controller
     public function create(Request $request)
     {
         try {
+            // Verify authentication
+            if (!auth('admin')->check()) {
+                \Log::warning('Backup creation attempted without authentication');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login again.'
+                ], 401);
+            }
+
+            // Verify superadmin role
+            $admin = auth('admin')->user();
+            if (!$admin->isSuperAdmin()) {
+                \Log::warning('Backup creation attempted by non-superadmin', [
+                    'user' => $admin->username,
+                    'role' => $admin->role
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only superadmins can create backups.'
+                ], 403);
+            }
+
             // Log the start of backup creation
             \Log::info('Backup creation started', [
-                'user' => auth('admin')->user()->username ?? 'unknown',
+                'user' => $admin->username ?? 'unknown',
                 'ip' => $request->ip(),
                 'timestamp' => now()
             ]);
@@ -67,8 +89,36 @@ class BackupController extends Controller
             $password = env('DB_PASSWORD');
             $host = env('DB_HOST');
 
+            // Validate database credentials
+            if (empty($database) || empty($username) || empty($host)) {
+                \Log::error('Database configuration is incomplete');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Database configuration error. Please check your .env file.'
+                ], 500);
+            }
+
             $filename = 'backup_' . date('Y-m-d_H-i-s') . '.sql';
             $filepath = $this->backupPath . '/' . $filename;
+
+            // Ensure backup directory exists and is writable
+            if (!File::exists($this->backupPath)) {
+                if (!File::makeDirectory($this->backupPath, 0755, true)) {
+                    \Log::error('Failed to create backup directory', ['path' => $this->backupPath]);
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Failed to create backup directory. Please check file permissions.'
+                    ], 500);
+                }
+            }
+
+            if (!is_writable($this->backupPath)) {
+                \Log::error('Backup directory is not writable', ['path' => $this->backupPath]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Backup directory is not writable. Please check file permissions.'
+                ], 500);
+            }
 
             // Check if mysqldump is available (only on Unix-like systems)
             $mysqldumpAvailable = $this->isMysqldumpAvailable();
@@ -76,7 +126,7 @@ class BackupController extends Controller
             if ($mysqldumpAvailable) {
                 // Create mysqldump command
                 $command = sprintf(
-                    'mysqldump --user=%s --password=%s --host=%s %s > %s',
+                    'mysqldump --user=%s --password=%s --host=%s %s > %s 2>&1',
                     escapeshellarg($username),
                     escapeshellarg($password),
                     escapeshellarg($host),
@@ -87,7 +137,7 @@ class BackupController extends Controller
                 // Execute backup
                 exec($command, $output, $returnVar);
 
-                if ($returnVar === 0 && File::exists($filepath)) {
+                if ($returnVar === 0 && File::exists($filepath) && File::size($filepath) > 0) {
                     \Log::info('Backup created successfully using mysqldump', [
                         'filename' => $filename,
                         'size' => $this->formatBytes(File::size($filepath))
@@ -103,8 +153,14 @@ class BackupController extends Controller
                     \Log::warning('Mysqldump failed, falling back to Laravel method', [
                         'return_var' => $returnVar,
                         'output' => $output,
-                        'filepath_exists' => File::exists($filepath)
+                        'filepath_exists' => File::exists($filepath),
+                        'file_size' => File::exists($filepath) ? File::size($filepath) : 0
                     ]);
+                    
+                    // Clean up failed mysqldump file
+                    if (File::exists($filepath)) {
+                        File::delete($filepath);
+                    }
                 }
             } else {
                 \Log::info('Mysqldump not available, using Laravel backup method');
@@ -117,7 +173,9 @@ class BackupController extends Controller
             \Log::error('Backup creation failed with exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'user' => auth('admin')->user()->username ?? 'unknown'
+                'user' => auth('admin')->check() ? auth('admin')->user()->username : 'unknown',
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
 
             return response()->json([

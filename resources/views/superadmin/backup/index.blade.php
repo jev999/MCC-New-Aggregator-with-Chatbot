@@ -434,7 +434,15 @@
             </ul>
         </div>
 
-        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="fas fa-database"></i> Database Backup</h1>
+                <button onclick="handleLogout()" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
 
             <!-- Database Statistics -->
             <div class="stats-grid">
@@ -560,9 +568,29 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
+
+                // Check if response is ok (status 200-299)
+                if (!response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    
+                    // If HTML is returned instead of JSON, it's likely an error page
+                    if (contentType && contentType.includes('text/html')) {
+                        throw new Error(`Server returned an error page (Status: ${response.status}). Please check if you're logged in and try again.`);
+                    }
+                    
+                    throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                }
+
+                // Try to parse JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned unexpected response format. Expected JSON but got ' + contentType);
+                }
 
                 const data = await response.json();
 
@@ -577,14 +605,34 @@
                     // Reload page to show new backup
                     window.location.reload();
                 } else {
-                    throw new Error(data.message);
+                    throw new Error(data.message || 'Backup creation failed');
                 }
             } catch (error) {
+                console.error('Backup creation error:', error);
+                
+                let errorMessage = error.message || 'Failed to create backup';
+                
+                // Provide helpful error messages
+                if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+                    errorMessage = 'Network error. Please check your internet connection and try again.';
+                } else if (errorMessage.includes('401')) {
+                    errorMessage = 'Authentication required. Please login again.';
+                    setTimeout(() => window.location.href = '{{ route('login') }}', 2000);
+                } else if (errorMessage.includes('403')) {
+                    errorMessage = 'Access denied. You do not have permission to create backups.';
+                } else if (errorMessage.includes('419')) {
+                    errorMessage = 'Your session has expired. Please refresh the page and try again.';
+                    setTimeout(() => window.location.reload(), 2000);
+                } else if (errorMessage.includes('500')) {
+                    errorMessage = 'Server error. Please check the Laravel logs or contact the administrator.';
+                }
+                
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error!',
-                    text: error.message || 'Failed to create backup',
-                    confirmButtonColor: '#ef4444'
+                    title: 'Backup Creation Failed',
+                    text: errorMessage,
+                    confirmButtonColor: '#ef4444',
+                    footer: 'If the problem persists, please check server logs or contact support.'
                 });
             } finally {
                 btn.disabled = false;
