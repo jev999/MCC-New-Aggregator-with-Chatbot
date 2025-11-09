@@ -1145,6 +1145,27 @@
                 margin-right: 0.75rem;
             }
         }
+        
+        /* OTP Resend Button Styling */
+        #otp-resend-btn {
+            transition: all 0.3s ease;
+        }
+        
+        #otp-resend-btn:hover:not(:disabled) {
+            background: #2563eb !important;
+            color: white !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        
+        #otp-resend-btn:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+        
+        #otp-resend-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+        }
     </style>
 </head>
 <body>
@@ -1387,8 +1408,18 @@
                         <i class="fas fa-shield-alt"></i>
                         Verify and Continue
                     </button>
-                    <div class="text-muted" style="margin-top:8px;">Code expires in 10 minutes. Max 5 attempts.</div>
                 </form>
+                
+                <!-- Resend OTP Form -->
+                <form method="POST" action="{{ route('otp.resend') }}" id="otp-resend-form" style="margin-top: 12px;">
+                    @csrf
+                    <input type="hidden" id="otp-resend-login-type" name="login_type" value="">
+                    <button type="submit" id="otp-resend-btn" class="btn" style="width: 100%; background: white; color: #2563eb; border: 2px solid #2563eb;">
+                        <i class="fas fa-paper-plane"></i> Resend Code
+                    </button>
+                </form>
+                
+                <div class="text-muted" style="margin-top:8px; text-align: center; font-size: 13px;">Code expires in 10 minutes. Max 5 attempts. Check your Outlook app inbox.</div>
             </div>
         </div>
     </div>
@@ -1814,6 +1845,71 @@
                     otpInput.addEventListener('input', function() {
                         this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);
                     });
+                }
+                
+                // Setup resend button functionality
+                const resendForm = document.getElementById('otp-resend-form');
+                const resendBtn = document.getElementById('otp-resend-btn');
+                const resendLoginTypeInput = document.getElementById('otp-resend-login-type');
+                
+                if (resendLoginTypeInput) {
+                    resendLoginTypeInput.value = otpLoginType;
+                }
+                
+                if (resendForm && resendBtn) {
+                    let cooldownTime = 0;
+                    let cooldownInterval = null;
+                    
+                    // Check if there's a cooldown in sessionStorage
+                    const storedCooldown = sessionStorage.getItem('otp_resend_cooldown_' + otpLoginType);
+                    if (storedCooldown) {
+                        const remainingTime = parseInt(storedCooldown) - Date.now();
+                        if (remainingTime > 0) {
+                            startCooldown(Math.ceil(remainingTime / 1000));
+                        }
+                    }
+                    
+                    resendForm.addEventListener('submit', function(e) {
+                        if (resendBtn.disabled) {
+                            e.preventDefault();
+                            return;
+                        }
+                        
+                        // Start 60-second cooldown after submitting
+                        setTimeout(function() {
+                            startCooldown(60);
+                        }, 100);
+                    });
+                    
+                    function startCooldown(seconds) {
+                        cooldownTime = seconds;
+                        resendBtn.disabled = true;
+                        resendBtn.style.opacity = '0.5';
+                        resendBtn.style.cursor = 'not-allowed';
+                        
+                        // Store cooldown end time
+                        sessionStorage.setItem('otp_resend_cooldown_' + otpLoginType, Date.now() + (seconds * 1000));
+                        
+                        updateResendButton();
+                        
+                        cooldownInterval = setInterval(function() {
+                            cooldownTime--;
+                            if (cooldownTime <= 0) {
+                                clearInterval(cooldownInterval);
+                                resendBtn.disabled = false;
+                                resendBtn.style.opacity = '1';
+                                resendBtn.style.cursor = 'pointer';
+                                resendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Resend Code';
+                                sessionStorage.removeItem('otp_resend_cooldown_' + otpLoginType);
+                            } else {
+                                updateResendButton();
+                            }
+                        }, 1000);
+                    }
+                    
+                    function updateResendButton() {
+                        resendBtn.innerHTML = '<i class="fas fa-clock"></i> Resend in ' + cooldownTime + 's';
+                    }
                 }
             }
 

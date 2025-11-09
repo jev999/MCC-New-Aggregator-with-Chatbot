@@ -1548,6 +1548,7 @@ Route::post('/logout', [UnifiedAuthController::class, 'logout'])->name('logout')
 Route::get('/superadmin/otp', [UnifiedAuthController::class, 'showSuperadminOtpForm'])->name('superadmin.otp.form');
 Route::post('/superadmin/otp', [UnifiedAuthController::class, 'verifySuperadminOtp'])->name('superadmin.otp.verify');
 Route::post('/otp/verify', [UnifiedAuthController::class, 'verifyOTP'])->name('otp.verify');
+Route::post('/otp/resend', [UnifiedAuthController::class, 'resendOTP'])->name('otp.resend');
 
 
 // Test route for image debugging (remove in production)

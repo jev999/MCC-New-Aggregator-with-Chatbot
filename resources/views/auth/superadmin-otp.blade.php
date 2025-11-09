@@ -209,6 +209,39 @@
             transform: translateY(0) scale(0.98);
         }
 
+        .btn-secondary {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: white;
+            color: var(--secondary);
+            border: 2px solid var(--secondary);
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 44px;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: 0.75rem;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--secondary);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary:active:not(:disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .message {
             padding: 0.875rem 1rem;
             border-radius: var(--radius-sm);
@@ -329,6 +362,59 @@
             input.addEventListener('input', function() {
                 this.value = this.value.replace(/\D/g, '').slice(0, 6);
             });
+            
+            // Resend button cooldown
+            const resendForm = document.getElementById('resend-form');
+            const resendBtn = document.getElementById('resend-btn');
+            let cooldownTime = 0;
+            let cooldownInterval = null;
+            
+            // Check if there's a cooldown in sessionStorage
+            const storedCooldown = sessionStorage.getItem('otp_resend_cooldown');
+            if (storedCooldown) {
+                const remainingTime = parseInt(storedCooldown) - Date.now();
+                if (remainingTime > 0) {
+                    startCooldown(Math.ceil(remainingTime / 1000));
+                }
+            }
+            
+            resendForm.addEventListener('submit', function(e) {
+                if (resendBtn.disabled) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Start 60-second cooldown after submitting
+                setTimeout(function() {
+                    startCooldown(60);
+                }, 100);
+            });
+            
+            function startCooldown(seconds) {
+                cooldownTime = seconds;
+                resendBtn.disabled = true;
+                
+                // Store cooldown end time
+                sessionStorage.setItem('otp_resend_cooldown', Date.now() + (seconds * 1000));
+                
+                updateResendButton();
+                
+                cooldownInterval = setInterval(function() {
+                    cooldownTime--;
+                    if (cooldownTime <= 0) {
+                        clearInterval(cooldownInterval);
+                        resendBtn.disabled = false;
+                        resendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Resend Code';
+                        sessionStorage.removeItem('otp_resend_cooldown');
+                    } else {
+                        updateResendButton();
+                    }
+                }, 1000);
+            }
+            
+            function updateResendButton() {
+                resendBtn.innerHTML = '<i class="fas fa-clock"></i> Resend in ' + cooldownTime + 's';
+            }
         });
     </script>
     </head>
@@ -362,6 +448,16 @@
                 </div>
                 <button type="submit" class="btn">Verify and Continue</button>
             </form>
+            
+            <!-- Resend OTP Form -->
+            <form method="POST" action="{{ route('otp.resend') }}" id="resend-form">
+                @csrf
+                <input type="hidden" name="login_type" value="superadmin">
+                <button type="submit" class="btn-secondary" id="resend-btn">
+                    <i class="fas fa-paper-plane"></i> Resend Code
+                </button>
+            </form>
+            
             <p class="note">Code expires in 10 minutes. Maximum 5 attempts. The code will arrive in your Outlook app inbox.</p>
         </div>
     </div>

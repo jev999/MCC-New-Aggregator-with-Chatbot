@@ -1619,6 +1619,79 @@ class UnifiedAuthController extends Controller
     }
 
     /**
+     * Resend OTP code for any login type
+     */
+    public function resendOTP(Request $request)
+    {
+        $validator = \Validator::make($request->all(), [
+            'login_type' => ['required', 'in:user,ms365,department-admin,office-admin,superadmin']
+        ]);
+        
+        if ($validator->fails()) {
+            return back()
+                ->withErrors(['error' => 'Invalid request.'])
+                ->with('show_otp_modal', true)
+                ->with('otp_login_type', $request->login_type);
+        }
+
+        $loginType = $request->login_type;
+        $sessionKey = $loginType . '_otp';
+        $otpSession = $request->session()->get($sessionKey);
+        
+        // Check for both user_id and admin_id (superadmin uses admin_id)
+        $userId = $otpSession['user_id'] ?? $otpSession['admin_id'] ?? null;
+        
+        if (!$otpSession || empty($userId)) {
+            return redirect()->route('login', ['type' => $loginType])
+                ->withErrors(['email' => 'Session expired. Please login again.']);
+        }
+
+        // Get user/admin based on login type
+        if (in_array($loginType, ['department-admin', 'office-admin', 'superadmin'])) {
+            $user = Admin::find($userId);
+            if (!$user) {
+                return redirect()->route('login', ['type' => $loginType])
+                    ->withErrors(['email' => 'User not found. Please login again.']);
+            }
+            $email = $user->username; // Admin email is stored in username field
+        } else {
+            $user = User::find($userId);
+            if (!$user) {
+                return redirect()->route('login', ['type' => $loginType])
+                    ->withErrors(['email' => 'User not found. Please login again.']);
+            }
+            $email = $loginType === 'ms365' ? $user->ms365_account : $user->gmail_account;
+        }
+
+        // Send new OTP
+        $otpSent = $this->sendOTP($request, $loginType, $user, $email);
+
+        if ($otpSent) {
+            \Log::info('OTP resent for ' . $loginType, ['user_id' => $user->id, 'email' => $email]);
+            
+            // Determine login type display name
+            $loginTypeDisplayMap = [
+                'ms365' => 'Student/Faculty',
+                'user' => 'Student/Faculty',
+                'department-admin' => 'Department Admin',
+                'office-admin' => 'Office Admin',
+                'superadmin' => 'Super Admin'
+            ];
+            $loginTypeDisplay = $loginTypeDisplayMap[$loginType] ?? 'User';
+            
+            return back()
+                ->with('show_otp_modal', true)
+                ->with('otp_login_type', $loginType)
+                ->with('status', 'A new 6-digit OTP has been sent to your email (Outlook app). Please check your inbox.');
+        } else {
+            return back()
+                ->withErrors(['error' => 'Unable to send OTP email. Please try again later.'])
+                ->with('show_otp_modal', true)
+                ->with('otp_login_type', $loginType);
+        }
+    }
+
+    /**
      * Generic method to verify OTP for any login type
      */
     public function verifyOTP(Request $request)
