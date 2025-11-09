@@ -15,15 +15,15 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
             min-height: 100vh;
         }
 
         .dashboard {
             display: flex;
             min-height: 100vh;
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
         }
 
         .sidebar {
@@ -102,13 +102,20 @@
 
         .header {
             background: white;
-            padding: 1.5rem 2rem;
-            border-radius: 15px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
+            padding: 2rem 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .header:hover {
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
         }
 
         .header h1 {
@@ -124,22 +131,40 @@
         }
 
         .logout-btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.875rem 1.75rem;
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logout-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.4s ease;
+        }
+
+        .logout-btn:hover::before {
+            left: 100%;
         }
 
         .logout-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
         }
 
         .stats-grid {
@@ -151,12 +176,37 @@
 
         .stat-card {
             background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 1.75rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 1.25rem;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
         }
 
         .stat-icon {
@@ -197,10 +247,16 @@
 
         .action-section {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin-bottom: 2rem;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2.5rem;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .action-section:hover {
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
         }
 
         .action-section h2 {
@@ -213,23 +269,41 @@
         }
 
         .action-btn {
-            padding: 1rem 2rem;
+            padding: 1.125rem 2.5rem;
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 1.0625rem;
             display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.875rem;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .action-btn:hover::before {
+            left: 100%;
         }
 
         .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
         }
 
         .action-btn:disabled {
@@ -240,9 +314,15 @@
 
         .backup-list {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .backup-list:hover {
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
         }
 
         .backup-list h2 {
@@ -260,22 +340,27 @@
         }
 
         .backup-table th {
-            background: #f1f5f9;
-            padding: 1rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 1.25rem 1rem;
             text-align: left;
-            font-weight: 600;
-            color: #475569;
-            border-bottom: 2px solid #e2e8f0;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 2px solid #cbd5e1;
+            text-transform: uppercase;
+            font-size: 0.8125rem;
+            letter-spacing: 0.5px;
         }
 
         .backup-table td {
-            padding: 1rem;
+            padding: 1.25rem 1rem;
             border-bottom: 1px solid #e2e8f0;
-            color: #64748b;
+            color: #475569;
+            font-size: 0.9375rem;
         }
 
         .backup-table tr:hover {
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
+            transition: all 0.2s ease;
         }
 
         .btn-group {
@@ -285,9 +370,9 @@
 
         .btn-download,
         .btn-delete {
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             font-size: 0.875rem;
@@ -295,38 +380,71 @@
             align-items: center;
             gap: 0.5rem;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-download::before,
+        .btn-delete::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.4s ease;
+        }
+
+        .btn-download:hover::before,
+        .btn-delete:hover::before {
+            left: 100%;
         }
 
         .btn-download {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
         }
 
         .btn-download:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
         }
 
         .btn-delete {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
         }
 
         .btn-delete:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.5);
         }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
+            padding: 4rem 3rem;
             color: #94a3b8;
+            background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 100%);
+            border-radius: 16px;
+            border: 2px dashed #cbd5e1;
         }
 
         .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.4;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .empty-state p {
+            font-size: 1.0625rem;
+            font-weight: 500;
         }
 
         .loading {
@@ -354,16 +472,27 @@
         }
 
         .table-stats {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: #f8fafc;
-            border-radius: 8px;
+            margin-top: 2.5rem;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .table-stats:hover {
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
         }
 
         .table-stats h3 {
             color: #1e293b;
-            font-size: 1.125rem;
-            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .table-list {
@@ -373,10 +502,36 @@
         }
 
         .table-item {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            border-left: 3px solid #667eea;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            padding: 1.25rem;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .table-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .table-item:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-left-color: #764ba2;
+        }
+
+        .table-item:hover::before {
+            opacity: 1;
         }
 
         .table-item .table-name {
