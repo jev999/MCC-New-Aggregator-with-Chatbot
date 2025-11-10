@@ -56,5 +56,4 @@ ADMIN_REGISTRATION*.md
 adm.txt
 env.txt
 
-# Security: Backup files should not be committed to version control
-/storage/app/backups
+
