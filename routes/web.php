@@ -1746,13 +1746,13 @@ Route::prefix('superadmin')->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
 
         // ====================================================================
-        // DATABASE BACKUP - ENABLED
+        // DATABASE BACKUP - DISABLED
         // ====================================================================
-        Route::get('backup', [App\Http\Controllers\BackupController::class, 'index'])->name('superadmin.backup');
-        Route::post('backup/create', [App\Http\Controllers\BackupController::class, 'create'])->name('superadmin.backup.create');
-        Route::post('backup/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('superadmin.backup.restore');
-        Route::get('backup/download/{filename}', [App\Http\Controllers\BackupController::class, 'download'])->name('superadmin.backup.download');
-        Route::delete('backup/delete/{filename}', [App\Http\Controllers\BackupController::class, 'delete'])->name('superadmin.backup.delete');
+        // Route::get('backup', [App\Http\Controllers\BackupController::class, 'index'])->name('superadmin.backup');
+        // Route::post('backup/create', [App\Http\Controllers\BackupController::class, 'create'])->name('superadmin.backup.create');
+        // Route::post('backup/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('superadmin.backup.restore');
+        // Route::get('backup/download/{filename}', [App\Http\Controllers\BackupController::class, 'download'])->name('superadmin.backup.download');
+        // Route::delete('backup/delete/{filename}', [App\Http\Controllers\BackupController::class, 'delete'])->name('superadmin.backup.delete');
 
         // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)
