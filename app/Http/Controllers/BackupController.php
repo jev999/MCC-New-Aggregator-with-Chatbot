@@ -84,10 +84,12 @@ class BackupController extends Controller
                 'timestamp' => now()
             ]);
 
-            $database = env('DB_DATABASE');
-            $username = env('DB_USERNAME');
-            $password = env('DB_PASSWORD');
-            $host = env('DB_HOST');
+            // Use config() instead of env() for better production compatibility
+            $database = config('database.connections.mysql.database');
+            $username = config('database.connections.mysql.username');
+            $password = config('database.connections.mysql.password');
+            $host = config('database.connections.mysql.host');
+            $port = config('database.connections.mysql.port', '3306');
 
             // Validate database credentials
             if (empty($database) || empty($username) || empty($host)) {
@@ -126,10 +128,11 @@ class BackupController extends Controller
             if ($mysqldumpAvailable) {
                 // Create mysqldump command
                 $command = sprintf(
-                    'mysqldump --user=%s --password=%s --host=%s %s > %s 2>&1',
+                    'mysqldump --user=%s --password=%s --host=%s --port=%s %s > %s 2>&1',
                     escapeshellarg($username),
                     escapeshellarg($password),
                     escapeshellarg($host),
+                    escapeshellarg($port),
                     escapeshellarg($database),
                     escapeshellarg($filepath)
                 );
@@ -191,8 +194,28 @@ class BackupController extends Controller
     protected function createLaravelBackup($filename)
     {
         try {
+            // Test database connection first
+            try {
+                DB::connection()->getPdo();
+                \Log::info('Database connection successful');
+            } catch (\Exception $e) {
+                \Log::error('Database connection failed', [
+                    'error' => $e->getMessage(),
+                    'host' => config('database.connections.mysql.host'),
+                    'database' => config('database.connections.mysql.database'),
+                    'username' => config('database.connections.mysql.username')
+                ]);
+                throw new \Exception('Cannot connect to database. Please check your database credentials and connection. Error: ' . $e->getMessage());
+            }
+
             $filepath = $this->backupPath . '/' . $filename;
             $tables = $this->getAllTables();
+            
+            if (empty($tables)) {
+                throw new \Exception('No tables found in database');
+            }
+            
+            \Log::info('Starting backup for ' . count($tables) . ' tables');
             $sql = '';
 
             foreach ($tables as $table) {
@@ -202,7 +225,13 @@ class BackupController extends Controller
 
             File::put($filepath, $sql);
 
-            if (File::exists($filepath)) {
+            if (File::exists($filepath) && File::size($filepath) > 0) {
+                \Log::info('Backup created successfully', [
+                    'filename' => $filename,
+                    'size' => $this->formatBytes(File::size($filepath)),
+                    'tables' => count($tables)
+                ]);
+                
                 return response()->json([
                     'success' => true,
                     'message' => 'Database backup created successfully (Laravel method)!',
@@ -211,8 +240,13 @@ class BackupController extends Controller
                 ]);
             }
 
-            throw new \Exception('Backup file was not created');
+            throw new \Exception('Backup file was not created or is empty');
         } catch (\Exception $e) {
+            \Log::error('Laravel backup method failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create backup: ' . $e->getMessage()
@@ -281,7 +315,7 @@ class BackupController extends Controller
             $results = DB::select('SHOW TABLES');
             $tables = [];
 
-            $dbName = 'Tables_in_' . env('DB_DATABASE');
+            $dbName = 'Tables_in_' . config('database.connections.mysql.database');
 
             foreach ($results as $result) {
                 $tables[] = $result->$dbName;
@@ -367,7 +401,7 @@ class BackupController extends Controller
             'total_tables' => count($tables),
             'total_records' => $totalRecords,
             'tables' => collect($tableStats)->take(10), // Top 10 tables
-            'database_name' => env('DB_DATABASE'),
+            'database_name' => config('database.connections.mysql.database'),
         ];
     }
 
