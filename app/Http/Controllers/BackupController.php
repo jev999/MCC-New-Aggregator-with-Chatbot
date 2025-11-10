@@ -77,17 +77,11 @@ class BackupController extends Controller
                 ], 403);
             }
 
-            // Increase memory and execution limits for large databases
-            @ini_set('memory_limit', '512M');
-            @set_time_limit(300); // 5 minutes
-
             // Log the start of backup creation
             \Log::info('Backup creation started', [
                 'user' => $admin->username ?? 'unknown',
                 'ip' => $request->ip(),
-                'timestamp' => now(),
-                'memory_limit' => ini_get('memory_limit'),
-                'max_execution_time' => ini_get('max_execution_time')
+                'timestamp' => now()
             ]);
 
             // Use config() instead of env() for better production compatibility
@@ -111,42 +105,20 @@ class BackupController extends Controller
 
             // Ensure backup directory exists and is writable
             if (!File::exists($this->backupPath)) {
-                \Log::info('Backup directory does not exist, attempting to create', ['path' => $this->backupPath]);
-                try {
-                    if (!File::makeDirectory($this->backupPath, 0755, true)) {
-                        \Log::error('Failed to create backup directory', [
-                            'path' => $this->backupPath,
-                            'parent_writable' => is_writable(dirname($this->backupPath)),
-                            'parent_exists' => File::exists(dirname($this->backupPath))
-                        ]);
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Failed to create backup directory. Please ensure storage/app has write permissions (chmod 775 or 777).'
-                        ], 500);
-                    }
-                    \Log::info('Backup directory created successfully', ['path' => $this->backupPath]);
-                } catch (\Exception $e) {
-                    \Log::error('Exception while creating backup directory', [
-                        'path' => $this->backupPath,
-                        'error' => $e->getMessage()
-                    ]);
+                if (!File::makeDirectory($this->backupPath, 0755, true)) {
+                    \Log::error('Failed to create backup directory', ['path' => $this->backupPath]);
                     return response()->json([
                         'success' => false,
-                        'message' => 'Failed to create backup directory: ' . $e->getMessage()
+                        'message' => 'Failed to create backup directory. Please check file permissions.'
                     ], 500);
                 }
             }
 
             if (!is_writable($this->backupPath)) {
-                \Log::error('Backup directory is not writable', [
-                    'path' => $this->backupPath,
-                    'permissions' => substr(sprintf('%o', fileperms($this->backupPath)), -4),
-                    'owner' => function_exists('posix_getpwuid') ? posix_getpwuid(fileowner($this->backupPath)) : 'unknown',
-                    'php_user' => function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid()) : 'unknown'
-                ]);
+                \Log::error('Backup directory is not writable', ['path' => $this->backupPath]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Backup directory is not writable. Please run: chmod -R 775 storage/app/backups or contact your server administrator.'
+                    'message' => 'Backup directory is not writable. Please check file permissions.'
                 ], 500);
             }
 
@@ -461,110 +433,5 @@ class BackupController extends Controller
         exec($command, $output, $returnVar);
 
         return $returnVar === 0 && !empty($output);
-    }
-
-    /**
-     * Test backup system - diagnostic endpoint
-     * This helps identify issues in production
-     */
-    public function test()
-    {
-        try {
-            $diagnostics = [];
-            
-            // Check authentication
-            $diagnostics['authenticated'] = auth('admin')->check();
-            $diagnostics['is_superadmin'] = auth('admin')->check() && auth('admin')->user()->isSuperAdmin();
-            
-            // Check PHP configuration
-            $diagnostics['php'] = [
-                'version' => PHP_VERSION,
-                'os' => PHP_OS,
-                'memory_limit' => ini_get('memory_limit'),
-                'max_execution_time' => ini_get('max_execution_time'),
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
-                'post_max_size' => ini_get('post_max_size'),
-            ];
-            
-            // Check directory permissions
-            $diagnostics['directories'] = [
-                'backup_path' => $this->backupPath,
-                'exists' => File::exists($this->backupPath),
-                'is_writable' => File::exists($this->backupPath) ? is_writable($this->backupPath) : false,
-                'permissions' => File::exists($this->backupPath) ? substr(sprintf('%o', fileperms($this->backupPath)), -4) : 'N/A',
-                'parent_exists' => File::exists(dirname($this->backupPath)),
-                'parent_writable' => File::exists(dirname($this->backupPath)) ? is_writable(dirname($this->backupPath)) : false,
-            ];
-            
-            // Check database connection
-            try {
-                DB::connection()->getPdo();
-                $diagnostics['database'] = [
-                    'connected' => true,
-                    'connection' => config('database.default'),
-                    'host' => config('database.connections.mysql.host'),
-                    'database' => config('database.connections.mysql.database'),
-                    'username' => config('database.connections.mysql.username'),
-                    'port' => config('database.connections.mysql.port'),
-                ];
-                
-                // Try to get table count
-                $tables = $this->getAllTables();
-                $diagnostics['database']['table_count'] = count($tables);
-                $diagnostics['database']['tables_sample'] = array_slice($tables, 0, 5);
-            } catch (\Exception $e) {
-                $diagnostics['database'] = [
-                    'connected' => false,
-                    'error' => $e->getMessage(),
-                ];
-            }
-            
-            // Check mysqldump availability
-            $diagnostics['mysqldump_available'] = $this->isMysqldumpAvailable();
-            
-            // Check disk space
-            $diagnostics['disk_space'] = [
-                'free_space' => disk_free_space(storage_path()),
-                'total_space' => disk_total_space(storage_path()),
-                'free_space_formatted' => $this->formatBytes(disk_free_space(storage_path())),
-                'total_space_formatted' => $this->formatBytes(disk_total_space(storage_path())),
-            ];
-            
-            // Overall health check
-            $diagnostics['status'] = 'OK';
-            $diagnostics['issues'] = [];
-            
-            if (!$diagnostics['authenticated']) {
-                $diagnostics['issues'][] = 'User not authenticated';
-            }
-            if (!$diagnostics['is_superadmin']) {
-                $diagnostics['issues'][] = 'User is not a superadmin';
-            }
-            if (!$diagnostics['directories']['exists']) {
-                $diagnostics['issues'][] = 'Backup directory does not exist';
-            }
-            if ($diagnostics['directories']['exists'] && !$diagnostics['directories']['is_writable']) {
-                $diagnostics['issues'][] = 'Backup directory is not writable';
-            }
-            if (!$diagnostics['database']['connected']) {
-                $diagnostics['issues'][] = 'Database connection failed';
-            }
-            if ($diagnostics['disk_space']['free_space'] < 100 * 1024 * 1024) { // Less than 100MB
-                $diagnostics['issues'][] = 'Low disk space (less than 100MB available)';
-            }
-            
-            if (count($diagnostics['issues']) > 0) {
-                $diagnostics['status'] = 'ISSUES_FOUND';
-            }
-            
-            return response()->json($diagnostics);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'ERROR',
-                'error' => $e->getMessage(),
-                'trace' => config('app.debug') ? $e->getTraceAsString() : 'Enable debug mode to see trace'
-            ], 500);
-        }
     }
 }

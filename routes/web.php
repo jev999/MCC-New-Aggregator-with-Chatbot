@@ -1752,7 +1752,6 @@ Route::prefix('superadmin')->group(function () {
         Route::post('backup/create', [App\Http\Controllers\BackupController::class, 'create'])->name('superadmin.backup.create');
         Route::get('backup/download/{filename}', [App\Http\Controllers\BackupController::class, 'download'])->name('superadmin.backup.download');
         Route::delete('backup/delete/{filename}', [App\Http\Controllers\BackupController::class, 'delete'])->name('superadmin.backup.delete');
-        Route::get('backup/test', [App\Http\Controllers\BackupController::class, 'test'])->name('superadmin.backup.test');
 
         // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)
