@@ -301,6 +301,203 @@ class BackupController extends Controller
     }
 
     /**
+     * Restore database from backup file
+     */
+    public function restore(Request $request)
+    {
+        try {
+            // Verify authentication
+            if (!auth('admin')->check()) {
+                \Log::warning('Backup restore attempted without authentication');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Authentication required. Please login again.'
+                ], 401);
+            }
+
+            // Verify superadmin role
+            $admin = auth('admin')->user();
+            if (!$admin->isSuperAdmin()) {
+                \Log::warning('Backup restore attempted by non-superadmin', [
+                    'user' => $admin->username,
+                    'role' => $admin->role
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Only superadmins can restore backups.'
+                ], 403);
+            }
+
+            $filename = $request->input('filename');
+            
+            if (empty($filename)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Backup filename is required.'
+                ], 400);
+            }
+
+            $filepath = $this->backupPath . '/' . $filename;
+
+            if (!File::exists($filepath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Backup file not found.'
+                ], 404);
+            }
+
+            // Log the start of restore
+            \Log::info('Database restore started', [
+                'user' => $admin->username,
+                'filename' => $filename,
+                'ip' => $request->ip(),
+                'timestamp' => now()
+            ]);
+
+            // Use config() instead of env() for better production compatibility
+            $database = config('database.connections.mysql.database');
+            $username = config('database.connections.mysql.username');
+            $password = config('database.connections.mysql.password');
+            $host = config('database.connections.mysql.host');
+            $port = config('database.connections.mysql.port', '3306');
+
+            // Check if mysql command is available
+            $mysqlAvailable = $this->isMysqlAvailable();
+
+            if ($mysqlAvailable) {
+                // Use mysql command to restore
+                $command = sprintf(
+                    'mysql --user=%s --password=%s --host=%s --port=%s %s < %s 2>&1',
+                    escapeshellarg($username),
+                    escapeshellarg($password),
+                    escapeshellarg($host),
+                    escapeshellarg($port),
+                    escapeshellarg($database),
+                    escapeshellarg($filepath)
+                );
+
+                exec($command, $output, $returnVar);
+
+                if ($returnVar === 0) {
+                    \Log::info('Database restored successfully using mysql command', [
+                        'filename' => $filename,
+                        'user' => $admin->username
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Database restored successfully!'
+                    ]);
+                } else {
+                    \Log::warning('MySQL command restore failed, falling back to Laravel method', [
+                        'return_var' => $returnVar,
+                        'output' => $output
+                    ]);
+                }
+            }
+
+            // Fallback: Use Laravel DB to execute SQL statements
+            return $this->restoreLaravelMethod($filepath);
+
+        } catch (\Exception $e) {
+            \Log::error('Database restore failed with exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user' => auth('admin')->check() ? auth('admin')->user()->username : 'unknown',
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore database: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore database using Laravel DB (fallback method)
+     */
+    protected function restoreLaravelMethod($filepath)
+    {
+        try {
+            // Read SQL file
+            $sql = File::get($filepath);
+            
+            if (empty($sql)) {
+                throw new \Exception('Backup file is empty or unreadable');
+            }
+
+            // Disable foreign key checks temporarily
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+            // Split SQL into individual statements
+            $statements = array_filter(
+                array_map('trim', explode(';', $sql)),
+                function($statement) {
+                    return !empty($statement) && !preg_match('/^--/', $statement);
+                }
+            );
+
+            $admin = auth('admin')->user();
+            \Log::info('Executing ' . count($statements) . ' SQL statements for restore', [
+                'user' => $admin->username
+            ]);
+
+            // Execute each statement
+            foreach ($statements as $statement) {
+                if (!empty($statement)) {
+                    DB::statement($statement);
+                }
+            }
+
+            // Re-enable foreign key checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            \Log::info('Database restored successfully using Laravel method', [
+                'statements_executed' => count($statements),
+                'user' => $admin->username
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Database restored successfully (Laravel method)!'
+            ]);
+
+        } catch (\Exception $e) {
+            // Re-enable foreign key checks in case of error
+            try {
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            } catch (\Exception $ignored) {}
+
+            \Log::error('Laravel restore method failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            throw new \Exception('Failed to restore using Laravel method: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Check if mysql command is available on the system
+     */
+    protected function isMysqlAvailable()
+    {
+        // Only check on Unix-like systems (Linux/Mac), not Windows
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // On Windows, check if mysql is in PATH
+            exec('where mysql 2>nul', $output, $returnVar);
+            return $returnVar === 0 && !empty($output);
+        }
+
+        $command = 'which mysql 2>/dev/null';
+        exec($command, $output, $returnVar);
+
+        return $returnVar === 0 && !empty($output);
+    }
+
+    /**
      * Get all database tables
      */
     protected function getAllTables()
