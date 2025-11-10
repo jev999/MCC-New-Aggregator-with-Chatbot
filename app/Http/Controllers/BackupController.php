@@ -194,10 +194,6 @@ class BackupController extends Controller
     protected function createLaravelBackup($filename)
     {
         try {
-            // Increase memory and execution time for large remote databases
-            ini_set('memory_limit', '512M');
-            set_time_limit(600); // 10 minutes
-            
             // Test database connection first
             try {
                 DB::connection()->getPdo();
@@ -219,33 +215,13 @@ class BackupController extends Controller
                 throw new \Exception('No tables found in database');
             }
             
-            \Log::info('Starting backup for ' . count($tables) . ' tables', ['tables' => $tables]);
-            
-            // Add SQL header
-            $sql = "-- MySQL Database Backup\n";
-            $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
-            $sql .= "-- Host: " . config('database.connections.mysql.host') . "\n";
-            $sql .= "-- Database: " . config('database.connections.mysql.database') . "\n";
-            $sql .= "-- ------------------------------------------------------\n\n";
-            $sql .= "SET FOREIGN_KEY_CHECKS=0;\n";
-            $sql .= "SET SQL_MODE=\"NO_AUTO_VALUE_ON_ZERO\";\n";
-            $sql .= "SET time_zone = \"+00:00\";\n\n";
+            \Log::info('Starting backup for ' . count($tables) . ' tables');
+            $sql = '';
 
-            // Backup each table
-            foreach ($tables as $index => $table) {
-                \Log::info("Backing up table {$table}", ['progress' => ($index + 1) . '/' . count($tables)]);
-                
-                try {
-                    $sql .= $this->getTableStructure($table);
-                    $sql .= $this->getTableData($table);
-                } catch (\Exception $e) {
-                    \Log::error("Failed to backup table {$table}", ['error' => $e->getMessage()]);
-                    $sql .= "-- ERROR backing up table {$table}: " . $e->getMessage() . "\n\n";
-                }
+            foreach ($tables as $table) {
+                $sql .= $this->getTableStructure($table);
+                $sql .= $this->getTableData($table);
             }
-            
-            // Add SQL footer
-            $sql .= "\nSET FOREIGN_KEY_CHECKS=1;\n";
 
             File::put($filepath, $sql);
 
@@ -258,10 +234,9 @@ class BackupController extends Controller
                 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Database backup created successfully!',
+                    'message' => 'Database backup created successfully (Laravel method)!',
                     'filename' => $filename,
-                    'size' => $this->formatBytes(File::size($filepath)),
-                    'tables' => count($tables)
+                    'size' => $this->formatBytes(File::size($filepath))
                 ]);
             }
 
@@ -331,73 +306,29 @@ class BackupController extends Controller
     protected function getAllTables()
     {
         try {
-            $database = config('database.connections.mysql.database');
-            
             \Log::info('Getting all tables from database', [
                 'connection' => config('database.default'),
                 'host' => config('database.connections.mysql.host'),
-                'database' => $database
+                'database' => config('database.connections.mysql.database')
             ]);
 
-            // Set longer timeout for remote connections
-            DB::connection()->getPdo()->setAttribute(\PDO::ATTR_TIMEOUT, 300);
-            
             $results = DB::select('SHOW TABLES');
             $tables = [];
 
-            // Handle different result formats
-            if (empty($results)) {
-                \Log::error('No tables found in SHOW TABLES result');
-                throw new \Exception('No tables found in database');
-            }
-
-            // Try different property names that MySQL might return
-            $possibleKeys = [
-                'Tables_in_' . $database,
-                'Tables_in_' . strtolower($database),
-                'TABLE_NAME',
-                'Table'
-            ];
+            $dbName = 'Tables_in_' . config('database.connections.mysql.database');
 
             foreach ($results as $result) {
-                $resultArray = (array) $result;
-                $tableName = null;
-                
-                // Try to find the table name with different possible keys
-                foreach ($possibleKeys as $key) {
-                    if (isset($resultArray[$key])) {
-                        $tableName = $resultArray[$key];
-                        break;
-                    }
-                }
-                
-                // If still not found, take the first value
-                if ($tableName === null && !empty($resultArray)) {
-                    $tableName = reset($resultArray);
-                }
-                
-                if ($tableName) {
-                    $tables[] = $tableName;
-                }
+                $tables[] = $result->$dbName;
             }
 
-            if (empty($tables)) {
-                \Log::error('Could not parse table names from results', [
-                    'sample_result' => json_encode($results[0] ?? null),
-                    'database' => $database
-                ]);
-                throw new \Exception('Could not retrieve table names from database');
-            }
-
-            \Log::info('Successfully retrieved tables', ['count' => count($tables), 'tables' => $tables]);
+            \Log::info('Successfully retrieved tables', ['count' => count($tables)]);
             return $tables;
 
         } catch (\Exception $e) {
             \Log::error('Failed to get tables', [
                 'error' => $e->getMessage(),
                 'connection' => config('database.default'),
-                'host' => config('database.connections.mysql.host'),
-                'trace' => $e->getTraceAsString()
+                'host' => config('database.connections.mysql.host')
             ]);
             throw $e;
         }
@@ -408,50 +339,12 @@ class BackupController extends Controller
      */
     protected function getTableStructure($table)
     {
-        try {
-            $structure = DB::select("SHOW CREATE TABLE `{$table}`");
-            
-            if (empty($structure)) {
-                \Log::error('Empty structure result for table', ['table' => $table]);
-                throw new \Exception("Could not get structure for table: {$table}");
-            }
-            
-            // Handle different property names
-            $createTable = null;
-            $structureObj = $structure[0];
-            
-            if (isset($structureObj->{'Create Table'})) {
-                $createTable = $structureObj->{'Create Table'};
-            } elseif (isset($structureObj->{'CREATE TABLE'})) {
-                $createTable = $structureObj->{'CREATE TABLE'};
-            } else {
-                // Try to get the second property (first is table name, second is CREATE statement)
-                $structureArray = (array) $structureObj;
-                $values = array_values($structureArray);
-                if (isset($values[1])) {
-                    $createTable = $values[1];
-                }
-            }
-            
-            if (!$createTable) {
-                \Log::error('Could not find CREATE TABLE statement', [
-                    'table' => $table,
-                    'structure_keys' => array_keys((array) $structureObj)
-                ]);
-                throw new \Exception("Could not parse CREATE TABLE for: {$table}");
-            }
+        $structure = DB::select("SHOW CREATE TABLE `{$table}`");
+        $createTable = $structure[0]->{'Create Table'};
 
-            return "\n\n-- Table structure for table `{$table}`\n"
-                . "DROP TABLE IF EXISTS `{$table}`;\n"
-                . $createTable . ";\n\n";
-                
-        } catch (\Exception $e) {
-            \Log::error('Failed to get table structure', [
-                'table' => $table,
-                'error' => $e->getMessage()
-            ]);
-            throw $e;
-        }
+        return "\n\n-- Table structure for table `{$table}`\n"
+            . "DROP TABLE IF EXISTS `{$table}`;\n"
+            . $createTable . ";\n\n";
     }
 
     /**
@@ -459,44 +352,25 @@ class BackupController extends Controller
      */
     protected function getTableData($table)
     {
-        try {
-            // Use chunk to handle large tables better on remote connections
-            $sql = "-- Dumping data for table `{$table}`\n";
-            $rowCount = 0;
-            
-            DB::table($table)->orderBy(DB::raw('1'))->chunk(1000, function ($rows) use (&$sql, &$rowCount) {
-                foreach ($rows as $row) {
-                    $values = [];
-                    foreach ((array)$row as $value) {
-                        if ($value === null) {
-                            $values[] = 'NULL';
-                        } else {
-                            // Better escaping for special characters
-                            $values[] = "'" . str_replace(
-                                ["'", "\n", "\r", "\0", "\x1a"],
-                                ["\\'", "\\n", "\\r", "\\0", "\\Z"],
-                                $value
-                            ) . "'";
-                        }
-                    }
-                    
-                    $sql .= "INSERT INTO `{$table}` VALUES (" . implode(', ', $values) . ");\n";
-                    $rowCount++;
-                }
-            });
-            
-            \Log::info("Backed up table data", ['table' => $table, 'rows' => $rowCount]);
+        $data = DB::table($table)->get();
+        $sql = "-- Dumping data for table `{$table}`\n";
 
-            return $sql . "\n";
-            
-        } catch (\Exception $e) {
-            \Log::error('Failed to get table data', [
-                'table' => $table,
-                'error' => $e->getMessage()
-            ]);
-            // Return comment instead of failing completely
-            return "-- Error dumping data for table `{$table}`: " . $e->getMessage() . "\n\n";
+        if ($data->count() > 0) {
+            foreach ($data as $row) {
+                $values = [];
+                foreach ((array)$row as $value) {
+                    if ($value === null) {
+                        $values[] = 'NULL';
+                    } else {
+                        $values[] = "'" . addslashes($value) . "'";
+                    }
+                }
+                
+                $sql .= "INSERT INTO `{$table}` VALUES (" . implode(', ', $values) . ");\n";
+            }
         }
+
+        return $sql . "\n";
     }
 
     /**
@@ -504,52 +378,31 @@ class BackupController extends Controller
      */
     protected function getDatabaseStats()
     {
-        try {
-            $tables = $this->getAllTables();
-            $totalRecords = 0;
-            $tableStats = [];
+        $tables = $this->getAllTables();
+        $totalRecords = 0;
+        $tableStats = [];
 
-            foreach ($tables as $table) {
-                try {
-                    $count = DB::table($table)->count();
-                    $totalRecords += $count;
-                    
-                    $tableStats[] = [
-                        'name' => $table,
-                        'records' => $count
-                    ];
-                } catch (\Exception $e) {
-                    \Log::warning('Could not count records for table', [
-                        'table' => $table,
-                        'error' => $e->getMessage()
-                    ]);
-                    $tableStats[] = [
-                        'name' => $table,
-                        'records' => 0
-                    ];
-                }
-            }
-
-            // Sort tables by record count
-            usort($tableStats, function($a, $b) {
-                return $b['records'] - $a['records'];
-            });
-
-            return [
-                'total_tables' => count($tables),
-                'total_records' => $totalRecords,
-                'tables' => collect($tableStats)->take(10), // Top 10 tables
-                'database_name' => config('database.connections.mysql.database'),
-            ];
-        } catch (\Exception $e) {
-            \Log::error('Failed to get database stats', ['error' => $e->getMessage()]);
-            return [
-                'total_tables' => 0,
-                'total_records' => 0,
-                'tables' => collect([]),
-                'database_name' => config('database.connections.mysql.database'),
+        foreach ($tables as $table) {
+            $count = DB::table($table)->count();
+            $totalRecords += $count;
+            
+            $tableStats[] = [
+                'name' => $table,
+                'records' => $count
             ];
         }
+
+        // Sort tables by record count
+        usort($tableStats, function($a, $b) {
+            return $b['records'] - $a['records'];
+        });
+
+        return [
+            'total_tables' => count($tables),
+            'total_records' => $totalRecords,
+            'tables' => collect($tableStats)->take(10), // Top 10 tables
+            'database_name' => config('database.connections.mysql.database'),
+        ];
     }
 
     /**
