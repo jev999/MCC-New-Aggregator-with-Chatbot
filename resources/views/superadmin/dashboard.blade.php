@@ -648,6 +648,13 @@
                 </div>
             </div>
 
+            <!-- Pie Chart for Content Distribution -->
+            <div class="chart-container">
+                <h2><i class="fas fa-chart-pie"></i> Content Distribution</h2>
+                <div class="chart-wrapper" style="height: 400px;">
+                    <canvas id="contentPieChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -868,6 +875,110 @@
         // Handle window resize
         window.addEventListener('resize', function() {
             activityChart.resize();
+        });
+
+        // =========================================================
+        // Content Distribution Pie Chart
+        // =========================================================
+        const pieCtx = document.getElementById('contentPieChart').getContext('2d');
+        
+        const contentPieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['📢 Announcements', '📅 Events', '📰 News'],
+                datasets: [{
+                    label: 'Content Count',
+                    data: [
+                        {{ $counts['announcements'] }},
+                        {{ $counts['events'] }},
+                        {{ $counts['news'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',   // Blue for Announcements
+                        'rgba(16, 185, 129, 0.8)',   // Green for Events
+                        'rgba(245, 158, 11, 0.8)'    // Orange for News
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)'
+                    ],
+                    borderWidth: 3,
+                    hoverOffset: 15,
+                    hoverBorderWidth: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 14,
+                                weight: '600',
+                                family: 'Segoe UI'
+                            },
+                            color: '#6b7280',
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label}: ${value} (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        strokeStyle: data.datasets[0].borderColor[i],
+                                        lineWidth: 3,
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#f3f4f6',
+                        borderColor: 'rgba(107, 114, 128, 0.3)',
+                        borderWidth: 1,
+                        cornerRadius: 12,
+                        padding: 16,
+                        titleFont: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 14
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} items (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Handle window resize for pie chart
+        window.addEventListener('resize', function() {
+            contentPieChart.resize();
         });
 
         function toggleSidebar() {
