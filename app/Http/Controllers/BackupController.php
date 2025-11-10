@@ -309,31 +309,16 @@ class BackupController extends Controller
             \Log::info('Getting all tables from database', [
                 'connection' => config('database.default'),
                 'host' => config('database.connections.mysql.host'),
-                'database' => config('database.connections.mysql.database'),
-                'port' => config('database.connections.mysql.port')
+                'database' => config('database.connections.mysql.database')
             ]);
 
-            // First, try to get the database name dynamically
-            $database = config('database.connections.mysql.database');
-            
-            // Query to show tables
             $results = DB::select('SHOW TABLES');
             $tables = [];
 
-            // Handle different response formats
-            if (empty($results)) {
-                throw new \Exception('No tables found or unable to retrieve tables');
-            }
-
-            // Get the first result to determine the column name
-            $firstResult = $results[0];
-            $columns = get_object_vars($firstResult);
-            $columnName = array_key_first($columns);
-
-            \Log::info('Table column name detected', ['column' => $columnName]);
+            $dbName = 'Tables_in_' . config('database.connections.mysql.database');
 
             foreach ($results as $result) {
-                $tables[] = $result->$columnName;
+                $tables[] = $result->$dbName;
             }
 
             \Log::info('Successfully retrieved tables', ['count' => count($tables)]);
@@ -343,8 +328,7 @@ class BackupController extends Controller
             \Log::error('Failed to get tables', [
                 'error' => $e->getMessage(),
                 'connection' => config('database.default'),
-                'host' => config('database.connections.mysql.host'),
-                'trace' => $e->getTraceAsString()
+                'host' => config('database.connections.mysql.host')
             ]);
             throw $e;
         }
@@ -394,52 +378,31 @@ class BackupController extends Controller
      */
     protected function getDatabaseStats()
     {
-        try {
-            $tables = $this->getAllTables();
-            $totalRecords = 0;
-            $tableStats = [];
+        $tables = $this->getAllTables();
+        $totalRecords = 0;
+        $tableStats = [];
 
-            foreach ($tables as $table) {
-                try {
-                    $count = DB::table($table)->count();
-                    $totalRecords += $count;
-                    
-                    $tableStats[] = [
-                        'name' => $table,
-                        'records' => $count
-                    ];
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to count records for table: ' . $table, [
-                        'error' => $e->getMessage()
-                    ]);
-                    // Continue with other tables
-                }
-            }
-
-            // Sort tables by record count
-            usort($tableStats, function($a, $b) {
-                return $b['records'] - $a['records'];
-            });
-
-            return [
-                'total_tables' => count($tables),
-                'total_records' => $totalRecords,
-                'tables' => collect($tableStats)->take(10), // Top 10 tables
-                'database_name' => config('database.connections.mysql.database'),
-            ];
-        } catch (\Exception $e) {
-            \Log::error('Failed to get database statistics', [
-                'error' => $e->getMessage()
-            ]);
+        foreach ($tables as $table) {
+            $count = DB::table($table)->count();
+            $totalRecords += $count;
             
-            // Return default values if stats can't be retrieved
-            return [
-                'total_tables' => 0,
-                'total_records' => 0,
-                'tables' => collect([]),
-                'database_name' => config('database.connections.mysql.database') ?? 'Unknown',
+            $tableStats[] = [
+                'name' => $table,
+                'records' => $count
             ];
         }
+
+        // Sort tables by record count
+        usort($tableStats, function($a, $b) {
+            return $b['records'] - $a['records'];
+        });
+
+        return [
+            'total_tables' => count($tables),
+            'total_records' => $totalRecords,
+            'tables' => collect($tableStats)->take(10), // Top 10 tables
+            'database_name' => config('database.connections.mysql.database'),
+        ];
     }
 
     /**
