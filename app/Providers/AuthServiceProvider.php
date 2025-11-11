@@ -22,13 +22,19 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Define gates for admin permissions
-        // Note: Gates automatically receive the authenticated user/admin based on the guard in use
+        // Note: We need to explicitly check the admin guard for these gates
+        
+        // Helper function to get admin user
+        $getAdmin = function () {
+            return auth()->guard('admin')->user();
+        };
         
         // User Management
-        Gate::define('manage-students', function ($user) {
+        Gate::define('manage-students', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
             // Check if it's an admin (from admin guard)
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
@@ -70,88 +76,100 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         // Content Management - Announcements
-        Gate::define('view-announcements', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('view-announcements', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('create-announcements', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('create-announcements', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('edit-announcements', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('edit-announcements', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('delete-announcements', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('delete-announcements', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
         // Content Management - Events
-        Gate::define('view-events', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('view-events', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('create-events', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('create-events', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('edit-events', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('edit-events', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('delete-events', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('delete-events', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
         // Content Management - News
-        Gate::define('view-news', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('view-news', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('create-news', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('create-news', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('edit-news', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('edit-news', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
 
-        Gate::define('delete-news', function ($user) {
-            if (method_exists($user, 'isSuperAdmin')) {
-                return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
+        Gate::define('delete-news', function ($user = null) use ($getAdmin) {
+            $admin = $user ?? $getAdmin();
+            if ($admin && method_exists($admin, 'isSuperAdmin')) {
+                return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
             return false;
         });
