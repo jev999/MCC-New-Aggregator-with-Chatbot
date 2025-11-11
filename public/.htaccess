@@ -6,12 +6,10 @@
     RewriteEngine On
 
     # -----------------------------
-    # 🔒 Security Headers (Additional Layer)
-    # Note: These complement the SecurityHeaders middleware
+    # 🔒 Security Headers
     # -----------------------------
     <IfModule mod_headers.c>
-        # Enforce HTTPS (HSTS) - Active in production
-        # This forces browsers to use HTTPS for 1 year
+        # Enforce HTTPS for 1 year
         Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
 
         # Prevent Clickjacking
@@ -20,50 +18,42 @@
         # Prevent MIME type sniffing
         Header always set X-Content-Type-Options "nosniff"
 
-        # XSS Protection (legacy browsers)
+        # XSS Protection (legacy)
         Header always set X-XSS-Protection "1; mode=block"
 
-        # Control referrer information
+        # Control referrer info
         Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-        # Control browser features (Permissions Policy)
+        # Limit browser permissions
         Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), fullscreen=(self), picture-in-picture=(self)"
     </IfModule>
 
-    # Redirect HTTP to HTTPS (optional - uncomment if using HTTPS)
-    # RewriteCond %{HTTPS} off
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-    # Handle Authorization Header
+    # -----------------------------
+    # 🧩 Authorization Headers
+    # -----------------------------
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
-
-    # -------------------------------------------------------------
-    # ✅ Hide .php extension from URL (safe & 403-free)
-    # Example: /about will load /about.php if it exists
-    # -------------------------------------------------------------
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME}.php -f
-    RewriteRule ^(.+?)/?$ $1.php [L]
-
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
-
-    # Send Requests To Front Controller (index.php)
+    # -----------------------------
+    # ✅ Laravel Front Controller
+    # -----------------------------
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 
-    # --- 2) Redirect any client-visible URL that contains .php to the extensionless URL ---
-    # Example: /foo.php  ->  /foo
-    RewriteCond %{THE_REQUEST} \s/([^\s?]*?)\.php[?\s] [NC]
-    RewriteRule ^ /%1 [R=301,L]
-    
+    # -----------------------------
+    # ✅ Hide .php Extension (Safe)
+    # Example: /about → /about.php
+    # Works only if file physically exists
+    # -----------------------------
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+
+    # -----------------------------
+    # 🚫 Redirect .php URLs to clean URLs
+    # Example: /contact.php → /contact
+    # -----------------------------
+    RewriteCond %{THE_REQUEST} \s/([^\s?]+)\.php[?\s] [NC]
+    RewriteRule ^ %1 [R=301,L]
 </IfModule>
