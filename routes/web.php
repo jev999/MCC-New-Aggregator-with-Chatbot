@@ -2041,10 +2041,10 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
         Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
         Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
         Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
-        Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
-        Route::get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
-        Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
-        Route::get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+        Route::middleware('can:view-announcements')->get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::middleware('can:view-announcements')->get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+        Route::middleware('can:view-announcements')->get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+        Route::middleware('can:view-announcements')->get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
 
         // Events CRUD - with permission checks
         Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('events.store');
