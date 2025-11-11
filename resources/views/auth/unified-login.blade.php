@@ -1193,12 +1193,7 @@
             @endif
 
 
-            @if($errors->has('recaptcha'))
-                <div class="error-message" style="border-left: 4px solid #dc2626;">
-                    <i class="fas fa-robot"></i>
-                    <span>{{ $errors->first('recaptcha') }}</span>
-                </div>
-            @elseif($errors->has('account_lockout'))
+            @if($errors->has('account_lockout'))
                 <div class="error-message lockout-message" id="lockout-message">
                     <i class="fas fa-lock"></i>
                     <span id="lockout-text">{{ $errors->first('account_lockout') }}</span>
@@ -1206,7 +1201,7 @@
                         <strong>Time remaining: <span id="countdown-timer">Loading...</span></strong>
                     </div>
                 </div>
-            @elseif($errors->any() && !$errors->has('ms365_account') && !$errors->has('gmail_account') && !$errors->has('username') && !$errors->has('password') && !$errors->has('account_lockout') && !$errors->has('recaptcha'))
+            @elseif($errors->any() && !$errors->has('ms365_account') && !$errors->has('gmail_account') && !$errors->has('username') && !$errors->has('password') && !$errors->has('account_lockout'))
                 <div class="error-message">
                     @foreach($errors->all() as $error)
                         <div>{{ $error }}</div>
@@ -1373,8 +1368,6 @@
         </div>
     </div>
 
-    <!-- Google reCAPTCHA v3 -->
-    <script src="https://www.google.com/recaptcha/api.js?render={{ env('GOOGLE_RECAPTCHA_SITE_KEY') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Dynamic OTP Modal for All Login Types -->
@@ -1646,44 +1639,8 @@
                     return false;
                 }
 
-                // Execute reCAPTCHA v3 programmatically
-                const recaptchaSiteKey = '{{ env('GOOGLE_RECAPTCHA_SITE_KEY') }}';
-                
-                if (recaptchaSiteKey && typeof grecaptcha !== 'undefined') {
-                    // Disable submit button to prevent double submission
-                    const submitBtn = document.getElementById('submit-btn');
-                    const originalBtnHtml = submitBtn.innerHTML;
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-                    
-                    grecaptcha.ready(function() {
-                        grecaptcha.execute(recaptchaSiteKey, {action: 'login'}).then(function(token) {
-                            // Add reCAPTCHA token to form
-                            let recaptchaInput = document.getElementById('g-recaptcha-response');
-                            if (!recaptchaInput) {
-                                recaptchaInput = document.createElement('input');
-                                recaptchaInput.type = 'hidden';
-                                recaptchaInput.name = 'g-recaptcha-response';
-                                recaptchaInput.id = 'g-recaptcha-response';
-                                form.appendChild(recaptchaInput);
-                            }
-                            recaptchaInput.value = token;
-                            
-                            // Submit the form
-                            form.submit();
-                        }).catch(function(error) {
-                            console.error('reCAPTCHA error:', error);
-                            // Re-enable button on error
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalBtnHtml;
-                            showSecurityError('reCAPTCHA verification failed. Please try again.');
-                        });
-                    });
-                } else {
-                    // If reCAPTCHA is not configured, submit directly
-                    console.warn('reCAPTCHA not configured, submitting without verification');
-                    form.submit();
-                }
+                // Submit the form directly
+                form.submit();
             });
 
             function toggleFields() {

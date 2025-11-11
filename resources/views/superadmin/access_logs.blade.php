@@ -54,7 +54,7 @@
 
         .sidebar {
             width: 280px;
-            background: #1a1a1a;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
             color: white;
             position: fixed;
             height: 100vh;
@@ -63,6 +63,7 @@
             z-index: 1000;
             transition: transform 0.3s ease;
             overflow-y: auto;
+            box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .sidebar.open {
@@ -70,50 +71,63 @@
         }
 
         .sidebar-header {
-            padding: 1.5rem;
+            padding: 2rem 1.5rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: left;
+            text-align: center;
         }
 
         .sidebar-header h3 {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 600;
             margin: 0;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
             color: white;
         }
 
         .sidebar-header h3 i {
-            color: white;
-            font-size: 1.3rem;
+            color: #ffd700;
+            font-size: 1.5rem;
         }
 
         .sidebar-menu {
             list-style: none;
-            padding: 0.5rem 0;
+            padding: 1rem 0;
         }
 
         .sidebar-menu li {
-            margin: 0.25rem 0;
+            margin: 0.5rem 0;
         }
 
         .sidebar-menu a {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem 1.25rem;
-            color: white;
+            padding: 0.875rem 1.5rem;
+            color: #cbd5e1;
             text-decoration: none;
             font-weight: 500;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
 
         .sidebar-menu a:hover,
         .sidebar-menu a.active {
-            background: #333333;
+            background: rgba(255, 255, 255, 0.1);
             color: white;
+            transform: translateX(5px);
+        }
+
+        .sidebar-menu a i {
+            width: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-menu a:hover i,
+        .sidebar-menu a.active i {
+            transform: scale(1.1);
         }
 
         .main-content {
@@ -980,15 +994,25 @@
                                     <td><span class="ip-address">{{ $log->ip_address ?? 'N/A' }}</span></td>
                                     <td>
                                         @if($log->latitude && $log->longitude)
-                                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                                <span style="color: #059669; font-size: 0.875rem;">{{ $log->location_details ?? 'N/A' }}</span>
-                                                <button onclick="showLocationMap({{ $log->latitude }}, {{ $log->longitude }}, '{{ $log->location_details }}', '{{ $log->status === 'failed' ? ($log->username_attempted ?? 'Unknown') : ($log->admin->username ?? 'Unknown') }}')" 
+                                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                                <span style="color: #059669; font-size: 0.875rem; line-height: 1.4;">
+                                                    <i class="fas fa-map-marker-alt" style="color: #10b981;"></i>
+                                                    {{ $log->location_details ?? 'N/A' }}
+                                                </span>
+                                                <button onclick="showLocationMap({{ $log->latitude }}, {{ $log->longitude }}, '{{ addslashes($log->location_details) }}', '{{ $log->status === 'failed' ? ($log->username_attempted ?? 'Unknown') : ($log->admin->username ?? 'Unknown') }}')" 
                                                         style="background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; padding: 0.375rem 0.75rem; border-radius: 8px; cursor: pointer; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
                                                     <i class="fas fa-map-marker-alt"></i> View Map
                                                 </button>
                                             </div>
+                                        @elseif($log->location_details)
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <i class="fas fa-network-wired" style="color: #64748b;"></i>
+                                                <span style="color: #64748b; font-size: 0.875rem;">{{ $log->location_details }}</span>
+                                            </div>
                                         @else
-                                            <span style="color: #64748b; font-size: 0.875rem;">Location unavailable</span>
+                                            <span style="color: #64748b; font-size: 0.875rem;">
+                                                <i class="fas fa-question-circle"></i> Location unavailable
+                                            </span>
                                         @endif
                                     </td>
                                     <td>
