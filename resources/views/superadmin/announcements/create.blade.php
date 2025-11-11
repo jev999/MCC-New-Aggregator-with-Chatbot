@@ -190,7 +190,7 @@
                             <div class="file-upload-content">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Click to upload or drag and drop</p>
-                                <small>JPG, PNG only - up to 5MB each, maximum 2 files</small>
+                                <small>JPG, PNG only - up to 2MB each, maximum 2 files</small>
                             </div>
                         </div>
                         <div id="imagesPreview" class="file-previews"></div>
@@ -918,13 +918,13 @@
         }
         
         // Check file sizes
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 2 * 1024 * 1024; // 2MB
         const oversizedFiles = Array.from(e.target.files).filter(file => file.size > maxSize);
         if (oversizedFiles.length > 0) {
             Swal.fire({
                 icon: 'error',
                 title: 'File Size Too Large!',
-                text: `Some images exceed the 5MB limit. Please choose smaller files.`,
+                text: `Some images exceed the 2MB limit. Please choose smaller files.`,
                 confirmButtonText: 'Choose Again',
                 confirmButtonColor: '#ef4444',
                 background: '#ffffff',
