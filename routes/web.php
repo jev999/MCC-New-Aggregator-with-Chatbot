@@ -25,6 +25,7 @@ use App\Http\Controllers\PublicContentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UnifiedAuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\Auth\GmailAuthController;
 use App\Http\Controllers\Auth\MS365AuthController;
 use App\Http\Controllers\Auth\MS365OAuthController;
@@ -47,6 +48,7 @@ Route::get('/test-chatbot', function () {
 Route::get('/test-security-headers', function () {
     return view('test-security-headers');
 })->name('test.security-headers');
+
 
 // Legal pages routes
 Route::get('/terms-and-conditions', [App\Http\Controllers\LegalController::class, 'termsAndConditions'])->name('legal.terms');
@@ -1747,13 +1749,12 @@ Route::prefix('superadmin')->group(function () {
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
 
         // ====================================================================
-        // DATABASE BACKUP - DISABLED
+        // DATABASE BACKUP - AUTOMATED EVERY 5 HOURS
         // ====================================================================
-        // Route::get('backup', [App\Http\Controllers\BackupController::class, 'index'])->name('superadmin.backup');
-        // Route::post('backup/create', [App\Http\Controllers\BackupController::class, 'create'])->name('superadmin.backup.create');
-        // Route::post('backup/restore', [App\Http\Controllers\BackupController::class, 'restore'])->name('superadmin.backup.restore');
-        // Route::get('backup/download/{filename}', [App\Http\Controllers\BackupController::class, 'download'])->name('superadmin.backup.download');
-        // Route::delete('backup/delete/{filename}', [App\Http\Controllers\BackupController::class, 'delete'])->name('superadmin.backup.delete');
+        Route::get('backup', [BackupController::class, 'index'])->name('superadmin.backup');
+        Route::post('backup/create', [BackupController::class, 'create'])->name('superadmin.backup.create');
+        Route::get('backup/download/{filename}', [BackupController::class, 'download'])->name('superadmin.backup.download');
+        Route::delete('backup/delete/{filename}', [BackupController::class, 'delete'])->name('superadmin.backup.delete');
 
         // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)

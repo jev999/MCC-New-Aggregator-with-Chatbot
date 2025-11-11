@@ -12,14 +12,13 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Run database backup daily at 2 AM
-        $schedule->command('backup:run')->daily()->at('02:00');
+        // Run database backup every 5 hours
+        $schedule->command('backup:run')->everyFiveHours()
+            ->sendOutputTo(storage_path('logs/backup.log'))
+            ->emailOutputOnFailure(env('BACKUP_NOTIFICATION_EMAIL', 'admin@example.com'));
         
-        // Run backup cleanup daily at 3 AM
-        $schedule->command('backup:clean')->daily()->at('03:00');
-        
-        // Check backup health daily at 4 AM
-        $schedule->command('backup:monitor')->daily()->at('04:00');
+        // Run backup cleanup to manage old backups (daily at midnight)
+        $schedule->command('backup:clean')->daily()->at('00:00');
     }
 
     /**

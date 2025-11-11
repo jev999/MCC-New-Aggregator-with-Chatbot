@@ -520,10 +520,10 @@
                 <li><a href="{{ route('superadmin.admin-access') }}">
                     <i class="fas fa-clipboard-list"></i> Admin Access Logs
                 </a></li>
+                <li><a href="{{ route('superadmin.backup') }}">
+                    <i class="fas fa-database"></i> Database Backup
+                </a></li>
                 @endif
-                <li>
-
-                </li>
             </ul>
         </div>
 
@@ -857,6 +857,46 @@
                 });
             }
         })();
+
+        // GPS Geolocation for Accurate Admin Location Tracking
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    
+                    // Send GPS coordinates to server
+                    fetch('{{ route("admin.update-gps-location") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✓ GPS location updated:', data.location);
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('GPS location update failed:', error);
+                    });
+                },
+                function(error) {
+                    console.warn('GPS access denied or unavailable:', error.message);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
     </script>
 </body>
 </html>
