@@ -30,6 +30,7 @@ use App\Http\Controllers\Auth\MS365AuthController;
 use App\Http\Controllers\Auth\MS365OAuthController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Http\Request;
 
 // Show welcome page at root
@@ -2528,6 +2529,40 @@ Route::get('/quick-fix-admin-passwords', function () {
     
     return $output;
 });
+
+// Debug current office admin access
+Route::get('/debug-office-admin-access', function() {
+    $admin = Auth::guard('admin')->user();
+    
+    if (!$admin) {
+        return response()->json([
+            'error' => 'Not authenticated',
+            'guard' => 'admin',
+            'session_data' => session()->all()
+        ]);
+    }
+    
+    return response()->json([
+        'authenticated' => true,
+        'admin' => [
+            'id' => $admin->id,
+            'username' => $admin->username,
+            'role' => $admin->role,
+            'office' => $admin->office,
+            'isOfficeAdmin' => $admin->isOfficeAdmin(),
+        ],
+        'spatie_roles' => $admin->getRoleNames(),
+        'spatie_permissions' => $admin->getAllPermissions()->pluck('name'),
+        'gates' => [
+            'view-announcements' => Gate::allows('view-announcements'),
+            'create-announcements' => Gate::allows('create-announcements'),
+            'edit-announcements' => Gate::allows('edit-announcements'),
+            'view-admin-dashboard' => Gate::allows('view-admin-dashboard'),
+        ],
+        'route_exists' => Route::has('office-admin.announcements.index'),
+        'announcements_url' => route('office-admin.announcements.index'),
+    ]);
+})->middleware('auth:admin')->name('debug.office.admin.access');
 
 // Test office admin authentication logic specifically
 Route::get('/test-office-admin-auth', function () {
