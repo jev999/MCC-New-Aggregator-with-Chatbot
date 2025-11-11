@@ -187,7 +187,7 @@
                             <div class="file-upload-content">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Click to upload or drag and drop multiple images</p>
-                                <small>JPG, PNG up to 5MB each (Maximum 2 images)</small>
+                                <small>JPG, PNG up to 2MB each (Maximum 2 images)</small>
                             </div>
                         </div>
                         <div id="imagesPreview" class="file-previews"></div>
@@ -1087,7 +1087,7 @@
     document.getElementById('images').addEventListener('change', function(e) {
         const files = Array.from(e.target.files);
         const maxFiles = 2;
-        const maxSize = 5 * 1024 * 1024; // 5MB
+        const maxSize = 2 * 1024 * 1024; // 2MB
         const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         
         // Validate file count
@@ -1132,7 +1132,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'File Size Too Large!',
-                    text: `File too large: ${file.name}. Maximum size is 5MB per image.`,
+                    text: `File too large: ${file.name}. Maximum size is 2MB per image.`,
                     confirmButtonText: 'Choose Again',
                     confirmButtonColor: '#ef4444',
                     background: '#ffffff',

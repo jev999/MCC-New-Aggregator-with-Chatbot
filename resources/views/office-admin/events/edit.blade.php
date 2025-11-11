@@ -255,7 +255,7 @@
                             <div class="file-upload-content">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Click to upload or drag and drop</p>
-                                <small>JPG, PNG up to 5MB each</small>
+                                <small>JPG, PNG up to 2MB each</small>
                             </div>
                         </div>
                         <div id="images-preview" class="file-preview-container"></div>
@@ -1374,12 +1374,12 @@
                 return;
             }
             
-            // Validate file size (5MB)
-            if (file.size > 5 * 1024 * 1024) {
+            // Validate file size (2MB)
+            if (file.size > 2 * 1024 * 1024) {
                 Swal.fire({
                     icon: 'error',
                     title: 'File Too Large',
-                    text: `File ${file.name} is too large. Maximum size is 5MB.`,
+                    text: `File ${file.name} is too large. Maximum size is 2MB.`,
                     confirmButtonColor: '#ef4444',
                     customClass: {
                         popup: 'swal-custom-popup',

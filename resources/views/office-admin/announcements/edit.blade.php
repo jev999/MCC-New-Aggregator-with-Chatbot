@@ -256,7 +256,7 @@
                             <div class="file-upload-content">
                                 <i class="fas fa-cloud-upload-alt"></i>
                                 <p>Click to upload or drag and drop</p>
-                                <small>JPG, PNG up to 5MB each</small>
+                                <small>JPG, PNG up to 2MB each</small>
                             </div>
                         </div>
                         <div id="images-preview" class="file-preview-container"></div>
