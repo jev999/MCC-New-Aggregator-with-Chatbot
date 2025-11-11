@@ -52,99 +52,6 @@ class UnifiedAuthController extends Controller
     }
 
     /**
-     * Verify reCAPTCHA v3 token
-     */
-    protected function verifyRecaptcha(Request $request)
-    {
-        $recaptchaToken = $request->input('g-recaptcha-response');
-        $recaptchaSecretKey = env('GOOGLE_RECAPTCHA_SECRET_KEY');
-        
-        // If reCAPTCHA is not configured, skip verification
-        if (!$recaptchaSecretKey || !$recaptchaToken) {
-            \Log::warning('reCAPTCHA verification skipped - not configured or no token provided', [
-                'has_secret_key' => !empty($recaptchaSecretKey),
-                'has_token' => !empty($recaptchaToken),
-                'ip' => $request->ip()
-            ]);
-            return [
-                'success' => true,
-                'score' => 1.0,
-                'message' => 'reCAPTCHA not configured'
-            ];
-        }
-        
-        try {
-            // Verify the token with Google
-            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
-                'secret' => $recaptchaSecretKey,
-                'response' => $recaptchaToken,
-                'remoteip' => $request->ip()
-            ]);
-            
-            $result = $response->json();
-            
-            \Log::info('reCAPTCHA verification result', [
-                'success' => $result['success'] ?? false,
-                'score' => $result['score'] ?? 0,
-                'action' => $result['action'] ?? 'unknown',
-                'challenge_ts' => $result['challenge_ts'] ?? null,
-                'hostname' => $result['hostname'] ?? null,
-                'error_codes' => $result['error-codes'] ?? [],
-                'ip' => $request->ip()
-            ]);
-            
-            // Check if verification was successful
-            if (!isset($result['success']) || !$result['success']) {
-                return [
-                    'success' => false,
-                    'score' => 0,
-                    'message' => 'reCAPTCHA verification failed',
-                    'error_codes' => $result['error-codes'] ?? []
-                ];
-            }
-            
-            // Get the score (0.0 - 1.0, where 1.0 is very likely a good interaction)
-            $score = $result['score'] ?? 0;
-            $threshold = (float) env('RECAPTCHA_THRESHOLD', 0.5);
-            
-            // Check if score meets threshold
-            if ($score < $threshold) {
-                \Log::warning('reCAPTCHA score below threshold', [
-                    'score' => $score,
-                    'threshold' => $threshold,
-                    'action' => $result['action'] ?? 'unknown',
-                    'ip' => $request->ip()
-                ]);
-                
-                return [
-                    'success' => false,
-                    'score' => $score,
-                    'message' => 'reCAPTCHA score too low - possible bot activity detected'
-                ];
-            }
-            
-            return [
-                'success' => true,
-                'score' => $score,
-                'message' => 'reCAPTCHA verification successful'
-            ];
-            
-        } catch (\Exception $e) {
-            \Log::error('reCAPTCHA verification error', [
-                'error' => $e->getMessage(),
-                'ip' => $request->ip()
-            ]);
-            
-            // On error, allow login but log the issue
-            return [
-                'success' => true,
-                'score' => 0.5,
-                'message' => 'reCAPTCHA verification error - allowing login'
-            ];
-        }
-    }
-    
-    /**
      * Show the unified login form
      */
     public function showLoginForm(Request $request)
@@ -178,29 +85,6 @@ class UnifiedAuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Verify reCAPTCHA v3 token
-        $recaptchaResult = $this->verifyRecaptcha($request);
-        if (!$recaptchaResult['success']) {
-            \Log::warning('Login blocked by reCAPTCHA', [
-                'score' => $recaptchaResult['score'],
-                'message' => $recaptchaResult['message'],
-                'ip' => $request->ip(),
-                'login_type' => $request->login_type,
-                'user_agent' => $request->userAgent()
-            ]);
-            
-            return back()->withErrors([
-                'recaptcha' => 'Security verification failed. You appear to be a bot. Please try again or contact support if this persists.'
-            ])->withInput($request->except('password'));
-        }
-        
-        // Log successful reCAPTCHA verification
-        \Log::info('reCAPTCHA verification passed for login', [
-            'score' => $recaptchaResult['score'],
-            'ip' => $request->ip(),
-            'login_type' => $request->login_type
-        ]);
-
         // Check rate limiting
         if ($this->securityService) {
             $rateLimitCheck = $this->securityService->checkRateLimit($request, 'login');
