@@ -45,10 +45,22 @@ class UnifiedAuthController extends Controller
 
     /**
      * Get geolocation data for logging
+     * Returns IP-based location with clear labeling that GPS will update later
      */
     protected function getGeolocationData($ip)
     {
-        return $this->geolocationService->getLocationFromIp($ip);
+        $location = $this->geolocationService->getLocationFromIp($ip);
+        
+        // Add clear note that this is IP-based and GPS will provide exact location
+        if ($location && isset($location['location_details'])) {
+            // Check if already has a tag
+            if (strpos($location['location_details'], '[GPS') === false && 
+                strpos($location['location_details'], '[IP-Based') === false) {
+                $location['location_details'] .= ' [IP-Based - Approximate. GPS will update with exact location]';
+            }
+        }
+        
+        return $location;
     }
 
     /**

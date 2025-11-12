@@ -425,5 +425,55 @@ class GeolocationService
         return $ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '192.168.') === 0 || 
                strpos($ip, '10.') === 0 || strpos($ip, '172.') === 0;
     }
+
+    /**
+     * Get more accurate location using multiple data sources
+     * Combines IP geolocation with ISP info to provide context
+     * 
+     * @param string $ip
+     * @return array
+     */
+    public function getAccurateLocation($ip)
+    {
+        try {
+            // Get base location from IP
+            $ipLocation = $this->getLocationFromIp($ip);
+            
+            if (!$ipLocation) {
+                return [
+                    'latitude' => null,
+                    'longitude' => null,
+                    'location_details' => 'Location unavailable - Waiting for GPS',
+                    'location_source' => 'none',
+                    'accuracy_note' => 'IP geolocation failed. GPS location will be used when available.'
+                ];
+            }
+
+            // Add accuracy note about IP geolocation
+            $accuracyNote = $this->isLocalIp($ip) 
+                ? 'Local IP - GPS required for exact location' 
+                : 'ISP/Network location - May not reflect actual WiFi location. GPS will provide exact location.';
+
+            $ipLocation['location_source'] = $this->isLocalIp($ip) ? 'local_ip' : 'ip_geolocation';
+            $ipLocation['accuracy_note'] = $accuracyNote;
+            $ipLocation['location_details'] = ($ipLocation['location_details'] ?? 'Unknown') . ' [IP-Based, Not Exact]';
+
+            return $ipLocation;
+
+        } catch (\Exception $e) {
+            Log::error('Accurate location service error', [
+                'ip' => $ip,
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'latitude' => null,
+                'longitude' => null,
+                'location_details' => 'Location service error - GPS will be used',
+                'location_source' => 'error',
+                'accuracy_note' => 'Waiting for GPS coordinates from browser'
+            ];
+        }
+    }
 }
 

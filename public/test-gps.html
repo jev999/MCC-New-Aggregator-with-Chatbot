@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Location Test - MCC NAC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 3rem;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .status {
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+            font-weight: 500;
+        }
+        
+        .status.waiting {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fbbf24;
+        }
+        
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #10b981;
+        }
+        
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #ef4444;
+        }
+        
+        .details {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1.5rem 0;
+        }
+        
+        .details h3 {
+            color: #475569;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+        
+        .detail-value {
+            color: #1e293b;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+        }
+        
+        .info-box h3 {
+            color: #1e40af;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-box p {
+            color: #475569;
+            line-height: 1.6;
+            margin: 0.5rem 0;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ GPS Location Test</h1>
+        <p style="text-align: center; color: #64748b; margin-bottom: 2rem;">
+            Test if GPS location tracking works on your device
+        </p>
+        
+        <div id="status" class="status waiting">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="spinner"></div>
+                <span>Waiting to test GPS...</span>
+            </div>
+        </div>
+        
+        <div id="details" class="details" style="display: none;">
+            <h3>📍 Location Details</h3>
+            <div id="location-info"></div>
+        </div>
+        
+        <button id="testBtn" class="btn" onclick="testGPS()">
+            Test GPS Location
+        </button>
+        
+        <div class="info-box">
+            <h3>ℹ️ How This Works</h3>
+            <p><strong>1. Click "Test GPS Location"</strong> - Browser will ask for permission</p>
+            <p><strong>2. Allow location access</strong> - This tests if GPS works</p>
+            <p><strong>3. Check results</strong> - Green = Working, Red = Problem</p>
+            <p style="margin-top: 1rem; font-size: 0.9rem;">
+                <strong>Note:</strong> GPS only works on HTTPS sites. Your coordinates show your exact device location.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        function updateStatus(message, type, spinning = false) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.innerHTML = spinning 
+                ? `<div style="display: flex; align-items: center; gap: 1rem;"><div class="spinner"></div><span>${message}</span></div>`
+                : message;
+        }
+        
+        function displayDetails(position) {
+            const detailsEl = document.getElementById('details');
+            const infoEl = document.getElementById('location-info');
+            
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = Math.round(position.coords.accuracy);
+            
+            infoEl.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Latitude:</span>
+                    <span class="detail-value">${lat.toFixed(6)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Longitude:</span>
+                    <span class="detail-value">${lng.toFixed(6)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Accuracy:</span>
+                    <span class="detail-value">${accuracy} meters</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Timestamp:</span>
+                    <span class="detail-value">${new Date(position.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Google Maps:</span>
+                    <span class="detail-value">
+                        <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" 
+                           style="color: #3b82f6; text-decoration: none;">
+                            View on Map →
+                        </a>
+                    </span>
+                </div>
+            `;
+            
+            detailsEl.style.display = 'block';
+        }
+        
+        function testGPS() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<div class="spinner"></div> Testing...';
+            
+            updateStatus('Requesting GPS permission...', 'waiting', true);
+            
+            // Check if geolocation is supported
+            if (!navigator.geolocation) {
+                updateStatus('❌ GPS not supported by this browser', 'error');
+                testBtn.disabled = false;
+                testBtn.innerHTML = 'Test GPS Location';
+                return;
+            }
+            
+            // Request GPS location
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Success
+                    updateStatus('✅ GPS is working! Location captured successfully', 'success');
+                    displayDetails(position);
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = 'Test Again';
+                    
+                    console.log('GPS Success:', {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy + ' meters'
+                    });
+                },
+                function(error) {
+                    // Error
+                    let errorMessage = '';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = '❌ Location permission denied. Please allow location access in your browser settings.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = '❌ Location information unavailable. Check if GPS/Location services are enabled on your device.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = '❌ Location request timed out. Try again or check your GPS signal.';
+                            break;
+                        default:
+                            errorMessage = '❌ Unknown error occurred: ' + error.message;
+                    }
+                    
+                    updateStatus(errorMessage, 'error');
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = 'Try Again';
+                    
+                    console.error('GPS Error:', error);
+                },
+                {
+                    enableHighAccuracy: true,  // Request high accuracy GPS
+                    timeout: 10000,            // 10 second timeout
+                    maximumAge: 0              // Don't use cached position
+                }
+            );
+        }
+        
+        // Check HTTPS
+        window.addEventListener('load', function() {
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                updateStatus('⚠️ Warning: GPS may not work on HTTP. Use HTTPS for best results.', 'error');
+            } else {
+                updateStatus('Ready to test GPS. Click the button below.', 'waiting');
+            }
+        });
+    </script>
+</body>
+</html>

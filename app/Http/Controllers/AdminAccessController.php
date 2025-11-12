@@ -193,12 +193,14 @@ class AdminAccessController extends Controller
                 $data = $response->json();
                 
                 if (isset($data['address'])) {
-                    return $this->formatExactLocationDetails($data['address']);
+                    $location = $this->formatExactLocationDetails($data['address']);
+                    // Add GPS indicator and accuracy note
+                    return $location . ' [GPS - Exact Device Location]';
                 }
             }
 
             // Fallback to coordinates if geocoding fails
-            return "GPS Location: {$latitude}, {$longitude}";
+            return "GPS: {$latitude}, {$longitude} [Exact Coordinates]";
 
         } catch (\Exception $e) {
             Log::warning('Reverse geocoding failed', [
@@ -206,7 +208,7 @@ class AdminAccessController extends Controller
                 'coordinates' => "{$latitude}, {$longitude}"
             ]);
             
-            return "GPS Location: {$latitude}, {$longitude}";
+            return "GPS: {$latitude}, {$longitude} [Exact Coordinates]";
         }
     }
 
@@ -264,9 +266,8 @@ class AdminAccessController extends Controller
             $parts[] = 'Street: ' . $address['road'];
         }
 
-        // Add GPS source indicator
-        $location = !empty($parts) ? implode(', ', $parts) : 'Location data available';
-        return $location . ' [GPS]';
+        // Return formatted location (GPS indicator added by caller)
+        return !empty($parts) ? implode(', ', $parts) : 'Location data available';
     }
 
     /**
