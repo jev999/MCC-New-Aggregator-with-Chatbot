@@ -13,9 +13,18 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // Run database backup every 5 hours
-        $schedule->command('backup:run')->everyFiveHours()
-            ->sendOutputTo(storage_path('logs/backup.log'))
-            ->emailOutputOnFailure(env('BACKUP_NOTIFICATION_EMAIL', 'admin@example.com'));
+        // Uses PHP-based backup if USE_PHP_BACKUP=true in .env, otherwise uses Spatie backup
+        if (config('backup.use_php_backup', false)) {
+            // PHP-based backup (no mysqldump required, works with remote databases)
+            $schedule->command('backup:php-run')->everyFiveHours()
+                ->sendOutputTo(storage_path('logs/backup.log'))
+                ->emailOutputOnFailure(env('BACKUP_NOTIFICATION_EMAIL', 'admin@example.com'));
+        } else {
+            // Spatie backup (requires mysqldump)
+            $schedule->command('backup:run')->everyFiveHours()
+                ->sendOutputTo(storage_path('logs/backup.log'))
+                ->emailOutputOnFailure(env('BACKUP_NOTIFICATION_EMAIL', 'admin@example.com'));
+        }
         
         // Run backup cleanup to manage old backups (daily at midnight)
         $schedule->command('backup:clean')->daily()->at('00:00');

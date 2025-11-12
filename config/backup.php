@@ -2,6 +2,17 @@
 
 return [
 
+    /*
+     * Set to true to use PHP-based backup (no mysqldump required)
+     * This is useful for:
+     * - Shared hosting without mysqldump access
+     * - Remote database connections
+     * - Systems where you can't install mysql-client
+     * 
+     * Set USE_PHP_BACKUP=true in your .env file to enable
+     */
+    'use_php_backup' => env('USE_PHP_BACKUP', false),
+
     'backup' => [
         /*
          * The name of this application. You can use this name to monitor
@@ -78,6 +89,29 @@ return [
              */
             'databases' => [
                 env('DB_CONNECTION', 'mysql'),
+            ],
+            
+            /*
+             * Database dump settings for remote connections
+             * Specify custom mysqldump binary path and connection options
+             */
+            'database_dump_settings' => [
+                'mysql' => [
+                    // Use mysqldump from XAMPP for Windows, or system path for Linux
+                    'dump_binary_path' => env('MYSQLDUMP_PATH', 'C:\\xampp\\mysql\\bin\\mysqldump.exe'),
+                    
+                    // For remote database connections, use these options
+                    'use_single_transaction' => true,
+                    'timeout' => 60 * 5, // 5 minutes timeout for large databases
+                    
+                    // Add any tables to exclude from backup
+                    'exclude_tables' => [
+                        // 'table_to_exclude',
+                    ],
+                    
+                    // Additional mysqldump options for remote connections
+                    'add_extra_option' => '--skip-lock-tables --no-tablespaces',
+                ],
             ],
         ],
 

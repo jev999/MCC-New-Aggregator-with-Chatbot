@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Services\DatabaseBackupService;
 
 class BackupController extends Controller
 {
@@ -93,7 +94,7 @@ class BackupController extends Controller
     }
 
     /**
-     * Create new database backup using Spatie Laravel Backup
+     * Create new database backup - tries Spatie first, falls back to PHP-based backup
      */
     public function create(Request $request)
     {
@@ -127,36 +128,61 @@ class BackupController extends Controller
                 'timestamp' => now()
             ]);
 
-            // Run Spatie backup command
-            Artisan::call('backup:run', [
-                '--only-db' => true,  // Only backup database, not files
-            ]);
-
-            $output = Artisan::output();
+            // Check if we should use PHP-based backup (fallback mode)
+            $usePhpBackup = config('backup.use_php_backup', false) || !$this->isMysqldumpAvailable();
             
-            // Check if backup was successful (using strpos for PHP 7.x compatibility)
-            if (strpos($output, 'Backup completed') !== false || strpos($output, 'successfully') !== false || strpos($output, 'Success') !== false) {
-                Log::info('Backup created successfully', [
-                    'user' => $admin->username,
-                    'output' => $output
+            if ($usePhpBackup) {
+                Log::info('Using PHP-based backup (mysqldump not available or configured)');
+                return $this->createPhpBackup($admin);
+            }
+
+            // Try Spatie backup first
+            try {
+                // Set custom mysqldump path if configured
+                $mysqldumpPath = config('backup.backup.database_dump_settings.mysql.dump_binary_path');
+                if ($mysqldumpPath && file_exists($mysqldumpPath)) {
+                    putenv("MYSQLDUMP_PATH={$mysqldumpPath}");
+                    Log::info('Using custom mysqldump path', ['path' => $mysqldumpPath]);
+                }
+
+                // Run Spatie backup command
+                Artisan::call('backup:run', [
+                    '--only-db' => true,  // Only backup database, not files
                 ]);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Database backup created successfully!',
-                    'output' => $output
-                ]);
-            } else {
-                Log::error('Backup creation may have failed', [
-                    'output' => $output
-                ]);
+                $output = Artisan::output();
+                
+                // Check if backup failed due to mysqldump
+                if (strpos($output, 'mysqldump') !== false && strpos($output, 'not recognized') !== false) {
+                    Log::warning('Spatie backup failed due to missing mysqldump, falling back to PHP backup');
+                    return $this->createPhpBackup($admin);
+                }
+                
+                // Check if backup was successful
+                if (strpos($output, 'Backup completed') !== false || strpos($output, 'successfully') !== false || strpos($output, 'Success') !== false) {
+                    Log::info('Backup created successfully via Spatie', [
+                        'user' => $admin->username,
+                        'output' => $output
+                    ]);
 
-                // Even if message doesn't confirm, still return success since command executed
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Backup command executed. Check backup list to verify.',
-                    'output' => $output
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Database backup created successfully!',
+                        'method' => 'spatie',
+                        'output' => $output
+                    ]);
+                } else {
+                    Log::warning('Spatie backup output unclear, falling back to PHP backup', [
+                        'output' => $output
+                    ]);
+                    return $this->createPhpBackup($admin);
+                }
+                
+            } catch (\Exception $spatieException) {
+                Log::warning('Spatie backup failed, falling back to PHP backup', [
+                    'error' => $spatieException->getMessage()
                 ]);
+                return $this->createPhpBackup($admin);
             }
 
         } catch (\Exception $e) {
@@ -172,6 +198,68 @@ class BackupController extends Controller
                 'success' => false,
                 'message' => 'Failed to create backup: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Create backup using PHP-based method (no mysqldump required)
+     */
+    protected function createPhpBackup($admin)
+    {
+        try {
+            $backupService = new DatabaseBackupService();
+            $result = $backupService->createBackup();
+            
+            Log::info('PHP-based backup created successfully', [
+                'user' => $admin->username,
+                'filename' => $result['filename'],
+                'size' => $result['size']
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Database backup created successfully using PHP method!',
+                'method' => 'php',
+                'filename' => $result['filename'],
+                'size' => $this->formatBytes($result['size'])
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('PHP-based backup failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            throw $e;
+        }
+    }
+    
+    /**
+     * Check if mysqldump is available on the system
+     */
+    protected function isMysqldumpAvailable()
+    {
+        try {
+            $mysqldumpPath = config('backup.backup.database_dump_settings.mysql.dump_binary_path');
+            
+            // If custom path is set and exists, return true
+            if ($mysqldumpPath && file_exists($mysqldumpPath)) {
+                return true;
+            }
+            
+            // Try to find mysqldump in system PATH
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows
+                exec('where mysqldump', $output, $returnCode);
+            } else {
+                // Linux/Mac
+                exec('which mysqldump', $output, $returnCode);
+            }
+            
+            return $returnCode === 0;
+            
+        } catch (\Exception $e) {
+            return false;
         }
     }
 
