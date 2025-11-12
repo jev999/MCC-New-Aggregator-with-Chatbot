@@ -114,21 +114,6 @@
             font-size: 1.8rem;
         }
 
-        .logout-btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
 
         .alert {
             padding: 1rem;
@@ -368,14 +353,6 @@
         <div class="main-content">
             <div class="header">
                 <h1><i class="fas fa-database"></i> Database Backup Management</h1>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    @auth('admin')
-                        <span style="color: #666;">Welcome, {{ auth('admin')->user()->username }}</span>
-                        <button onclick="handleLogout()" class="logout-btn">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    @endauth
-                </div>
             </div>
 
             @if(session('success'))
@@ -573,32 +550,6 @@
             });
         }
 
-        function handleLogout() {
-            Swal.fire({
-                title: 'Logout?',
-                text: 'Are you sure you want to logout?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#667eea',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, logout'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ route('logout') }}';
-                    
-                    const csrfToken = document.createElement('input');
-                    csrfToken.type = 'hidden';
-                    csrfToken.name = '_token';
-                    csrfToken.value = document.querySelector('meta[name="csrf-token"]').content;
-                    
-                    form.appendChild(csrfToken);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
     </script>
 </body>
 </html>
