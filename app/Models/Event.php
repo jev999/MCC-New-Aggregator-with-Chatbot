@@ -66,21 +66,21 @@ class Event extends Model
             return $relativePath;
         }
 
-        // Primary: use Storage public disk URL
-        $url = \Storage::disk('public')->url($relativePath);
-
-        // Force https if current app runs on https
-        if (str_starts_with($url, 'http://') && (config('app.env') === 'production' || request()->isSecure())) {
-            $url = preg_replace('/^http:\/\//i', 'https://', $url);
+        // Remove any leading slashes
+        $relativePath = ltrim($relativePath, '/');
+        
+        // Get app URL from config, fallback to current request
+        $appUrl = config('app.url');
+        
+        // Force HTTPS if in production
+        if (config('app.env') === 'production') {
+            $appUrl = preg_replace('/^http:\/\//i', 'https://', $appUrl);
         }
-
-        // Fallback: asset('storage/...') if Storage URL looks wrong
-        if (!preg_match('/^https?:\/\//i', $url)) {
-            $fallback = asset('storage/' . ltrim($relativePath, '/'));
-            return $fallback;
-        }
-
-        return $url;
+        
+        // Build full URL: https://mcc-nac.com/storage/event-images/file.jpg
+        $fullUrl = rtrim($appUrl, '/') . '/storage/' . $relativePath;
+        
+        return $fullUrl;
     }
 
     public function admin()
