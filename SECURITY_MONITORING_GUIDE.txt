@@ -1,0 +1,680 @@
+================================================================================
+   SECURITY MONITORING & ACTIVITY LOGGING GUIDE
+   Real-Time Monitoring, Alerts & Campus System Logs
+================================================================================
+
+This guide covers the implementation of comprehensive security monitoring,
+activity logging, and alert system for the MCC Campus System.
+
+================================================================================
+1. PACKAGES INSTALLED
+================================================================================
+
+✓ spatie/laravel-activitylog: ^4.8
+  - Comprehensive activity logging for all models
+  - Tracks create, update, delete operations
+  - Records who performed the action
+  - Stores before/after values
+
+✓ spatie/laravel-permission: ^6.21 (already installed)
+  - Role and permission management
+  - Integrated with activity logging
+
+================================================================================
+2. SECURITY MONITORING SERVICE
+================================================================================
+
+2.1 Overview
+------------
+SecurityMonitoringService provides real-time detection and alerting for:
+- Failed login attempts (brute force detection)
+- Unauthorized access attempts
+- Unusual access times (outside business hours)
+- Unusual locations (IP tracking)
+- Rapid-fire requests (bot/attack detection)
+- Privilege escalation attempts
+- Bulk data operations
+- Critical system changes
+- Multiple account access from same IP
+- Session hijacking indicators
+
+2.2 Suspicious Activity Detection
+----------------------------------
+The service automatically detects 10 types of suspicious patterns:
+
+PATTERN 1: Multiple Failed Login Attempts
+- Triggers when >5 failed attempts from same IP/username
+- Cached for 1 hour
+- Severity: High
+
+PATTERN 2: Unauthorized Access Attempts
+- Triggers on 403/401 responses
+- Logs resource being accessed
+- Severity: Medium-High
+
+PATTERN 3: Unusual Time Access
+- Triggers for access outside 8 AM - 6 PM
+- Configurable business hours
+- Severity: Low-Medium
+
+PATTERN 4: Unusual Location
+- Tracks up to 5 usual IPs per admin
+- Flags new IPs
+- Cached for 30 days
+- Severity: Medium
+
+PATTERN 5: Rapid-Fire Requests
+- Triggers when >30 requests per minute
+- Potential bot/DDoS attack
+- Cached for 2 minutes
+- Severity: High
+
+PATTERN 6: Privilege Escalation Attempts
+- Triggers when >5 permission denied in 1 hour
+- Indicates unauthorized access attempts
+- Severity: Critical
+
+PATTERN 7: Bulk Data Operations
+- Triggers when bulk operation >100 items
+- Monitors mass deletions/updates
+- Severity: Medium-High
+
+PATTERN 8: Critical System Changes
+- Monitors: role changes, permission grants, admin creation, settings
+- Always flagged
+- Severity: High
+
+PATTERN 9: Multiple Account Access
+- Triggers when >3 accounts from same IP
+- Potential account compromise
+- Severity: High
+
+PATTERN 10: Session Hijacking
+- Detects session fingerprint mismatches
+- IP or User Agent changes
+- Severity: Critical
+
+================================================================================
+3. ALERT SEVERITY LEVELS
+================================================================================
+
+CRITICAL (Red #dc2626)
+- Immediate action required
+- Email alerts sent to all superadmins
+- Examples: Session hijacking, privilege escalation
+
+HIGH (Orange-Red #ef4444)
+- Urgent attention needed
+- Email alerts to superadmins
+- Examples: Multiple failed logins, rapid-fire requests
+
+MEDIUM (Yellow #f59e0b)
+- Should be reviewed
+- Logged for monitoring
+- Examples: Unusual time access, bulk operations
+
+LOW (Blue #3b82f6)
+- Informational
+- Monitored for patterns
+- Examples: First-time IP access
+
+================================================================================
+4. DATABASE SCHEMA
+================================================================================
+
+security_alerts Table:
+---------------------
+- id: Primary key
+- activity_type: Type of activity (login_failed, unauthorized_access, etc.)
+- severity: Enum (low, medium, high, critical)
+- admin_id: Admin involved (nullable)
+- ip_address: Source IP (45 chars for IPv6)
+- user_agent: Browser/client info
+- url: Accessed resource
+- description: Human-readable description
+- data: JSON field with full context
+- resolved: Boolean flag
+- resolved_by: Admin who resolved
+- resolved_at: Timestamp
+- created_at, updated_at
+
+Indexes:
+- (activity_type, created_at)
+- (severity, resolved)
+- admin_id
+- ip_address
+- created_at
+
+activity_log Table (spatie/laravel-activitylog):
+------------------------------------------------
+- id: Primary key
+- log_name: Category of log (default, auth, etc.)
+- description: Action description
+- subject_type, subject_id: The model being acted upon
+- causer_type, causer_id: Who performed the action
+- properties: JSON field (old/new values)
+- created_at
+
+================================================================================
+5. USAGE IN CODE
+================================================================================
+
+5.1 Injecting the Service
+--------------------------
+use App\Services\SecurityMonitoringService;
+
+class YourController extends Controller
+{
+    protected $securityMonitor;
+
+    public function __construct(SecurityMonitoringService $securityMonitor)
+    {
+        $this->securityMonitor = $securityMonitor;
+    }
+}
+
+5.2 Detecting Suspicious Activity
+----------------------------------
+// Failed login
+$this->securityMonitor->detectSuspiciousActivity('login_failed', [
+    'ip' => $request->ip(),
+    'username' => $request->username,
+    'user_agent' => $request->userAgent(),
+], 'high');
+
+// Unauthorized access
+$this->securityMonitor->detectSuspiciousActivity('unauthorized_access', [
+    'admin_id' => auth('admin')->id(),
+    'ip' => $request->ip(),
+    'url' => $request->fullUrl(),
+    'required_permission' => 'view-students',
+], 'medium');
+
+// Bulk operation
+$this->securityMonitor->detectSuspiciousActivity('bulk_delete', [
+    'admin_id' => auth('admin')->id(),
+    'ip' => $request->ip(),
+    'bulk_operation' => true,
+    'count' => count($ids),
+    'type' => 'students',
+], 'high');
+
+5.3 Tracking Login Attempts
+----------------------------
+// On failed login
+$this->securityMonitor->incrementFailedLoginAttempts(
+    $request->ip(),
+    $request->username
+);
+
+// On successful login
+$this->securityMonitor->clearFailedLoginAttempts(
+    $request->ip(),
+    $request->username
+);
+
+// Track account access
+$this->securityMonitor->trackAccountAccess(
+    auth('admin')->id(),
+    $request->ip()
+);
+
+5.4 Activity Logging (Automatic)
+---------------------------------
+Models with LogsActivity trait automatically log changes:
+
+// Admin model changes are logged
+$admin->update(['role' => 'department_admin']);
+// Logged: "updated" with old/new values
+
+// SecurityAlert resolution
+$alert->update(['resolved' => true]);
+// Logged: "updated" with resolution info
+
+5.5 Manual Activity Logging
+----------------------------
+use Spatie\Activitylog\Facades\Activity;
+
+// Log with custom description
+activity()
+    ->performedOn($model)
+    ->causedBy(auth('admin')->user())
+    ->withProperties(['key' => 'value'])
+    ->log('Custom action performed');
+
+// Log without subject
+activity()
+    ->causedBy(auth('admin')->user())
+    ->log('User logged in');
+
+5.6 Getting Security Statistics
+--------------------------------
+$stats = $this->securityMonitor->getSecurityStatistics();
+
+// Returns:
+[
+    'total_alerts_today' => 25,
+    'critical_alerts_today' => 2,
+    'high_alerts_today' => 8,
+    'unresolved_alerts' => 5,
+    'failed_logins_today' => 12,
+    'unauthorized_access_today' => 3,
+]
+
+5.7 Getting Real-Time Alerts
+-----------------------------
+$alerts = $this->securityMonitor->getRealtimeAlerts(20);
+
+// Returns last 20 alerts from cache (fast)
+
+5.8 Resolving Alerts
+--------------------
+$this->securityMonitor->resolveAlert(
+    $alertId,
+    auth('admin')->id()
+);
+
+================================================================================
+6. LOGGING CONFIGURATION
+================================================================================
+
+6.1 Add Security Channel to config/logging.php
+-----------------------------------------------
+'channels' => [
+    // ... other channels
+    
+    'security' => [
+        'driver' => 'daily',
+        'path' => storage_path('logs/security.log'),
+        'level' => 'warning',
+        'days' => 90, // Keep 90 days of security logs
+    ],
+],
+
+6.2 Activity Log Configuration
+-------------------------------
+Published config: config/activitylog.php
+
+Key Settings:
+- enabled: true
+- delete_records_older_than_days: 365 (keep 1 year)
+- default_log_name: 'default'
+- subject_returns_soft_deleted_models: false
+- activity_model: Spatie\Activitylog\Models\Activity
+
+================================================================================
+7. INTEGRATION WITH EXISTING SYSTEMS
+================================================================================
+
+7.1 Update Login Controller
+----------------------------
+public function login(Request $request)
+{
+    $credentials = $request->validate([
+        'username' => 'required',
+        'password' => 'required',
+    ]);
+
+    $securityMonitor = app(SecurityMonitoringService::class);
+
+    if (Auth::guard('admin')->attempt($credentials)) {
+        $admin = Auth::guard('admin')->user();
+        
+        // Clear failed attempts
+        $securityMonitor->clearFailedLoginAttempts(
+            $request->ip(),
+            $request->username
+        );
+        
+        // Track account access
+        $securityMonitor->trackAccountAccess(
+            $admin->id,
+            $request->ip()
+        );
+        
+        // Log successful login
+        activity()
+            ->causedBy($admin)
+            ->log('Admin logged in');
+        
+        $request->session()->regenerate();
+        return redirect()->intended('/admin/dashboard');
+    }
+
+    // Track failed attempt
+    $securityMonitor->incrementFailedLoginAttempts(
+        $request->ip(),
+        $request->username
+    );
+    
+    // Detect suspicious activity
+    $securityMonitor->detectSuspiciousActivity('login_failed', [
+        'ip' => $request->ip(),
+        'username' => $request->username,
+        'user_agent' => $request->userAgent(),
+    ], 'high');
+
+    return back()->withErrors(['username' => 'Invalid credentials.']);
+}
+
+7.2 Update CheckRole Middleware
+--------------------------------
+public function handle(Request $request, Closure $next, string ...$roles): Response
+{
+    $admin = Auth::guard('admin')->user();
+
+    if (!$admin) {
+        return redirect()->route('admin.login');
+    }
+
+    foreach ($roles as $role) {
+        if ($admin->hasRole($role)) {
+            return $next($request);
+        }
+    }
+
+    // Detect suspicious activity
+    $securityMonitor = app(SecurityMonitoringService::class);
+    $securityMonitor->detectSuspiciousActivity('unauthorized_access', [
+        'admin_id' => $admin->id,
+        'ip' => $request->ip(),
+        'user_agent' => $request->userAgent(),
+        'url' => $request->fullUrl(),
+        'required_role' => implode(',', $roles),
+    ], 'medium');
+
+    abort(403);
+}
+
+7.3 Update Bulk Delete Operations
+----------------------------------
+public function bulkDestroy(Request $request)
+{
+    // ... validation
+
+    $securityMonitor = app(SecurityMonitoringService::class);
+    
+    // Log bulk operation
+    $securityMonitor->detectSuspiciousActivity('bulk_delete', [
+        'admin_id' => auth('admin')->id(),
+        'ip' => $request->ip(),
+        'bulk_operation' => true,
+        'count' => count($studentIds),
+        'type' => 'students',
+    ], 'high');
+
+    // ... perform deletion
+
+    // Log activity
+    activity()
+        ->causedBy(auth('admin')->user())
+        ->withProperties(['count' => count($studentIds), 'ids' => $studentIds])
+        ->log('Bulk deleted students');
+}
+
+================================================================================
+8. REAL-TIME MONITORING DASHBOARD
+================================================================================
+
+8.1 Dashboard Route
+-------------------
+Route::get('/superadmin/security-monitor', [SecurityMonitorController::class, 'index'])
+    ->middleware(['auth:admin', 'role:Super Administrator'])
+    ->name('superadmin.security-monitor');
+
+8.2 Dashboard Features
+----------------------
+✓ Real-time alert feed (last 50 alerts)
+✓ Security statistics (today's metrics)
+✓ Unresolved alerts counter
+✓ Severity breakdown
+✓ Activity timeline
+✓ IP tracking map
+✓ Failed login attempts chart
+✓ Alert resolution interface
+
+8.3 Auto-Refresh
+----------------
+Implement using JavaScript:
+- Poll every 30 seconds for new alerts
+- Update statistics automatically
+- Show desktop notifications for critical alerts
+- Sound alerts for critical events
+
+================================================================================
+9. ALERT NOTIFICATION SYSTEM
+================================================================================
+
+9.1 Email Alerts (Production)
+------------------------------
+For CRITICAL and HIGH severity alerts:
+- Automatically email all superadmins
+- Include alert details
+- Provide resolution link
+- Send within 1 minute of detection
+
+9.2 In-App Notifications
+-------------------------
+- Badge counter on security icon
+- Toast notifications for new alerts
+- Alert bell icon in navbar
+- Redirect to security dashboard
+
+9.3 Log File Monitoring
+-----------------------
+Critical alerts are written to:
+- storage/logs/security.log
+- Separate from main application log
+- Kept for 90 days
+- Can be monitored by external tools
+
+================================================================================
+10. CAMPUS SYSTEM REQUIREMENTS
+================================================================================
+
+10.1 Inside Campus System Logs
+-------------------------------
+All security events are logged with:
+✓ Timestamp (exact date/time)
+✓ Admin ID and username
+✓ IP address (on-campus tracking)
+✓ User Agent (device/browser)
+✓ Action performed
+✓ Resource accessed
+✓ Success/failure status
+✓ Duration (for sessions)
+✓ Location (if GPS available)
+
+10.2 Compliance Features
+------------------------
+✓ 1-year data retention
+✓ Immutable audit trail
+✓ Administrator action tracking
+✓ Access attempt logging
+✓ Data modification tracking
+✓ Export capabilities (CSV/JSON)
+✓ Search and filter functions
+✓ Report generation
+
+10.3 Required Log Entries
+--------------------------
+1. Login/Logout events
+2. Failed login attempts
+3. Permission changes
+4. Role assignments
+5. User account changes
+6. Data access (view, edit, delete)
+7. Bulk operations
+8. System configuration changes
+9. Security alert resolutions
+10. Emergency access (if implemented)
+
+================================================================================
+11. INSTALLATION & SETUP
+================================================================================
+
+Step 1: Install Package
+-----------------------
+composer require spatie/laravel-activitylog
+
+Step 2: Run Migrations
+----------------------
+php artisan migrate
+
+This creates:
+- activity_log table
+- security_alerts table
+
+Step 3: Publish Config (Optional)
+----------------------------------
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider" --tag="activitylog-config"
+
+Step 4: Add to Models
+---------------------
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+
+class YourModel extends Model
+{
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['field1', 'field2'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+}
+
+Step 5: Add Security Log Channel
+---------------------------------
+Add to config/logging.php (see section 6.1)
+
+Step 6: Clear Caches
+--------------------
+php artisan config:clear
+php artisan cache:clear
+
+================================================================================
+12. QUERYING LOGS
+================================================================================
+
+12.1 Get All Activity
+---------------------
+use Spatie\Activitylog\Models\Activity;
+
+$activities = Activity::all();
+$lastActivities = Activity::latest()->take(10)->get();
+
+12.2 Get Activity for Specific Model
+-------------------------------------
+$activities = Activity::forSubject($admin)->get();
+
+12.3 Get Activity by Causer
+----------------------------
+$activities = Activity::causedBy($admin)->get();
+
+12.4 Get Activity by Description
+---------------------------------
+$activities = Activity::where('description', 'updated')->get();
+
+12.5 Get Recent Security Alerts
+--------------------------------
+$alerts = SecurityAlert::unresolved()
+    ->high()
+    ->latest()
+    ->take(20)
+    ->get();
+
+12.6 Get Today's Alerts
+-----------------------
+$alerts = SecurityAlert::today()->get();
+
+12.7 Get Alerts by Type
+-----------------------
+$loginFailures = SecurityAlert::where('activity_type', 'login_failed')
+    ->whereBetween('created_at', [now()->subDays(7), now()])
+    ->get();
+
+================================================================================
+13. REPORTING & ANALYTICS
+================================================================================
+
+13.1 Generate Security Report
+------------------------------
+$report = [
+    'period' => 'Last 30 Days',
+    'total_alerts' => SecurityAlert::where('created_at', '>=', now()->subDays(30))->count(),
+    'by_severity' => SecurityAlert::where('created_at', '>=', now()->subDays(30))
+        ->groupBy('severity')
+        ->selectRaw('severity, count(*) as count')
+        ->get(),
+    'by_type' => SecurityAlert::where('created_at', '>=', now()->subDays(30))
+        ->groupBy('activity_type')
+        ->selectRaw('activity_type, count(*) as count')
+        ->orderByDesc('count')
+        ->get(),
+    'top_ips' => SecurityAlert::where('created_at', '>=', now()->subDays(30))
+        ->groupBy('ip_address')
+        ->selectRaw('ip_address, count(*) as count')
+        ->orderByDesc('count')
+        ->take(10)
+        ->get(),
+];
+
+13.2 Activity Report
+--------------------
+$activityReport = Activity::where('created_at', '>=', now()->subDays(30))
+    ->groupBy('description')
+    ->selectRaw('description, count(*) as count')
+    ->orderByDesc('count')
+    ->get();
+
+================================================================================
+14. MAINTENANCE & CLEANUP
+================================================================================
+
+14.1 Clean Old Logs
+-------------------
+// Automatic cleanup via config
+// activitylog.php: delete_records_older_than_days
+
+// Manual cleanup
+Activity::where('created_at', '<', now()->subYear())->delete();
+
+14.2 Clean Resolved Alerts
+---------------------------
+// Keep resolved alerts for 90 days
+SecurityAlert::where('resolved', true)
+    ->where('resolved_at', '<', now()->subDays(90))
+    ->delete();
+
+14.3 Clear Cache
+----------------
+// Clear rate limiting cache
+Cache::flush();
+
+// Clear specific monitoring caches
+Cache::forget('realtime_security_alerts');
+
+================================================================================
+15. BEST PRACTICES
+================================================================================
+
+✓ Review unresolved alerts daily
+✓ Investigate all CRITICAL alerts immediately
+✓ Monitor failed login patterns
+✓ Regular security report generation
+✓ Keep logs for compliance period (1 year minimum)
+✓ Back up security_alerts table regularly
+✓ Test alert system periodically
+✓ Update business hours configuration as needed
+✓ Review and adjust detection thresholds
+✓ Train admins on alert resolution procedures
+✓ Document all security incidents
+✓ Regular audits of access patterns
+
+================================================================================
+END OF SECURITY MONITORING GUIDE
+================================================================================

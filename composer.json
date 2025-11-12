@@ -17,7 +17,8 @@
         "microsoft/microsoft-graph": "^2.46",
         "socialiteproviders/microsoft": "^4.7",
         "spatie/laravel-backup": "^9.3",
-        "spatie/laravel-permission": "^6.21"
+        "spatie/laravel-permission": "^6.21",
+        "spatie/laravel-activitylog": "^4.8"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

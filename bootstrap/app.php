@@ -16,6 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\ForceHttps::class,       // HTTPS enforcement
             \App\Http\Middleware\MonitoringMiddleware::class, // Performance monitoring
+            \App\Http\Middleware\SecureSession::class,    // Session security
+        ]);
+        
+        // Register custom middleware aliases
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
         
         // Basic middleware configuration
