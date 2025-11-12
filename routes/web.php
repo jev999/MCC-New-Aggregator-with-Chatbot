@@ -118,6 +118,85 @@ Route::get('/storage/{path}', function ($path) {
     return response()->file($filePath, $headers);
 })->where('path', '.*')->name('storage.serve');
 
+// Production symlink creation route (temporary - remove after use)
+Route::get('/fix-production-storage', function () {
+    if (!config('app.debug') && !request()->has('force')) {
+        abort(404, 'Route not available in production without force parameter');
+    }
+    
+    $results = [];
+    
+    // Check if symlink already exists
+    $publicStoragePath = public_path('storage');
+    $targetPath = storage_path('app/public');
+    
+    $results['paths'] = [
+        'public_storage' => $publicStoragePath,
+        'target_path' => $targetPath,
+    ];
+    
+    $results['before'] = [
+        'symlink_exists' => file_exists($publicStoragePath),
+        'is_link' => is_link($publicStoragePath),
+        'is_directory' => is_dir($publicStoragePath),
+        'target' => is_link($publicStoragePath) ? readlink($publicStoragePath) : null,
+    ];
+    
+    try {
+        // Remove existing symlink or directory if it exists
+        if (file_exists($publicStoragePath)) {
+            if (is_link($publicStoragePath)) {
+                unlink($publicStoragePath);
+                $results['actions'][] = 'Removed existing symlink';
+            } elseif (is_dir($publicStoragePath)) {
+                // Don't remove if it's a real directory with files
+                $files = glob($publicStoragePath . '/*');
+                if (empty($files)) {
+                    rmdir($publicStoragePath);
+                    $results['actions'][] = 'Removed empty storage directory';
+                } else {
+                    $results['error'] = 'Cannot remove storage directory - it contains files';
+                    return response()->json($results);
+                }
+            }
+        }
+        
+        // Create the symlink
+        if (function_exists('symlink')) {
+            symlink($targetPath, $publicStoragePath);
+            $results['actions'][] = 'Created symlink using symlink()';
+        } else {
+            // Fallback for Windows or systems without symlink support
+            if (PHP_OS_FAMILY === 'Windows') {
+                $cmd = "mklink /D \"$publicStoragePath\" \"$targetPath\"";
+                exec($cmd, $output, $return_var);
+                if ($return_var === 0) {
+                    $results['actions'][] = 'Created symlink using Windows mklink';
+                } else {
+                    $results['error'] = 'Failed to create Windows symlink: ' . implode("\n", $output);
+                }
+            } else {
+                $results['error'] = 'symlink() function not available and not on Windows';
+            }
+        }
+        
+        // Verify the result
+        $results['after'] = [
+            'symlink_exists' => file_exists($publicStoragePath),
+            'is_link' => is_link($publicStoragePath),
+            'is_directory' => is_dir($publicStoragePath),
+            'target' => is_link($publicStoragePath) ? readlink($publicStoragePath) : null,
+        ];
+        
+        $results['success'] = file_exists($publicStoragePath) && is_link($publicStoragePath);
+        
+    } catch (Exception $e) {
+        $results['error'] = $e->getMessage();
+    }
+    
+    return response()->json($results, 200, [], JSON_PRETTY_PRINT);
+})->name('fix.production.storage');
+
 // Storage diagnostics route for debugging
 Route::get('/storage-diagnostics', function () {
     if (!config('app.debug')) {
