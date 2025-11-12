@@ -62,8 +62,8 @@ class News extends Model
         // Remove any leading slashes
         $relativePath = ltrim($relativePath, '/');
         
-        // Build URL using our custom storage route
-        return url('/storage/' . $relativePath);
+        // Build URL using asset helper for proper storage access
+        return asset('storage/' . $relativePath);
     }
 
     public function admin()
