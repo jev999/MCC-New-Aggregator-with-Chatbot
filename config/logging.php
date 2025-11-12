@@ -154,6 +154,12 @@ return [
             'level' => env('LOG_LEVEL', 'warning'),
             'days' => 30,
         ],
+        'security' => [
+    'driver' => 'daily',
+    'path' => storage_path('logs/security.log'),
+    'level' => 'warning',
+    'days' => 90,
+    ],
 
     ],
 
