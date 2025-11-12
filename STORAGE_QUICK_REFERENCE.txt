@@ -1,0 +1,119 @@
+================================================================================
+   STORAGE & FILE UPLOAD - QUICK REFERENCE
+================================================================================
+
+✅ STORAGE SYMLINK (Already Created)
+────────────────────────────────────
+php artisan storage:link
+Creates: public/storage → storage/app/public
+
+✅ .ENV CONFIGURATION
+─────────────────────
+APP_URL=http://localhost:8000
+FILESYSTEM_DISK=public
+
+Then run:
+php artisan config:clear
+php artisan cache:clear
+
+✅ UPLOAD IN CONTROLLER
+────────────────────────
+if ($request->hasFile('media')) {
+    $path = $request->file('media')->store('announcements', 'public');
+    $validated['media'] = $path;
+}
+
+✅ DELETE OLD FILE
+──────────────────
+use Illuminate\Support\Facades\Storage;
+
+if ($model->media) {
+    Storage::disk('public')->delete($model->media);
+}
+
+✅ DISPLAY IN BLADE (Image)
+────────────────────────────
+<img src="{{ asset('storage/' . $announcement->media) }}" 
+     alt="Image" 
+     class="img-fluid">
+
+✅ DISPLAY IN BLADE (Video)
+────────────────────────────
+<video controls width="100%">
+    <source src="{{ asset('storage/' . $announcement->media) }}" type="video/mp4">
+</video>
+
+✅ VALIDATION RULES
+───────────────────
+'media' => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:20480'
+
+✅ FORM ENCTYPE
+───────────────
+<form method="POST" enctype="multipart/form-data">
+
+✅ FOLDER STRUCTURE
+───────────────────
+storage/app/public/
+  ├── announcements/
+  ├── events/
+  ├── news/
+  └── profiles/
+
+✅ PRODUCTION SETUP
+───────────────────
+1. APP_URL=https://yourdomain.com
+2. php artisan storage:link
+3. chmod -R 775 storage
+4. Force HTTPS in .htaccess
+
+✅ TROUBLESHOOTING
+──────────────────
+Images not showing:
+  → php artisan config:clear
+  → php artisan cache:clear
+  → Check symlink: ls -la public/storage
+
+Upload fails:
+  → Check php.ini: upload_max_filesize=20M
+  → Check permissions: chmod -R 775 storage
+  → Check validation rules
+
+✅ COMPLETE UPLOAD EXAMPLE
+───────────────────────────
+// Controller
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'title' => 'required|string',
+        'media' => 'nullable|file|mimes:jpg,png,mp4|max:20480',
+    ]);
+
+    if ($request->hasFile('media')) {
+        $path = $request->file('media')->store('announcements', 'public');
+        $validated['media'] = $path;
+    }
+
+    Announcement::create($validated);
+    return redirect()->back()->with('success', 'Created!');
+}
+
+// Blade Form
+<form action="{{ route('announcements.store') }}" method="POST" enctype="multipart/form-data">
+    @csrf
+    <input type="text" name="title" required>
+    <input type="file" name="media" accept="image/*,video/*">
+    <button type="submit">Upload</button>
+</form>
+
+// Blade Display
+@if($announcement->media)
+    @if(Str::endsWith($announcement->media, ['jpg','png','gif']))
+        <img src="{{ asset('storage/' . $announcement->media) }}">
+    @elseif(Str::endsWith($announcement->media, ['mp4','mov']))
+        <video controls>
+            <source src="{{ asset('storage/' . $announcement->media) }}">
+        </video>
+    @endif
+@endif
+
+================================================================================

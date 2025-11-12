@@ -1,0 +1,423 @@
+================================================================================
+   LARAVEL STORAGE & FILE UPLOAD SETUP GUIDE
+   For Images, Videos, and Media Files
+================================================================================
+
+This guide explains how to properly configure Laravel storage for file uploads
+in your MCC News Aggregator application.
+
+================================================================================
+STEP 1: CREATE STORAGE SYMLINK
+================================================================================
+
+The storage symlink has already been created. If you need to recreate it:
+
+1. Delete existing symlink (if needed):
+   Windows: rmdir public\storage
+   Linux: rm public/storage
+
+2. Create new symlink:
+   php artisan storage:link
+
+✅ This creates: /public/storage → /storage/app/public
+
+Verification:
+- Check that public/storage folder exists (it's a symbolic link)
+- Files uploaded to 'public' disk will be stored in storage/app/public/
+- They will be accessible via public/storage/
+
+================================================================================
+STEP 2: CONFIGURE .ENV FILE
+================================================================================
+
+Add/Update these lines in your .env file:
+
+# Application
+APP_URL=http://localhost:8000  (or your production URL)
+
+# Filesystem
+FILESYSTEM_DISK=public
+
+# Session Security (already configured)
+SESSION_DRIVER=database
+SESSION_LIFETIME=30
+SESSION_EXPIRE_ON_CLOSE=true
+SESSION_ENCRYPT=true
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+SESSION_SAME_SITE=strict
+
+After updating .env:
+php artisan config:clear
+php artisan cache:clear
+
+================================================================================
+STEP 3: VERIFY FILESYSTEM CONFIGURATION
+================================================================================
+
+File: config/filesystems.php (✅ Already Configured)
+
+'default' => env('FILESYSTEM_DISK', 'local'),
+
+'disks' => [
+    'public' => [
+        'driver' => 'local',
+        'root' => storage_path('app/public'),
+        'url' => env('APP_URL').'/storage',
+        'visibility' => 'public',
+        'throw' => false,
+    ],
+],
+
+'links' => [
+    public_path('storage') => storage_path('app/public'),
+],
+
+================================================================================
+STEP 4: CONTROLLER CODE FOR FILE UPLOADS
+================================================================================
+
+Example for Announcements (works for News, Events, etc.):
+
+use Illuminate\Support\Facades\Storage;
+
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'content' => 'required|string',
+        'media' => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:20480', // 20MB max
+    ]);
+
+    // Handle file upload
+    if ($request->hasFile('media')) {
+        // Store in storage/app/public/announcements/
+        $path = $request->file('media')->store('announcements', 'public');
+        $validated['media'] = $path;
+    }
+
+    Announcement::create($validated);
+
+    return redirect()->back()->with('success', 'Announcement created successfully!');
+}
+
+public function update(Request $request, Announcement $announcement)
+{
+    $validated = $request->validate([
+        'title' => 'required|string|max:255',
+        'content' => 'required|string',
+        'media' => 'nullable|file|mimes:jpg,jpeg,png,gif,mp4,mov,avi|max:20480',
+    ]);
+
+    // Handle new file upload
+    if ($request->hasFile('media')) {
+        // Delete old file if exists
+        if ($announcement->media) {
+            Storage::disk('public')->delete($announcement->media);
+        }
+        
+        // Store new file
+        $path = $request->file('media')->store('announcements', 'public');
+        $validated['media'] = $path;
+    }
+
+    $announcement->update($validated);
+
+    return redirect()->back()->with('success', 'Announcement updated successfully!');
+}
+
+public function destroy(Announcement $announcement)
+{
+    // Delete associated media file
+    if ($announcement->media) {
+        Storage::disk('public')->delete($announcement->media);
+    }
+    
+    $announcement->delete();
+
+    return redirect()->back()->with('success', 'Announcement deleted successfully!');
+}
+
+================================================================================
+STEP 5: BLADE TEMPLATES FOR DISPLAYING MEDIA
+================================================================================
+
+5.1 Display in Admin Panel (with edit/delete):
+-----------------------------------------------
+@if($announcement->media)
+    <div class="media-preview">
+        @php
+            $extension = pathinfo($announcement->media, PATHINFO_EXTENSION);
+            $isImage = in_array(strtolower($extension), ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            $isVideo = in_array(strtolower($extension), ['mp4', 'mov', 'avi', 'webm']);
+        @endphp
+
+        @if($isImage)
+            <img src="{{ asset('storage/' . $announcement->media) }}" 
+                 alt="{{ $announcement->title }}" 
+                 class="img-fluid rounded shadow"
+                 style="max-height: 400px; object-fit: cover;">
+        @elseif($isVideo)
+            <video controls class="w-100 rounded shadow" style="max-height: 400px;">
+                <source src="{{ asset('storage/' . $announcement->media) }}" type="video/{{ $extension }}">
+                Your browser does not support video playback.
+            </video>
+        @endif
+    </div>
+@else
+    <p class="text-muted">No media attached</p>
+@endif
+
+5.2 Display in User Dashboard (public view):
+---------------------------------------------
+<div class="announcement-card">
+    <h3>{{ $announcement->title }}</h3>
+    
+    @if($announcement->media)
+        <div class="announcement-media mb-3">
+            @if(Str::endsWith($announcement->media, ['jpg','jpeg','png','gif','webp']))
+                <img src="{{ asset('storage/' . $announcement->media) }}" 
+                     alt="{{ $announcement->title }}"
+                     class="img-fluid rounded"
+                     loading="lazy">
+            @elseif(Str::endsWith($announcement->media, ['mp4','mov','avi','webm']))
+                <video controls width="100%" class="rounded">
+                    <source src="{{ asset('storage/' . $announcement->media) }}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>
+            @endif
+        </div>
+    @endif
+    
+    <p>{{ $announcement->content }}</p>
+    <small class="text-muted">{{ $announcement->created_at->format('F d, Y') }}</small>
+</div>
+
+5.3 Upload Form:
+----------------
+<form action="{{ route('announcements.store') }}" method="POST" enctype="multipart/form-data">
+    @csrf
+    
+    <div class="mb-3">
+        <label for="title" class="form-label">Title</label>
+        <input type="text" class="form-control @error('title') is-invalid @enderror" 
+               id="title" name="title" value="{{ old('title') }}" required>
+        @error('title')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    
+    <div class="mb-3">
+        <label for="content" class="form-label">Content</label>
+        <textarea class="form-control @error('content') is-invalid @enderror" 
+                  id="content" name="content" rows="5" required>{{ old('content') }}</textarea>
+        @error('content')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    
+    <div class="mb-3">
+        <label for="media" class="form-label">Upload Media (Image or Video)</label>
+        <input type="file" class="form-control @error('media') is-invalid @enderror" 
+               id="media" name="media" accept="image/*,video/*">
+        <small class="form-text text-muted">
+            Supported: JPG, PNG, GIF, MP4, MOV, AVI (Max: 20MB)
+        </small>
+        @error('media')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Create Announcement</button>
+</form>
+
+================================================================================
+STEP 6: FOLDER STRUCTURE RECOMMENDATIONS
+================================================================================
+
+Organize uploads by type:
+
+storage/app/public/
+├── announcements/     (announcement media)
+├── events/            (event media)
+├── news/              (news media)
+├── profiles/          (profile pictures)
+└── uploads/           (general uploads)
+
+In Controller:
+// Announcements
+$path = $request->file('media')->store('announcements', 'public');
+
+// Events
+$path = $request->file('media')->store('events', 'public');
+
+// News
+$path = $request->file('media')->store('news', 'public');
+
+// Profiles
+$path = $request->file('profile_picture')->store('profiles', 'public');
+
+================================================================================
+STEP 7: PRODUCTION DEPLOYMENT (HTTPS)
+================================================================================
+
+7.1 Update .env for Production:
+--------------------------------
+APP_URL=https://yourdomain.com
+APP_ENV=production
+APP_DEBUG=false
+SESSION_SECURE_COOKIE=true
+
+7.2 Force HTTPS (public/.htaccess):
+------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Redirect HTTP to HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # Redirect to index.php
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+7.3 Create Storage Symlink on Server:
+--------------------------------------
+php artisan storage:link
+
+7.4 Set Correct Permissions:
+-----------------------------
+chmod -R 775 storage
+chmod -R 775 bootstrap/cache
+chown -R www-data:www-data storage
+chown -R www-data:www-data bootstrap/cache
+
+================================================================================
+STEP 8: TROUBLESHOOTING
+================================================================================
+
+Problem: Images not displaying
+Solution 1: Check symlink exists: ls -la public/storage
+Solution 2: Recreate symlink: php artisan storage:link
+Solution 3: Clear config: php artisan config:clear
+Solution 4: Check file permissions: chmod -R 775 storage
+
+Problem: "File not found" error
+Solution 1: Verify file exists in storage/app/public/
+Solution 2: Check APP_URL in .env matches your domain
+Solution 3: Clear cache: php artisan cache:clear
+
+Problem: Upload fails silently
+Solution 1: Check max upload size in php.ini:
+            upload_max_filesize = 20M
+            post_max_size = 20M
+Solution 2: Check Laravel validation rules
+Solution 3: Check storage folder permissions
+
+Problem: Mixed content error (HTTPS site showing HTTP images)
+Solution 1: Update APP_URL to https://
+Solution 2: Force HTTPS in .htaccess
+Solution 3: Use asset() helper (automatically uses APP_URL)
+
+Problem: Symlink already exists error
+Solution 1: Delete old symlink: rm public/storage (Linux)
+                                rmdir public\storage (Windows)
+Solution 2: Recreate: php artisan storage:link
+
+================================================================================
+STEP 9: HELPER FUNCTIONS
+================================================================================
+
+9.1 Check if File is Image:
+----------------------------
+public function isImage($filename)
+{
+    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+}
+
+9.2 Check if File is Video:
+----------------------------
+public function isVideo($filename)
+{
+    $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    return in_array($extension, ['mp4', 'mov', 'avi', 'webm', 'mkv']);
+}
+
+9.3 Get Media Type:
+-------------------
+public function getMediaType($filename)
+{
+    if ($this->isImage($filename)) return 'image';
+    if ($this->isVideo($filename)) return 'video';
+    return 'unknown';
+}
+
+9.4 Delete Old Media:
+---------------------
+public function deleteOldMedia($path)
+{
+    if ($path && Storage::disk('public')->exists($path)) {
+        Storage::disk('public')->delete($path);
+        return true;
+    }
+    return false;
+}
+
+================================================================================
+STEP 10: SECURITY BEST PRACTICES
+================================================================================
+
+✓ Validate file types (use 'mimes' validation rule)
+✓ Set maximum file size (default: 20MB)
+✓ Scan uploaded files for malware (optional)
+✓ Use unique filenames (Laravel does this automatically)
+✓ Never store files in public/ directly (use storage/)
+✓ Set proper file permissions (775 for directories, 644 for files)
+✓ Sanitize filenames (Laravel handles this)
+✓ Implement rate limiting on upload endpoints
+✓ Log all file uploads for audit
+✓ Regular cleanup of orphaned files
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+✓ Storage symlink created (public/storage → storage/app/public)
+✓ APP_URL set correctly in .env
+✓ FILESYSTEM_DISK=public in .env
+✓ config/filesystems.php configured
+✓ Storage folders exist with correct permissions
+✓ File upload validation rules in place
+✓ Controllers handle file upload/delete correctly
+✓ Blade templates display media correctly
+✓ HTTPS forced in production
+✓ File types restricted (images/videos only)
+✓ Maximum file size enforced (20MB)
+✓ Old files deleted when updating
+
+================================================================================
+EXAMPLE URLS
+================================================================================
+
+Development:
+http://localhost:8000/storage/announcements/image.jpg
+
+Production:
+https://yourdomain.com/storage/announcements/image.jpg
+
+File System Path:
+/var/www/html/storage/app/public/announcements/image.jpg
+
+Public Access Path:
+/var/www/html/public/storage/announcements/image.jpg (symlink)
+
+================================================================================
+END OF STORAGE SETUP GUIDE
+================================================================================
