@@ -31,6 +31,11 @@ class DatabaseBackupService
                 'connection' => $this->connection
             ]);
             
+            // Test database connection first
+            if (!$this->testDatabaseConnection()) {
+                throw new Exception('Cannot connect to database. Please check your database credentials.');
+            }
+            
             // Get all tables
             $tables = $this->getTables();
             
@@ -50,11 +55,21 @@ class DatabaseBackupService
             // Save SQL file temporarily
             $tempPath = storage_path('app/backup-temp');
             if (!file_exists($tempPath)) {
-                mkdir($tempPath, 0755, true);
+                if (!@mkdir($tempPath, 0775, true)) {
+                    throw new Exception('Failed to create temp directory: ' . $tempPath);
+                }
+            }
+            
+            if (!is_writable($tempPath)) {
+                throw new Exception('Temp directory is not writable: ' . $tempPath);
             }
             
             $sqlFilePath = $tempPath . '/' . $filename;
-            file_put_contents($sqlFilePath, $sqlDump);
+            $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
+            
+            if ($bytesWritten === false) {
+                throw new Exception('Failed to write SQL dump to: ' . $sqlFilePath);
+            }
             
             Log::info('SQL dump created', [
                 'file' => $sqlFilePath,
@@ -68,7 +83,13 @@ class DatabaseBackupService
             // Ensure directory exists
             $backupDir = storage_path('app/' . $backupPath);
             if (!file_exists($backupDir)) {
-                mkdir($backupDir, 0755, true);
+                if (!@mkdir($backupDir, 0775, true)) {
+                    throw new Exception('Failed to create backup directory: ' . $backupDir);
+                }
+            }
+            
+            if (!is_writable($backupDir)) {
+                throw new Exception('Backup directory is not writable: ' . $backupDir);
             }
             
             // Create zip
@@ -94,10 +115,28 @@ class DatabaseBackupService
         } catch (Exception $e) {
             Log::error('PHP-based backup failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
             ]);
             
             throw $e;
+        }
+    }
+    
+    /**
+     * Test database connection
+     */
+    protected function testDatabaseConnection()
+    {
+        try {
+            DB::connection()->getPdo();
+            return true;
+        } catch (Exception $e) {
+            Log::error('Database connection test failed', [
+                'error' => $e->getMessage()
+            ]);
+            return false;
         }
     }
     

@@ -207,6 +207,9 @@ class BackupController extends Controller
     protected function createPhpBackup($admin)
     {
         try {
+            // Check if directories exist and are writable
+            $this->ensureBackupDirectoriesExist();
+            
             $backupService = new DatabaseBackupService();
             $result = $backupService->createBackup();
             
@@ -227,10 +230,36 @@ class BackupController extends Controller
         } catch (\Exception $e) {
             Log::error('PHP-based backup failed', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
             ]);
             
             throw $e;
+        }
+    }
+    
+    /**
+     * Ensure backup directories exist and are writable
+     */
+    protected function ensureBackupDirectoriesExist()
+    {
+        $directories = [
+            storage_path('app/' . $this->backupPath),
+            storage_path('app/backup-temp'),
+        ];
+        
+        foreach ($directories as $directory) {
+            if (!file_exists($directory)) {
+                if (!@mkdir($directory, 0775, true)) {
+                    throw new \Exception("Failed to create directory: {$directory}. Please check permissions.");
+                }
+                Log::info("Created backup directory: {$directory}");
+            }
+            
+            if (!is_writable($directory)) {
+                throw new \Exception("Directory is not writable: {$directory}. Please check permissions (should be 775 or 777).");
+            }
         }
     }
     
