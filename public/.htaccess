@@ -1,5 +1,4 @@
 <IfModule mod_rewrite.c>
-    Options +FollowSymLinks
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
     </IfModule>
@@ -8,13 +7,26 @@
 
     # -----------------------------
     # 🔒 Security Headers (Additional Layer)
+    # Note: These complement the SecurityHeaders middleware
     # -----------------------------
     <IfModule mod_headers.c>
+        # Enforce HTTPS (HSTS) - Active in production
+        # This forces browsers to use HTTPS for 1 year
         Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Prevent Clickjacking
         Header always set X-Frame-Options "SAMEORIGIN"
+
+        # Prevent MIME type sniffing
         Header always set X-Content-Type-Options "nosniff"
+
+        # XSS Protection (legacy browsers)
         Header always set X-XSS-Protection "1; mode=block"
+
+        # Control referrer information
         Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Control browser features (Permissions Policy)
         Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), fullscreen=(self), picture-in-picture=(self)"
     </IfModule>
 
@@ -31,14 +43,8 @@
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # -------------------------------------------------------------
-    # ✅ Fix Laravel Storage (Serve Uploaded Files from /storage)
-    # -------------------------------------------------------------
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^storage/(.*)$ storage/app/public/$1 [L]
-
-    # -------------------------------------------------------------
     # ✅ Hide .php extension from URL (safe & 403-free)
+    # Example: /about will load /about.php if it exists
     # -------------------------------------------------------------
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
@@ -55,26 +61,9 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 
-    # --- Redirect any client-visible URL that contains .php to the extensionless URL ---
+    # --- 2) Redirect any client-visible URL that contains .php to the extensionless URL ---
+    # Example: /foo.php  ->  /foo
     RewriteCond %{THE_REQUEST} \s/([^\s?]*?)\.php[?\s] [NC]
     RewriteRule ^ /%1 [R=301,L]
+    
 </IfModule>
-
-# -------------------------------------------------------------
-# ✅ Allow Access to Public Storage Folder (Fix 403 Forbidden)
-# -------------------------------------------------------------
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{REQUEST_URI} ^/storage/
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^storage/(.*)$ storage/$1 [L]
-</IfModule>
-
-# Ensure Apache can follow symbolic links
-Options +FollowSymLinks
-
-# Explicitly allow access to the storage directory
-<Directory "storage">
-    AllowOverride All
-    Require all granted
-</Directory>
