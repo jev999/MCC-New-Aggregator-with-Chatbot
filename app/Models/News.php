@@ -50,7 +50,7 @@ class News extends Model
 
     /**
      * Build a publicly accessible URL for a file stored on the public disk.
-     * Ensures HTTPS and provides a resilient fallback if APP_URL is misconfigured.
+     * Uses Laravel's Storage facade for proper URL generation.
      */
     private function buildPublicUrl(string $relativePath): string
     {
@@ -62,18 +62,9 @@ class News extends Model
         // Remove any leading slashes
         $relativePath = ltrim($relativePath, '/');
         
-        // Get app URL from config, fallback to current request
-        $appUrl = config('app.url');
-        
-        // Force HTTPS if in production
-        if (config('app.env') === 'production') {
-            $appUrl = preg_replace('/^http:\/\//i', 'https://', $appUrl);
-        }
-        
-        // Build full URL: https://mcc-nac.com/storage/news-images/file.jpg
-        $fullUrl = rtrim($appUrl, '/') . '/storage/' . $relativePath;
-        
-        return $fullUrl;
+        // Use Laravel's Storage facade to generate the proper URL
+        // This handles the APP_URL and storage disk configuration properly
+        return Storage::disk('public')->url($relativePath);
     }
 
     public function admin()
