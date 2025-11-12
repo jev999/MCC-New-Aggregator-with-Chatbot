@@ -939,13 +939,13 @@
                     <i class="fas fa-users-cog"></i> Department Admin Management
                 </a></li>
                 <li><a href="{{ route('superadmin.office-admins.index') }}">
-                    <i class="fas fa-user-tie"></i> Office Admin Management
+                    <i class="fas fa-user-tie"></i> Officer Management
                 </a></li>
                 <li><a href="{{ route('superadmin.students.index') }}">
-                    <i class="fas fa-graduation-cap"></i> Student Management
+                    <i class="fas fa-graduation-cap"></i> Student
                 </a></li>
                 <li><a href="{{ route('superadmin.faculty.index') }}">
-                    <i class="fas fa-chalkboard-teacher"></i> Faculty Management
+                    <i class="fas fa-chalkboard-teacher"></i> Faculty 
                 </a></li>
                 <li><a href="{{ route('superadmin.announcements.index') }}">
                     <i class="fas fa-bullhorn"></i> Announcements

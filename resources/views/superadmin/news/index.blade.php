@@ -38,6 +38,7 @@
             <li><a href="{{ route('superadmin.faculty.index') }}">
                 <i class="fas fa-chalkboard-teacher"></i> Faculty
             </a></li>
+            <li><a href="{{ route('superadmin.students.index') }}">
                 <i class="fas fa-user-graduate"></i> Students
             </a></li>
             <li><a href="{{ route('superadmin.admin-access') }}">
