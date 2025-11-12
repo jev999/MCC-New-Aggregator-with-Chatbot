@@ -595,6 +595,25 @@
                 </div>
             </div>
 
+            <!-- Pie Charts Section -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+                <!-- Content Distribution Chart -->
+                <div class="chart-container">
+                    <h2><i class="fas fa-chart-pie"></i> Content Distribution</h2>
+                    <div class="chart-wrapper" style="height: 350px;">
+                        <canvas id="contentPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- User Distribution Chart -->
+                <div class="chart-container">
+                    <h2><i class="fas fa-users"></i> User Distribution</h2>
+                    <div class="chart-wrapper" style="height: 350px;">
+                        <canvas id="userPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="chart-container">
                 <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
@@ -897,6 +916,158 @@
                 }
             );
         }
+
+        // =================================================================
+        // PIE CHARTS INITIALIZATION
+        // =================================================================
+        
+        // Content Distribution Pie Chart
+        const contentPieCtx = document.getElementById('contentPieChart').getContext('2d');
+        const contentPieChart = new Chart(contentPieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Announcements', 'Events', 'News'],
+                datasets: [{
+                    data: [
+                        {{ $counts['announcements'] }},
+                        {{ $counts['events'] }},
+                        {{ $counts['news'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',  // Purple
+                        'rgba(16, 185, 129, 0.8)',   // Green
+                        'rgba(239, 68, 68, 0.8)'     // Red
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // User Distribution Pie Chart
+        const userPieCtx = document.getElementById('userPieChart').getContext('2d');
+        const userPieChart = new Chart(userPieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Students', 'Faculty', 'Admins'],
+                datasets: [{
+                    data: [
+                        {{ $counts['students'] }},
+                        {{ $counts['faculty'] }},
+                        {{ $counts['total_admins'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',   // Blue
+                        'rgba(245, 158, 11, 0.8)',   // Orange
+                        'rgba(139, 92, 246, 0.8)'    // Purple
+                    ],
+                    borderColor: [
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(139, 92, 246, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14,
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            },
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
     </script>
 </body>
 </html>
