@@ -57,7 +57,7 @@ class Event extends Model
 
     /**
      * Build a publicly accessible URL for a file stored on the public disk.
-     * Uses Laravel's Storage facade for proper URL generation.
+     * Uses custom route to serve files (workaround for Apache symlink issues).
      */
     private function buildPublicUrl(string $relativePath): string
     {
@@ -69,9 +69,8 @@ class Event extends Model
         // Remove any leading slashes
         $relativePath = ltrim($relativePath, '/');
         
-        // Use Laravel's Storage facade to generate the proper URL
-        // This handles the APP_URL and storage disk configuration properly
-        return Storage::disk('public')->url($relativePath);
+        // Build URL using our custom storage route
+        return url('/storage/' . $relativePath);
     }
 
     public function admin()

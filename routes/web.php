@@ -39,6 +39,22 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// Custom storage route to serve media files (workaround for Apache symlink issues)
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    
+    $mimeType = mime_content_type($filePath);
+    
+    return response()->file($filePath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=31536000',
+    ]);
+})->where('path', '.*')->name('storage.serve');
+
 // Test chatbot page
 Route::get('/test-chatbot', function () {
     return view('test-chatbot');
