@@ -31,18 +31,19 @@
             <li><a href="{{ route('superadmin.events.index') }}">
                 <i class="fas fa-calendar-alt"></i> Events
             </a></li>
-            <li><a href="{{ route('superadmin.news.index') }}">
                 <i class="fas fa-newspaper"></i> News
             </a></li>
             <li><a href="{{ route('superadmin.faculty.index') }}">
                 <i class="fas fa-chalkboard-teacher"></i> Faculty
             </a></li>
-            <li><a href="{{ route('superadmin.students.index') }}">
-                <i class="fas fa-user-graduate"></i> Students
+            <li><a href="{{ route('superadmin.admin-access') }}">
+                <i class="fas fa-clipboard-list"></i> Admin Access Logs
             </a></li>
-            <li>
-              
-                    
+            <li><a href="{{ route('superadmin.backup') }}">
+                <i class="fas fa-database"></i> Database Backup
+            </a></li>
+            
+        </ul>            
             </li>
         </ul>
     </div>
