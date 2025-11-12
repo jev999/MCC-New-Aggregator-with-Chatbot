@@ -41,19 +41,189 @@ Route::get('/', function () {
 
 // Custom storage route to serve media files (workaround for Apache symlink issues)
 Route::get('/storage/{path}', function ($path) {
+    // Clean the path to prevent directory traversal attacks
+    $path = str_replace(['../', '../', '..\\', '..\\\\'], '', $path);
+    
     $filePath = storage_path('app/public/' . $path);
     
+    // Log access attempts for debugging (remove in production)
+    if (config('app.debug')) {
+        \Log::info('Storage file access attempt', [
+            'requested_path' => $path,
+            'full_file_path' => $filePath,
+            'file_exists' => file_exists($filePath),
+            'is_readable' => is_readable($filePath),
+            'file_size' => file_exists($filePath) ? filesize($filePath) : 0,
+            'user_agent' => request()->userAgent(),
+            'ip' => request()->ip(),
+        ]);
+    }
+    
+    // Check if file exists and is readable
     if (!file_exists($filePath)) {
+        if (config('app.debug')) {
+            return response()->json([
+                'error' => 'File not found',
+                'path' => $path,
+                'full_path' => $filePath,
+                'storage_path' => storage_path('app/public'),
+                'files_in_directory' => is_dir(dirname($filePath)) ? scandir(dirname($filePath)) : []
+            ], 404);
+        }
+        abort(404, 'File not found');
+    }
+    
+    if (!is_readable($filePath)) {
+        if (config('app.debug')) {
+            return response()->json([
+                'error' => 'File not readable',
+                'path' => $path,
+                'full_path' => $filePath,
+                'permissions' => substr(sprintf('%o', fileperms($filePath)), -4),
+            ], 403);
+        }
+        abort(403, 'File not accessible');
+    }
+    
+    // Get MIME type
+    $mimeType = mime_content_type($filePath);
+    if (!$mimeType) {
+        // Fallback MIME type detection
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $mimeTypes = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'mp4' => 'video/mp4',
+            'mov' => 'video/quicktime',
+            'avi' => 'video/x-msvideo',
+        ];
+        $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+    }
+    
+    // Set appropriate headers
+    $headers = [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options' => 'nosniff',
+    ];
+    
+    // Add Content-Length for better performance
+    if (file_exists($filePath)) {
+        $headers['Content-Length'] = filesize($filePath);
+    }
+    
+    return response()->file($filePath, $headers);
+})->where('path', '.*')->name('storage.serve');
+
+// Storage diagnostics route for debugging
+Route::get('/storage-diagnostics', function () {
+    if (!config('app.debug')) {
         abort(404);
     }
     
-    $mimeType = mime_content_type($filePath);
+    $diagnostics = [
+        'environment' => app()->environment(),
+        'app_url' => config('app.url'),
+        'storage_paths' => [
+            'storage_path' => storage_path(),
+            'public_storage_path' => storage_path('app/public'),
+            'public_path' => public_path(),
+            'public_storage_link' => public_path('storage'),
+        ],
+        'storage_link_status' => [
+            'exists' => file_exists(public_path('storage')),
+            'is_link' => is_link(public_path('storage')),
+            'is_dir' => is_dir(public_path('storage')),
+            'is_readable' => is_readable(public_path('storage')),
+            'target' => is_link(public_path('storage')) ? readlink(public_path('storage')) : null,
+        ],
+        'storage_directories' => [],
+        'test_files' => [],
+        'permissions' => [],
+    ];
     
-    return response()->file($filePath, [
-        'Content-Type' => $mimeType,
-        'Cache-Control' => 'public, max-age=31536000',
-    ]);
-})->where('path', '.*')->name('storage.serve');
+    // Check storage directories
+    $storageDirectories = [
+        'announcement-images',
+        'announcement-videos', 
+        'event-images',
+        'event-videos',
+        'news-images',
+        'news-videos'
+    ];
+    
+    foreach ($storageDirectories as $dir) {
+        $fullPath = storage_path("app/public/{$dir}");
+        $publicPath = public_path("storage/{$dir}");
+        
+        $diagnostics['storage_directories'][$dir] = [
+            'storage_path' => $fullPath,
+            'public_path' => $publicPath,
+            'storage_exists' => is_dir($fullPath),
+            'public_exists' => is_dir($publicPath),
+            'storage_readable' => is_readable($fullPath),
+            'public_readable' => is_readable($publicPath),
+            'storage_files' => is_dir($fullPath) ? count(glob($fullPath . '/*')) : 0,
+            'public_files' => is_dir($publicPath) ? count(glob($publicPath . '/*')) : 0,
+        ];
+        
+        // Get file permissions
+        if (is_dir($fullPath)) {
+            $diagnostics['permissions'][$dir . '_storage'] = substr(sprintf('%o', fileperms($fullPath)), -4);
+        }
+        if (is_dir($publicPath)) {
+            $diagnostics['permissions'][$dir . '_public'] = substr(sprintf('%o', fileperms($publicPath)), -4);
+        }
+    }
+    
+    // Test actual announcement files
+    $announcements = \App\Models\Announcement::whereNotNull('image_paths')
+        ->orWhereNotNull('image_path')
+        ->limit(5)
+        ->get();
+        
+    foreach ($announcements as $announcement) {
+        $imagePaths = [];
+        
+        // Get single image path
+        if ($announcement->image_path) {
+            $imagePaths[] = $announcement->image_path;
+        }
+        
+        // Get multiple image paths
+        if ($announcement->image_paths) {
+            $decoded = is_string($announcement->image_paths) 
+                ? json_decode($announcement->image_paths, true) 
+                : $announcement->image_paths;
+            if (is_array($decoded)) {
+                $imagePaths = array_merge($imagePaths, $decoded);
+            }
+        }
+        
+        foreach ($imagePaths as $imagePath) {
+            $fullPath = storage_path('app/public/' . $imagePath);
+            $publicUrl = asset('storage/' . $imagePath);
+            $routeUrl = route('storage.serve', ['path' => $imagePath]);
+            
+            $diagnostics['test_files'][] = [
+                'announcement_id' => $announcement->id,
+                'image_path' => $imagePath,
+                'storage_full_path' => $fullPath,
+                'storage_exists' => file_exists($fullPath),
+                'storage_readable' => is_readable($fullPath),
+                'storage_size' => file_exists($fullPath) ? filesize($fullPath) : 0,
+                'public_asset_url' => $publicUrl,
+                'custom_route_url' => $routeUrl,
+                'file_permissions' => file_exists($fullPath) ? substr(sprintf('%o', fileperms($fullPath)), -4) : null,
+            ];
+        }
+    }
+    
+    return response()->json($diagnostics, 200, [], JSON_PRETTY_PRINT);
+})->name('storage.diagnostics');
 
 // Test chatbot page
 Route::get('/test-chatbot', function () {
