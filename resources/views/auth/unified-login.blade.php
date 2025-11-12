@@ -1346,6 +1346,10 @@
                     </div>
 
 
+            <!-- reCAPTCHA removed -->
+
+                    
+
                     <!-- Submit Button -->
                     <button type="submit" class="btn" id="submit-btn">
                         <i class="fas fa-sign-in-alt"></i>
@@ -1612,7 +1616,7 @@
                 });
             });
 
-            // Enhanced form submission validation
+            // Enhanced form submission validation + reCAPTCHA v3 execution
             document.getElementById('unified-form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 const form = this;
