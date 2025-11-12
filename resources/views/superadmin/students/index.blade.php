@@ -164,11 +164,28 @@
                 </div>
             </div>
             
+            <!-- Bulk Actions Bar -->
+            <div id="bulkActionsBar" class="bulk-actions bulk-actions-hidden">
+                <div class="selected-count">
+                    <i class="fas fa-check-square"></i>
+                    <span class="count" id="selectedCount">0</span> selected
+                </div>
+                <button onclick="bulkDeleteStudents()" class="bulk-delete-btn">
+                    <i class="fas fa-trash-alt"></i> Delete Selected
+                </button>
+                <button onclick="clearSelection()" class="clear-selection-btn">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
+            </div>
+
             <!-- Desktop Table View -->
             <div class="table-responsive desktop-view">
                 <table class="enhanced-table" id="dataTable">
                     <thead>
                         <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select All">
+                            </th>
                             <th class="sortable" data-sort="id">
                                 <i class="fas fa-hashtag"></i> ID
                                 <i class="fas fa-sort sort-icon"></i>
@@ -200,7 +217,10 @@
                     </thead>
                     <tbody>
                         @forelse($students as $student)
-                            <tr class="table-row-enhanced" data-department="{{ $student->department }}">
+                            <tr class="table-row-enhanced student-row" id="student-row-{{ $student->id }}" data-department="{{ $student->department }}">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="student-checkbox" value="{{ $student->id }}" onchange="toggleRowSelection(this)">
+                                </td>
                                 <td>
                                     <span class="id-badge">#{{ str_pad($student->id, 4, '0', STR_PAD_LEFT) }}</span>
                                 </td>
@@ -499,6 +519,155 @@ handleResize();
 
 function toggleSidebar() {
     document.querySelector('.sidebar').classList.toggle('open');
+}
+
+// Checkbox and Bulk Delete Functions
+let selectedStudents = new Set();
+
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+        if (checkbox.checked) {
+            selectedStudents.add(cb.value);
+            cb.closest('tr').classList.add('selected');
+        } else {
+            selectedStudents.delete(cb.value);
+            cb.closest('tr').classList.remove('selected');
+        }
+    });
+    updateBulkActionsBar();
+}
+
+function toggleRowSelection(checkbox) {
+    const row = checkbox.closest('tr');
+    if (checkbox.checked) {
+        selectedStudents.add(checkbox.value);
+        row.classList.add('selected');
+    } else {
+        selectedStudents.delete(checkbox.value);
+        row.classList.remove('selected');
+        document.getElementById('selectAll').checked = false;
+    }
+    updateBulkActionsBar();
+}
+
+function updateBulkActionsBar() {
+    const count = selectedStudents.size;
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const selectedCountEl = document.getElementById('selectedCount');
+    
+    selectedCountEl.textContent = count;
+    
+    if (count > 0) {
+        bulkActionsBar.classList.remove('bulk-actions-hidden');
+    } else {
+        bulkActionsBar.classList.add('bulk-actions-hidden');
+    }
+}
+
+function clearSelection() {
+    selectedStudents.clear();
+    document.querySelectorAll('.student-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    document.querySelectorAll('.student-row').forEach(row => {
+        row.classList.remove('selected');
+    });
+    document.getElementById('selectAll').checked = false;
+    updateBulkActionsBar();
+}
+
+async function bulkDeleteStudents() {
+    const count = selectedStudents.size;
+    if (count === 0) {
+        Swal.fire({
+            title: 'No Selection',
+            text: 'Please select at least one student to delete.',
+            icon: 'info'
+        });
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'Delete Multiple Students',
+        html: `Are you sure you want to delete <strong>${count}</strong> student(s)?<br><br>This action cannot be undone.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: `Yes, Delete ${count} Student(s)`,
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+        // Show loading
+        Swal.fire({
+            title: 'Deleting...',
+            text: `Please wait while we delete ${count} student(s).`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Convert Set to Array
+        const studentIds = Array.from(selectedStudents);
+
+        try {
+            // Make bulk delete request
+            const response = await fetch('{{ route("superadmin.students.bulk-delete") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ student_ids: studentIds })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Remove the rows from the table
+                studentIds.forEach(studentId => {
+                    const row = document.getElementById(`student-row-${studentId}`);
+                    if (row) {
+                        row.remove();
+                    }
+                });
+                
+                clearSelection();
+                
+                await Swal.fire({
+                    title: 'Deleted!',
+                    text: data.message,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                
+                // Reload to update statistics
+                location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'Failed to delete students.',
+                    icon: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while deleting the students.',
+                icon: 'error'
+            });
+        }
+    }
 }
 </script>
 
@@ -833,6 +1002,96 @@ function toggleSidebar() {
 
 .table-row-enhanced:hover {
     background: #f8fafc;
+}
+
+/* Checkbox Styles */
+.checkbox-cell {
+    width: 50px;
+    text-align: center;
+}
+
+.checkbox-cell input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #667eea;
+}
+
+.enhanced-table tbody tr.selected {
+    background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%) !important;
+    border-left: 4px solid #667eea;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bulk-actions-hidden {
+    display: none;
+}
+
+.selected-count {
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.selected-count .count {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+.bulk-delete-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.bulk-delete-btn:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.6);
+}
+
+.clear-selection-btn {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.4);
+}
+
+.clear-selection-btn:hover {
+    background: linear-gradient(135deg, #4b5563, #374151);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(107, 114, 128, 0.6);
 }
 
 .id-badge {

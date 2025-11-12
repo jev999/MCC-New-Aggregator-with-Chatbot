@@ -607,6 +607,95 @@
             font-size: 0.875rem;
         }
 
+        /* Checkbox Styles */
+        .checkbox-cell {
+            width: 50px;
+            text-align: center;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #3b82f6;
+        }
+
+        .table tbody tr.selected {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .bulk-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        .bulk-actions-hidden {
+            display: none;
+        }
+
+        .selected-count {
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .selected-count .count {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .bulk-delete-btn {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .bulk-delete-btn:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .clear-selection-btn {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
+        }
+
+        .clear-selection-btn:hover {
+            background: linear-gradient(135deg, #4b5563, #374151);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(107, 114, 128, 0.4);
+        }
+
         @media (max-width: 1024px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -957,11 +1046,28 @@
                     <h2><i class="fas fa-history"></i> Admin Login & Logout History</h2>
                 </div>
                 
+                <!-- Bulk Actions Bar -->
+                <div id="bulkActionsBar" class="bulk-actions bulk-actions-hidden">
+                    <div class="selected-count">
+                        <i class="fas fa-check-square"></i>
+                        <span class="count" id="selectedCount">0</span> selected
+                    </div>
+                    <button onclick="bulkDeleteLogs()" class="bulk-delete-btn">
+                        <i class="fas fa-trash-alt"></i> Delete Selected
+                    </button>
+                    <button onclick="clearSelection()" class="clear-selection-btn">
+                        <i class="fas fa-times"></i> Clear Selection
+                    </button>
+                </div>
+                
                 @if($logs->count() > 0)
                     <div class="table-container">
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select All">
+                                    </th>
                                     <th>#</th>
                                     <th>Admin Name</th>
                                     <th>Role</th>
@@ -976,7 +1082,10 @@
                             </thead>
                             <tbody>
                                 @foreach ($logs as $log)
-                                <tr id="log-row-{{ $log->id }}">
+                                <tr id="log-row-{{ $log->id }}" class="log-row">
+                                    <td class="checkbox-cell">
+                                        <input type="checkbox" class="log-checkbox" value="{{ $log->id }}" onchange="toggleRowSelection(this)">
+                                    </td>
                                     <td><strong>{{ $loop->iteration + ($logs->currentPage() - 1) * $logs->perPage() }}</strong></td>
                                     <td><span class="admin-name">{{ $log->status === 'failed' ? ($log->username_attempted ?? 'Unknown') : ($log->admin->username ?? 'Unknown') }}</span></td>
                                     <td>
@@ -1230,6 +1339,152 @@
                 sidebar.classList.remove('open');
             }
         });
+
+        // Checkbox and Bulk Delete Functions
+        let selectedLogs = new Set();
+
+        function toggleSelectAll(checkbox) {
+            const checkboxes = document.querySelectorAll('.log-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = checkbox.checked;
+                if (checkbox.checked) {
+                    selectedLogs.add(cb.value);
+                    cb.closest('tr').classList.add('selected');
+                } else {
+                    selectedLogs.delete(cb.value);
+                    cb.closest('tr').classList.remove('selected');
+                }
+            });
+            updateBulkActionsBar();
+        }
+
+        function toggleRowSelection(checkbox) {
+            const row = checkbox.closest('tr');
+            if (checkbox.checked) {
+                selectedLogs.add(checkbox.value);
+                row.classList.add('selected');
+            } else {
+                selectedLogs.delete(checkbox.value);
+                row.classList.remove('selected');
+                document.getElementById('selectAll').checked = false;
+            }
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const count = selectedLogs.size;
+            const bulkActionsBar = document.getElementById('bulkActionsBar');
+            const selectedCountEl = document.getElementById('selectedCount');
+            
+            selectedCountEl.textContent = count;
+            
+            if (count > 0) {
+                bulkActionsBar.classList.remove('bulk-actions-hidden');
+            } else {
+                bulkActionsBar.classList.add('bulk-actions-hidden');
+            }
+        }
+
+        function clearSelection() {
+            selectedLogs.clear();
+            document.querySelectorAll('.log-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            document.querySelectorAll('.log-row').forEach(row => {
+                row.classList.remove('selected');
+            });
+            document.getElementById('selectAll').checked = false;
+            updateBulkActionsBar();
+        }
+
+        function bulkDeleteLogs() {
+            const count = selectedLogs.size;
+            if (count === 0) {
+                Swal.fire({
+                    title: 'No Selection',
+                    text: 'Please select at least one log to delete.',
+                    icon: 'info'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Delete Multiple Access Logs',
+                html: `Are you sure you want to delete <strong>${count}</strong> access log(s)?<br><br>This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: `Yes, Delete ${count} Log(s)`,
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: `Please wait while we delete ${count} access log(s).`,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Convert Set to Array
+                    const logIds = Array.from(selectedLogs);
+
+                    // Make bulk delete request
+                    fetch('{{ route("superadmin.admin-access.bulk-delete") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ log_ids: logIds })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remove the rows from the table
+                            logIds.forEach(logId => {
+                                const row = document.getElementById(`log-row-${logId}`);
+                                if (row) {
+                                    row.remove();
+                                }
+                            });
+                            
+                            clearSelection();
+                            
+                            Swal.fire({
+                                title: 'Deleted!',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Reload to update statistics
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: data.message || 'Failed to delete access logs.',
+                                icon: 'error'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'An error occurred while deleting the access logs.',
+                            icon: 'error'
+                        });
+                    });
+                }
+            });
+        }
 
         // Location Map Functions
         let map = null;

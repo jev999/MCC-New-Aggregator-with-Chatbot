@@ -315,4 +315,71 @@ class AdminAccessController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Bulk delete admin access log entries
+     */
+    public function bulkDestroy(Request $request)
+    {
+        // Double-check authorization
+        $admin = Auth::guard('admin')->user();
+        
+        if (!$admin || !$admin->isSuperAdmin()) {
+            abort(403, 'Access denied. Only SuperAdmins can delete Admin Access Logs.');
+        }
+
+        $request->validate([
+            'log_ids' => 'required|array|min:1',
+            'log_ids.*' => 'required|integer|exists:admin_access_logs,id'
+        ]);
+
+        try {
+            $logIds = $request->log_ids;
+            $count = count($logIds);
+            
+            // Get log details for audit before deletion
+            $logs = AdminAccessLog::whereIn('id', $logIds)->get();
+            
+            // Log the bulk deletion for audit purposes
+            \Log::info('Bulk admin access logs deleted', [
+                'deleted_by' => $admin->username,
+                'deleted_count' => $count,
+                'deleted_log_ids' => $logIds,
+                'deleted_logs_details' => $logs->map(function($log) {
+                    return [
+                        'id' => $log->id,
+                        'admin' => $log->admin ? $log->admin->username : 'Unknown',
+                        'role' => $log->role,
+                        'time_in' => $log->time_in,
+                    ];
+                })->toArray(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            // Delete the logs
+            AdminAccessLog::whereIn('id', $logIds)->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "{$count} access log(s) deleted successfully."
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid log IDs provided.'
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error bulk deleting admin access logs', [
+                'error' => $e->getMessage(),
+                'log_ids' => $request->log_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete access logs. Please try again.'
+            ], 500);
+        }
+    }
 }

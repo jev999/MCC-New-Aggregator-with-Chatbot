@@ -112,4 +112,73 @@ class AdminStudentController extends Controller
         // Always redirect to superadmin since admin routes don't exist
         return redirect()->route('superadmin.students.index')->with('success', 'Student deleted successfully!');
     }
+
+    /**
+     * Bulk delete students
+     */
+    public function bulkDestroy(Request $request)
+    {
+        $request->validate([
+            'student_ids' => 'required|array|min:1',
+            'student_ids.*' => 'required|integer|exists:users,id'
+        ]);
+
+        try {
+            $studentIds = $request->student_ids;
+            $count = count($studentIds);
+            
+            // Get student details for audit before deletion
+            $students = User::whereIn('id', $studentIds)
+                ->where('role', 'student')
+                ->get();
+            
+            if ($students->count() !== $count) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some of the selected records are not students.'
+                ], 422);
+            }
+            
+            // Log the bulk deletion for audit purposes
+            \Log::info('Bulk students deleted', [
+                'deleted_by' => auth('admin')->user() ? auth('admin')->user()->username : 'Unknown',
+                'deleted_count' => $count,
+                'deleted_student_ids' => $studentIds,
+                'deleted_students_details' => $students->map(function($student) {
+                    return [
+                        'id' => $student->id,
+                        'name' => $student->first_name . ' ' . $student->surname,
+                        'email' => $student->ms365_account,
+                        'department' => $student->department,
+                    ];
+                })->toArray(),
+                'timestamp' => now()->toISOString()
+            ]);
+            
+            // Delete the students
+            User::whereIn('id', $studentIds)->where('role', 'student')->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "{$count} student(s) deleted successfully."
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid student IDs provided.'
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error bulk deleting students', [
+                'error' => $e->getMessage(),
+                'student_ids' => $request->student_ids ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete students. Please try again.'
+            ], 500);
+        }
+    }
 }

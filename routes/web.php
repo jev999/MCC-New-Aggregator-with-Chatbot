@@ -1761,6 +1761,7 @@ Route::prefix('superadmin')->group(function () {
         // ====================================================================
         Route::get('admin-access', [App\Http\Controllers\AdminAccessController::class, 'index'])->name('superadmin.admin-access');
         Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
+        Route::post('admin-access/bulk-delete', [App\Http\Controllers\AdminAccessController::class, 'bulkDestroy'])->name('superadmin.admin-access.bulk-delete');
         
         // GPS Location Update (Available to all authenticated admins)
         Route::post('admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])->name('admin.update-gps-location');
@@ -1854,6 +1855,7 @@ Route::prefix('superadmin')->group(function () {
         Route::get('students/{student}/edit', [AdminStudentController::class, 'edit'])->name('superadmin.students.edit');
         Route::put('students/{student}', [AdminStudentController::class, 'update'])->name('superadmin.students.update');
         Route::delete('students/{student}', [AdminStudentController::class, 'destroy'])->name('superadmin.students.destroy');
+        Route::post('students/bulk-delete', [AdminStudentController::class, 'bulkDestroy'])->name('superadmin.students.bulk-delete');
 
         // ====================================================================
         // PROFILE PICTURE MANAGEMENT (RBAC: manage-admin-profiles)
