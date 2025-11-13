@@ -603,6 +603,14 @@
                 </div>
             </div>
 
+            <!-- Content Statistics Bar Chart -->
+            <div class="chart-container">
+                <h2><i class="fas fa-chart-bar"></i> Content Statistics Overview</h2>
+                <div class="chart-wrapper">
+                    <canvas id="contentBarChart"></canvas>
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="chart-container">
                 <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
@@ -910,9 +918,10 @@
         // CONTENT DISTRIBUTION PIE CHART
         // =================================================================
         
-        // Initialize pie chart when page loads
+        // Initialize charts when page loads
         window.addEventListener('load', function() {
             initContentPieChart();
+            initContentBarChart();
         });
 
         function initContentPieChart() {
@@ -1001,6 +1010,121 @@
                     elements: {
                         arc: {
                             borderWidth: 2
+                        }
+                    }
+                }
+            };
+
+            // Create the chart
+            new Chart(ctx, config);
+        }
+
+        // =================================================================
+        // CONTENT STATISTICS BAR CHART
+        // =================================================================
+        
+        function initContentBarChart() {
+            const ctx = document.getElementById('contentBarChart').getContext('2d');
+            
+            // Chart data from PHP
+            const chartData = {
+                labels: ['Announcements', 'Events', 'News', 'Faculty', 'Students'],
+                datasets: [{
+                    label: 'Count',
+                    data: [
+                        {{ $counts['announcements'] }},
+                        {{ $counts['events'] }},
+                        {{ $counts['news'] }},
+                        {{ $counts['faculty'] }},
+                        {{ $counts['students'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)', // Announcements - Primary blue
+                        'rgba(118, 75, 162, 0.8)',  // Events - Purple
+                        'rgba(240, 147, 251, 0.8)', // News - Pink
+                        'rgba(79, 172, 254, 0.8)',  // Faculty - Light blue
+                        'rgba(67, 233, 123, 0.8)'   // Students - Green
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(118, 75, 162, 1)',
+                        'rgba(240, 147, 251, 1)',
+                        'rgba(79, 172, 254, 1)',
+                        'rgba(67, 233, 123, 1)'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
+            };
+
+            // Chart configuration
+            const config = {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false // Hide legend for bar chart as colors are self-explanatory
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 14,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.dataset.label || '';
+                                    const value = context.parsed.y;
+                                    return `${label}: ${value}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#666',
+                                font: {
+                                    size: 12
+                                },
+                                padding: 10
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#666',
+                                font: {
+                                    size: 12,
+                                    weight: '500'
+                                },
+                                padding: 10
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
+                    elements: {
+                        bar: {
+                            borderRadius: 8
                         }
                     }
                 }
