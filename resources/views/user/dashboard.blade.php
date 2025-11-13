@@ -3252,6 +3252,60 @@
                     });
                 },
                 
+                // Debug function to test notification deletion
+                testNotificationDelete(notificationId) {
+                    console.log('Testing notification deletion for ID:', notificationId);
+                    
+                    // Test basic connectivity first
+                    fetch('/user/notifications/unread-count', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        console.log('Connectivity test response:', response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Connectivity test success:', data);
+                        
+                        // Now test the delete endpoint
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                        
+                        fetch(`/user/notifications/${notificationId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': csrfToken
+                            }
+                        })
+                        .then(response => {
+                            console.log('Delete response status:', response.status);
+                            console.log('Delete response headers:', [...response.headers.entries()]);
+                            return response.text(); // Get as text first
+                        })
+                        .then(text => {
+                            console.log('Delete response text:', text);
+                            try {
+                                const data = JSON.parse(text);
+                                console.log('Delete response data:', data);
+                            } catch (e) {
+                                console.error('Failed to parse response as JSON:', e);
+                            }
+                        })
+                        .catch(deleteError => {
+                            console.error('Delete request failed:', deleteError);
+                        });
+                    })
+                    .catch(connectError => {
+                        console.error('Connectivity test failed:', connectError);
+                    });
+                },
+
                 removeNotification(notificationId) {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -3284,8 +3338,32 @@
                             // Get CSRF token
                             const csrfToken = document.querySelector('meta[name="csrf-token"]');
                             if (!csrfToken) {
-                                throw new Error('CSRF token not found. Please refresh the page.');
+                                console.error('CSRF token element not found');
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'CSRF token not found. Please refresh the page and try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#ef4444',
+                                    confirmButtonText: 'OK'
+                                });
+                                return;
                             }
+                            
+                            const token = csrfToken.getAttribute('content');
+                            if (!token) {
+                                console.error('CSRF token content is empty');
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: 'CSRF token is invalid. Please refresh the page and try again.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#ef4444',
+                                    confirmButtonText: 'OK'
+                                });
+                                return;
+                            }
+                            
+                            console.log('Attempting to delete notification:', notificationId);
+                            console.log('CSRF Token:', token.substring(0, 10) + '...');
                             
                             fetch(`/user/notifications/${notificationId}`, {
                                 method: 'DELETE',
@@ -3293,7 +3371,7 @@
                                     'Content-Type': 'application/json',
                                     'Accept': 'application/json',
                                     'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': csrfToken.getAttribute('content')
+                                    'X-CSRF-TOKEN': token
                                 }
                             })
                             .then(response => {
@@ -3342,7 +3420,12 @@
                             })
                             .catch(error => {
                                 console.error('Error removing notification:', error);
+                                console.error('Error type:', error.constructor.name);
+                                console.error('Error message:', error.message);
+                                console.error('Error stack:', error.stack);
+                                
                                 let errorMessage = 'Error removing notification. Please try again.';
+                                let debugInfo = '';
                                 
                                 if (error.message.includes('403')) {
                                     errorMessage = 'You do not have permission to remove this notification.';
@@ -3350,13 +3433,19 @@
                                     errorMessage = 'Notification not found. It may have already been removed.';
                                 } else if (error.message.includes('500')) {
                                     errorMessage = 'Server error. Please try again later.';
+                                } else if (error.message.includes('419')) {
+                                    errorMessage = 'Session expired. Please refresh the page and try again.';
+                                } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                                    errorMessage = 'Network error. Please check your internet connection.';
                                 } else if (!navigator.onLine) {
                                     errorMessage = 'No internet connection. Please check your connection and try again.';
+                                } else {
+                                    debugInfo = `\n\nDebug Info: ${error.message}`;
                                 }
                                 
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: errorMessage,
+                                    text: errorMessage + debugInfo,
                                     icon: 'error',
                                     confirmButtonColor: '#ef4444',
                                     confirmButtonText: 'OK'
