@@ -1248,14 +1248,31 @@
 
     <script>
 
-        // Auto-refresh every 30 seconds to show active sessions
-        setInterval(function() {
-            if (document.visibilityState === 'visible') {
-                location.reload();
+        // Auto-refresh every 30 seconds to show active sessions (disabled during operations)
+        let autoRefreshInterval;
+        
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(function() {
+                if (document.visibilityState === 'visible') {
+                    location.reload();
+                }
+            }, 30000);
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
             }
-        }, 30000);
+        }
+        
+        // Start auto-refresh
+        startAutoRefresh();
 
         function deleteAccessLog(logId, adminName) {
+            // Stop auto-refresh during delete operation
+            stopAutoRefresh();
+            
             Swal.fire({
                 title: 'Delete Access Log',
                 html: `Are you sure you want to delete the access log for <strong>${adminName}</strong>?<br><br>This action cannot be undone.`,
@@ -1291,18 +1308,15 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // Remove the row from the table
-                            const row = document.getElementById(`log-row-${logId}`);
-                            if (row) {
-                                row.remove();
-                            }
-                            
                             Swal.fire({
                                 title: 'Deleted!',
                                 text: data.message,
                                 icon: 'success',
                                 timer: 2000,
                                 showConfirmButton: false
+                            }).then(() => {
+                                // Reload to update statistics and pagination properly
+                                location.reload();
                             });
                         } else {
                             Swal.fire({
@@ -1318,8 +1332,14 @@
                             title: 'Error!',
                             text: 'An error occurred while deleting the access log.',
                             icon: 'error'
+                        }).then(() => {
+                            // Restart auto-refresh after error
+                            startAutoRefresh();
                         });
                     });
+                } else {
+                    // Restart auto-refresh if cancelled
+                    startAutoRefresh();
                 }
             });
         }
@@ -1411,6 +1431,9 @@
                 return;
             }
 
+            // Stop auto-refresh during bulk delete operation
+            stopAutoRefresh();
+
             Swal.fire({
                 title: 'Delete Multiple Access Logs',
                 html: `Are you sure you want to delete <strong>${count}</strong> access log(s)?<br><br>This action cannot be undone.`,
@@ -1474,6 +1497,9 @@
                                 title: 'Error!',
                                 text: data.message || 'Failed to delete access logs.',
                                 icon: 'error'
+                            }).then(() => {
+                                // Restart auto-refresh after error
+                                startAutoRefresh();
                             });
                         }
                     })
@@ -1483,8 +1509,14 @@
                             title: 'Error!',
                             text: 'An error occurred while deleting the access logs.',
                             icon: 'error'
+                        }).then(() => {
+                            // Restart auto-refresh after error
+                            startAutoRefresh();
                         });
                     });
+                } else {
+                    // Restart auto-refresh if cancelled
+                    startAutoRefresh();
                 }
             });
         }
