@@ -2653,6 +2653,10 @@
                 toastDismissed: false,
                 toastQueue: [],
                 lastNotificationIds: new Set(),
+                userId: {{ auth()->id() }},
+                lastNotificationStorageKey: 'user_' + {{ auth()->id() }} + '_last_seen_notification_id',
+                lastSeenNotificationId: 0,
+                hasLoadedNotifications: false,
                 touchStartY: 0,
                 touchCurrentY: 0,
                 isSwiping: false,
@@ -2666,6 +2670,8 @@
                 
                 // Auto-load comments when modal opens and notifications on page load
                 init() {
+                    this.initializeNotificationCache();
+                    
                     this.$watch('activeModal', (newModal) => {
                         if (newModal) {
                             this.loadComments();
@@ -2686,6 +2692,12 @@
                             this.loadNotifications();
                         }
                     });
+                },
+                
+                initializeNotificationCache() {
+                    const storedValue = localStorage.getItem(this.lastNotificationStorageKey);
+                    const parsedValue = storedValue ? parseInt(storedValue, 10) : 0;
+                    this.lastSeenNotificationId = Number.isNaN(parsedValue) ? 0 : parsedValue;
                 },
                 
                 loadComments() {
@@ -3064,8 +3076,12 @@
                                     // Remove notification from the list
                                     this.notifications = this.notifications.filter(n => n.id !== notificationId);
                                     
-                                    // Update notification count
-                                    this.notificationCount = Math.max(0, this.notificationCount - 1);
+                                    // Update notification count using server value
+                                    if (typeof data.unread_count === 'number') {
+                                        this.notificationCount = Math.max(0, data.unread_count);
+                                    } else {
+                                        this.notificationCount = Math.max(0, this.notificationCount - 1);
+                                    }
                                     
                                     Swal.fire({
                                         title: 'Removed!',
@@ -3109,17 +3125,30 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.notifications !== undefined) {
+                            const previousLastSeen = this.lastSeenNotificationId || 0;
+                            const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+                            
                             // Detect new notifications
-                            const newNotifications = data.notifications.filter(notification => {
-                                return !this.lastNotificationIds.has(notification.id);
+                            const newNotifications = notifications.filter(notification => {
+                                return notification.id > previousLastSeen && !this.lastNotificationIds.has(notification.id);
                             });
                             
                             // Update notifications
-                            this.notifications = data.notifications;
+                            this.notifications = notifications;
                             this.notificationCount = data.unread_count || 0;
                             
                             // Update last notification IDs
-                            this.lastNotificationIds = new Set(data.notifications.map(n => n.id));
+                            this.lastNotificationIds = new Set(notifications.map(n => n.id));
+                            
+                            if (newNotifications.length > 0) {
+                                const highestNewId = Math.max(...newNotifications.map(n => n.id));
+                                this.persistLastSeenNotificationId(Math.max(previousLastSeen, highestNewId));
+                            } else if (!this.hasLoadedNotifications && notifications.length > 0) {
+                                const highestExistingId = Math.max(...notifications.map(n => n.id));
+                                if (highestExistingId > previousLastSeen) {
+                                    this.persistLastSeenNotificationId(highestExistingId);
+                                }
+                            }
                             
                             // Show toast for new notifications
                             if (newNotifications.length > 0) {
@@ -3127,11 +3156,26 @@
                                     this.queueToast(notification);
                                 });
                             }
+
+                            this.hasLoadedNotifications = true;
                         }
                     })
                     .catch(error => {
                         console.error('Error loading notifications:', error);
                     });
+                },
+                
+                persistLastSeenNotificationId(notificationId) {
+                    if (!notificationId || notificationId <= this.lastSeenNotificationId) {
+                        return;
+                    }
+                    
+                    this.lastSeenNotificationId = notificationId;
+                    try {
+                        localStorage.setItem(this.lastNotificationStorageKey, String(notificationId));
+                    } catch (storageError) {
+                        console.warn('Unable to persist last seen notification ID:', storageError);
+                    }
                 },
                 
                 queueToast(notification) {
