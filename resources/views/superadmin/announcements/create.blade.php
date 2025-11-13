@@ -20,31 +20,34 @@
                 <i class="fas fa-chart-pie"></i> Dashboard
             </a></li>
             <li><a href="{{ route('superadmin.admins.index') }}">
-                <i class="fas fa-users-cog"></i>Department Admin Management
+                <i class="fas fa-users-cog"></i> Department Admin Management
             </a></li>
-             <li><a href="{{ route('superadmin.office-admins.index') }}">
-                    <i class="fas fa-briefcase"></i> Officer Management
-                </a></li>
+            <li><a href="{{ route('superadmin.office-admins.index') }}">
+                <i class="fas fa-briefcase"></i> Officer Management
+            </a></li>
             <li><a href="{{ route('superadmin.announcements.index') }}" class="active">
                 <i class="fas fa-bullhorn"></i> Announcements
             </a></li>
             <li><a href="{{ route('superadmin.events.index') }}">
                 <i class="fas fa-calendar-alt"></i> Events
             </a></li>
+            <li><a href="{{ route('superadmin.news.index') }}">
                 <i class="fas fa-newspaper"></i> News
             </a></li>
             <li><a href="{{ route('superadmin.faculty.index') }}">
                 <i class="fas fa-chalkboard-teacher"></i> Faculty
             </a></li>
+            <li><a href="{{ route('superadmin.students.index') }}">
+                <i class="fas fa-user-graduate"></i> Students
+            </a></li>
+            @if(auth('admin')->check() && auth('admin')->user()->isSuperAdmin())
             <li><a href="{{ route('superadmin.admin-access') }}">
                 <i class="fas fa-clipboard-list"></i> Admin Access Logs
             </a></li>
             <li><a href="{{ route('superadmin.backup') }}">
                 <i class="fas fa-database"></i> Database Backup
             </a></li>
-            
-        </ul>            
-            </li>
+            @endif
         </ul>
     </div>
     
@@ -247,6 +250,127 @@
 </div>
 
 <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+
+    .dashboard {
+        display: flex;
+        min-height: 100vh;
+        background: #f8fafc;
+    }
+
+    .sidebar {
+        width: 280px;
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+        position: fixed;
+        height: 100vh;
+        left: 0;
+        top: 0;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: 4px 0 10px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar-header {
+        padding: 2rem 1.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
+    }
+
+    .sidebar-header h3 {
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .sidebar-header h3 i {
+        color: #ffd700;
+        font-size: 1.5rem;
+    }
+
+    .sidebar-menu {
+        list-style: none;
+        padding: 1rem 0;
+    }
+
+    .sidebar-menu li {
+        margin: 0.5rem 0;
+    }
+
+    .sidebar-menu a {
+        display: flex;
+        align-items: center;
+        padding: 0.875rem 1.5rem;
+        color: #cbd5e1;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        gap: 0.75rem;
+    }
+
+    .sidebar-menu a:hover,
+    .sidebar-menu a.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        transform: translateX(5px);
+    }
+
+    .sidebar-menu a i {
+        width: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-menu a:hover i,
+    .sidebar-menu a.active i {
+        transform: scale(1.1);
+    }
+
+    .main-content {
+        flex: 1;
+        margin-left: 280px;
+        padding: 2rem;
+        background: #f8fafc;
+        min-height: 100vh;
+        transition: margin-left 0.3s ease;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 1024px) {
+        .mobile-menu-btn {
+            display: block !important;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+            width: 100%;
+        }
+    }
+
     .header {
         background: white;
         padding: 2rem;
@@ -1213,6 +1337,33 @@
                 console.log('Auto-saving...');
             }, 2000);
         });
+    });
+
+    // Sidebar toggle functionality for mobile
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('open');
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.sidebar');
+        const mobileBtn = document.querySelector('.mobile-menu-btn');
+
+        if (window.innerWidth <= 1024 &&
+            !sidebar.contains(event.target) &&
+            !mobileBtn.contains(event.target) &&
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        const sidebar = document.querySelector('.sidebar');
+        if (window.innerWidth > 1024) {
+            sidebar.classList.remove('open');
+        }
     });
 </script>
 @endsection
