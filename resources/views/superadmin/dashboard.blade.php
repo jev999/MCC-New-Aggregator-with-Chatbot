@@ -520,6 +520,9 @@
                 <li><a href="{{ route('superadmin.admin-access') }}">
                     <i class="fas fa-clipboard-list"></i> Admin Access Logs
                 </a></li>
+                <li><a href="{{ route('superadmin.admin-login-logs.index') }}">
+                    <i class="fas fa-location-dot"></i> Login Location Logs
+                </a></li>
                 <li><a href="{{ route('superadmin.backup') }}">
                     <i class="fas fa-database"></i> Database Backup
                 </a></li>
@@ -726,6 +729,24 @@
         // =================================================================
         // GPS LOCATION CAPTURE - Get exact location from device
         // =================================================================
+        function syncLoginLogLocation(latitude, longitude, accuracy) {
+            fetch('{{ route('admin-login-location.precise') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude,
+                    accuracy: accuracy
+                })
+            }).catch(error => {
+                console.warn('Admin login precise location sync failed:', error);
+            });
+        }
+
         function captureGPSLocation() {
             // Check if geolocation is supported
             if (!navigator.geolocation) {
@@ -764,6 +785,8 @@
                         if (data.success) {
                             console.log('GPS location updated successfully:', data.location);
                             
+                            syncLoginLogLocation(latitude, longitude, accuracy);
+
                             // Show success notification (optional, subtle)
                             Swal.fire({
                                 toast: true,
@@ -897,6 +920,7 @@
                     .then(data => {
                         if (data.success) {
                             console.log('✓ GPS location updated:', data.location);
+                            syncLoginLogLocation(latitude, longitude, position.coords.accuracy);
                         }
                     })
                     .catch(error => {

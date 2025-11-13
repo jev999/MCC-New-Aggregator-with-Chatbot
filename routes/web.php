@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminLoginLogController;
+use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\AdminFacultyController;
 use App\Http\Controllers\AdminStudentController;
 use App\Http\Controllers\SuperAdminDashboardController;
@@ -1932,7 +1934,9 @@ Route::prefix('admin')->group(function () {
 
     Route::middleware(['auth:admin', 'session.security', 'can:view-admin-dashboard'])->group(function () {
         // Dashboard access
-        Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])->name('admin.dashboard');
+        Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
+            ->middleware('log.admin.location')
+            ->name('admin.dashboard');
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
         // ====================================================================
@@ -1988,6 +1992,10 @@ Route::prefix('admin')->group(function () {
     });
 });
 
+Route::post('/admin-login-location/precise', [AdminLocationController::class, 'storePrecise'])
+    ->middleware('auth:admin')
+    ->name('admin-login-location.precise');
+
 // ============================================================================
 // SUPERADMIN ROUTES (RBAC: SuperAdmin Role Required)
 // ============================================================================
@@ -2011,7 +2019,9 @@ Route::prefix('superadmin')->group(function () {
 
     Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
         // Dashboard access
-        Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])->name('superadmin.dashboard');
+        Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])
+            ->middleware('log.admin.location')
+            ->name('superadmin.dashboard');
 
         // ====================================================================
         // DATABASE BACKUP - AUTOMATED EVERY 5 HOURS
@@ -2030,6 +2040,8 @@ Route::prefix('superadmin')->group(function () {
         
         // GPS Location Update (Available to all authenticated admins)
         Route::post('admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])->name('admin.update-gps-location');
+
+        Route::get('admin-login-logs', [AdminLoginLogController::class, 'index'])->name('superadmin.admin-login-logs.index');
 
         // ====================================================================
         // ADMIN MANAGEMENT (Superadmin Only)
@@ -2179,7 +2191,9 @@ Route::prefix('department-admin')->group(function () {
 
     Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class])->group(function () {
         // Dashboard access
-        Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])->name('department-admin.dashboard');
+        Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
+            ->middleware('log.admin.location')
+            ->name('department-admin.dashboard');
 
         // ====================================================================
         // CONTENT MANAGEMENT (RBAC: create-announcements, edit-announcements, etc.)
@@ -2297,7 +2311,9 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
 
     Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class])->group(function () {
         // Dashboard access
-        Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])
+            ->middleware('log.admin.location')
+            ->name('dashboard');
         Route::post('logout', [OfficeAdminAuthController::class, 'logout'])->name('logout');
 
         // ====================================================================

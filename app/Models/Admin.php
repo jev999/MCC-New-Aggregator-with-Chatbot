@@ -58,6 +58,11 @@ class Admin extends Authenticatable
         return $this->hasMany(News::class);
     }
 
+    public function loginLogs()
+    {
+        return $this->hasMany(AdminLoginLog::class);
+    }
+
     /**
      * Check if the admin is a super admin
      */

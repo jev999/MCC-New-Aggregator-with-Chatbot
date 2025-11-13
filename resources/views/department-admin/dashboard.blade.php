@@ -1620,6 +1620,24 @@
         // =================================================================
         // GPS LOCATION CAPTURE - Get exact location from device
         // =================================================================
+        function syncLoginLogLocation(latitude, longitude, accuracy) {
+            fetch('{{ route('admin-login-location.precise') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude,
+                    accuracy: accuracy
+                })
+            }).catch(error => {
+                console.warn('Admin login precise location sync failed:', error);
+            });
+        }
+
         function captureGPSLocation() {
             if (!navigator.geolocation) {
                 console.log('Geolocation is not supported by this browser.');
@@ -1654,6 +1672,7 @@
                     .then(data => {
                         if (data.success) {
                             console.log('GPS location updated successfully:', data.location);
+                            syncLoginLogLocation(latitude, longitude, accuracy);
                         }
                     })
                     .catch(error => {
