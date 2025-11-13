@@ -214,7 +214,7 @@
                         <label class="form-label">Current Image</label>
                         <div class="current-media-grid">
                             <div class="current-media-item">
-                                <img src="{{ asset('storage/' . $news->image_path) }}" alt="Current image" class="current-image-display">
+                                <img src="{{ storage_asset($news->image_path) }}" alt="Current image" class="current-image-display">
                                 <div class="media-actions">
                                     <label class="checkbox-label">
                                         <input type="checkbox" name="remove_legacy_image" value="1" class="checkbox-input">
@@ -234,7 +234,7 @@
                         <div class="current-media-grid">
                             @foreach($news->image_paths as $index => $imagePath)
                             <div class="current-media-item">
-                                <img src="{{ asset('storage/' . $imagePath) }}" alt="Current image {{ $index + 1 }}" class="current-image-display">
+                                <img src="{{ storage_asset($imagePath) }}" alt="Current image {{ $index + 1 }}" class="current-image-display">
                                 <div class="media-actions">
                                     <label class="checkbox-label">
                                         <input type="checkbox" name="remove_images[]" value="{{ $index }}" class="checkbox-input">
@@ -256,7 +256,7 @@
                             <div class="current-media-item video-media-item">
                                 <div class="video-container">
                                     <video controls preload="metadata" class="current-video">
-                                        <source src="{{ asset('storage/' . $news->video_path) }}" type="video/mp4">
+                                        <source src="{{ storage_asset($news->video_path) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
                                     <div class="video-overlay">
@@ -284,7 +284,7 @@
                             <div class="current-media-item video-media-item">
                                 <div class="video-container">
                                     <video controls preload="metadata" class="current-video">
-                                        <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                        <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
                                     <div class="video-overlay">

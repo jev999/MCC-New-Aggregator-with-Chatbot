@@ -1,39 +1,47 @@
 # Storage Directory Access Control
-# This file should be renamed to .htaccess and placed in public/storage/
-# It provides direct access to media files if symlink creation fails
+# Rename this file to .htaccess and place it inside public/storage/
+# It redirects legacy /storage URLs to the Laravel /media proxy route.
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # If the requested file doesn't exist in public/storage,
-    # look for it in storage/app/public
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ ../../storage/app/public/$1 [L,QSA]
+
+    # Redirect any request hitting the physical /storage directory to the media proxy route
+    RewriteRule ^(.*)$ /media/$1 [L,R=307]
 </IfModule>
 
-# Security: Allow only specific file types
-<FilesMatch "\.(jpg|jpeg|png|gif|bmp|webp|svg|mp4|webm|mov|avi|pdf|doc|docx|txt|csv)$">
-    # Allow access from all origins
-    Header set Access-Control-Allow-Origin "*"
-    
-    # Enable caching for better performance
-    <IfModule mod_expires.c>
-        ExpiresActive On
-        ExpiresByType image/jpeg "access plus 1 year"
-        ExpiresByType image/png "access plus 1 year"
-        ExpiresByType image/gif "access plus 1 year"
-        ExpiresByType video/mp4 "access plus 1 year"
-    </IfModule>
-    
-    Order allow,deny
-    Allow from all
-</FilesMatch>
+# Security: Allow only specific file types with modern Apache syntax
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|bmp|webp|svg|mp4|webm|mov|avi|pdf|doc|docx|txt|csv)$">
+        Require all granted
+        Header set Access-Control-Allow-Origin "*"
+
+        <IfModule mod_expires.c>
+            ExpiresActive On
+            ExpiresByType image/jpeg "access plus 1 year"
+            ExpiresByType image/png "access plus 1 year"
+            ExpiresByType image/gif "access plus 1 year"
+            ExpiresByType video/mp4 "access plus 1 year"
+        </IfModule>
+    </FilesMatch>
+</IfModule>
+
+# Apache 2.2 fallback
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|bmp|webp|svg|mp4|webm|mov|avi|pdf|doc|docx|txt|csv)$">
+        Order allow,deny
+        Allow from all
+    </FilesMatch>
+</IfModule>
 
 # Deny access to PHP files in storage
 <FilesMatch "\.php$">
-    Order deny,allow
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # Prevent directory listing

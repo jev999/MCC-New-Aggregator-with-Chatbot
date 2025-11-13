@@ -210,8 +210,8 @@
                         <div class="media-grid">
                             @foreach($images as $imagePath)
                             <div class="media-item">
-                                <a href="{{ asset('storage/' . $imagePath) }}" data-lightbox="event-gallery">
-                                    <img src="{{ asset('storage/' . $imagePath) }}" alt="Event Image">
+                                <a href="{{ storage_asset($imagePath) }}" data-lightbox="event-gallery">
+                                    <img src="{{ storage_asset($imagePath) }}" alt="Event Image">
                                 </a>
                             </div>
                             @endforeach
@@ -226,7 +226,7 @@
                             @foreach($videos as $videoPath)
                             <div class="media-item">
                                 <video controls>
-                                    <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                    <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>

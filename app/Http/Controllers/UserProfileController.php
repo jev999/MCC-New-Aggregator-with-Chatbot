@@ -146,7 +146,7 @@ class UserProfileController extends Controller
             // Update user record
             $user->update(['profile_picture' => $path]);
             
-            $fullUrl = asset('storage/' . $path);
+            $fullUrl = storage_asset($path);
             
             \Log::info('Profile picture uploaded successfully', [
                 'user_id' => $user->id,

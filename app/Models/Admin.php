@@ -212,10 +212,7 @@ class Admin extends Authenticatable
      */
     public function getProfilePictureUrlAttribute()
     {
-        if ($this->hasProfilePicture) {
-            return asset('storage/' . $this->profile_picture);
-        }
-        return null;
+        return $this->hasProfilePicture ? storage_asset($this->profile_picture) : null;
     }
 
     /**

@@ -35,7 +35,7 @@
                 @if($announcement->image_path)
                     <div class="media-item">
                         @php
-                            $imagePath = asset('storage/' . $announcement->image_path);
+                            $imagePath = storage_asset($announcement->image_path);
                         @endphp
 
                         <img src="{{ $imagePath }}"
@@ -49,7 +49,7 @@
                     <div class="media-item">
                         <h4><i class="fas fa-video"></i> Video</h4>
                         @php
-                            $videoPath = asset('storage/' . $announcement->video_path);
+                            $videoPath = storage_asset($announcement->video_path);
                             $extension = pathinfo($announcement->video_path, PATHINFO_EXTENSION);
                             $mimeType = match(strtolower($extension)) {
                                 'mp4' => 'video/mp4',
@@ -86,7 +86,7 @@
                                 <i class="fas fa-file-csv"></i>
                                 <div>
                                     <p class="file-name">{{ basename($announcement->csv_path) }}</p>
-                                    <a href="{{ asset('storage/' . $announcement->csv_path) }}" download class="btn btn-download">
+                                    <a href="{{ storage_asset($announcement->csv_path) }}" download class="btn btn-download">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
                                 </div>

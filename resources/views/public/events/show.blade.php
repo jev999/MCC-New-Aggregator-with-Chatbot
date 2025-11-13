@@ -49,7 +49,7 @@
             <div class="article-media">
                 @if($event->image)
                     <div class="media-item">
-                        <img src="{{ asset('storage/' . $event->image) }}" alt="{{ $event->title }}" class="article-image">
+                        <img src="{{ storage_asset($event->image) }}" alt="{{ $event->title }}" class="article-image">
                     </div>
                 @endif
 
@@ -57,9 +57,9 @@
                     <div class="media-item">
                         <h4><i class="fas fa-video"></i> Event Video</h4>
                         <video controls class="article-video" preload="metadata">
-                            <source src="{{ asset('storage/' . $event->video) }}" type="video/mp4">
-                            <source src="{{ asset('storage/' . $event->video) }}" type="video/webm">
-                            <source src="{{ asset('storage/' . $event->video) }}" type="video/ogg">
+                            <source src="{{ storage_asset($event->video) }}" type="video/mp4">
+                            <source src="{{ storage_asset($event->video) }}" type="video/webm">
+                            <source src="{{ storage_asset($event->video) }}" type="video/ogg">
                             Your browser does not support the video tag.
                         </video>
                     </div>
@@ -73,7 +73,7 @@
                                 <i class="fas fa-file-csv"></i>
                                 <div>
                                     <p class="file-name">{{ basename($event->csv_file) }}</p>
-                                    <a href="{{ asset('storage/' . $event->csv_file) }}" download class="btn btn-download">
+                                    <a href="{{ storage_asset($event->csv_file) }}" download class="btn btn-download">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
                                 </div>

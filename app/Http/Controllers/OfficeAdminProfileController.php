@@ -51,7 +51,7 @@ class OfficeAdminProfileController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Profile picture uploaded successfully!',
-                'profile_picture_url' => asset('storage/' . $path)
+                'profile_picture_url' => storage_asset($path)
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -101,7 +101,7 @@ class OfficeAdminProfileController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Profile picture uploaded successfully!',
-                'profile_picture_url' => asset('storage/' . $path)
+                'profile_picture_url' => storage_asset($path)
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -153,13 +153,13 @@ STEP 5: BLADE TEMPLATES FOR DISPLAYING MEDIA
         @endphp
 
         @if($isImage)
-            <img src="{{ asset('storage/' . $announcement->media) }}" 
+            <img src="{{ storage_asset($announcement->media) }}" 
                  alt="{{ $announcement->title }}" 
                  class="img-fluid rounded shadow"
                  style="max-height: 400px; object-fit: cover;">
         @elseif($isVideo)
             <video controls class="w-100 rounded shadow" style="max-height: 400px;">
-                <source src="{{ asset('storage/' . $announcement->media) }}" type="video/{{ $extension }}">
+                <source src="{{ storage_asset($announcement->media) }}" type="video/{{ $extension }}">
                 Your browser does not support video playback.
             </video>
         @endif
@@ -176,13 +176,13 @@ STEP 5: BLADE TEMPLATES FOR DISPLAYING MEDIA
     @if($announcement->media)
         <div class="announcement-media mb-3">
             @if(Str::endsWith($announcement->media, ['jpg','jpeg','png','gif','webp']))
-                <img src="{{ asset('storage/' . $announcement->media) }}" 
+                <img src="{{ storage_asset($announcement->media) }}" 
                      alt="{{ $announcement->title }}"
                      class="img-fluid rounded"
                      loading="lazy">
             @elseif(Str::endsWith($announcement->media, ['mp4','mov','avi','webm']))
                 <video controls width="100%" class="rounded">
-                    <source src="{{ asset('storage/' . $announcement->media) }}" type="video/mp4">
+                    <source src="{{ storage_asset($announcement->media) }}" type="video/mp4">
                     Your browser does not support video playback.
                 </video>
             @endif

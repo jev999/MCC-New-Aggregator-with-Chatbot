@@ -200,8 +200,8 @@
                         <div class="media-grid">
                             @foreach($images as $imagePath)
                             <div class="media-item">
-                                <a href="{{ asset('storage/' . $imagePath) }}" data-lightbox="announcement-gallery">
-                                    <img src="{{ asset('storage/' . $imagePath) }}" alt="Announcement Image">
+                                <a href="{{ storage_asset($imagePath) }}" data-lightbox="announcement-gallery">
+                                    <img src="{{ storage_asset($imagePath) }}" alt="Announcement Image">
                                 </a>
                             </div>
                             @endforeach
@@ -216,7 +216,7 @@
                             @foreach($videos as $videoPath)
                             <div class="media-item">
                                 <video controls>
-                                    <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                    <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>
@@ -235,7 +235,7 @@
                             <i class="fas fa-file-csv" style="font-size: 2rem; color: #10b981;"></i>
                             <div>
                                 <p style="margin: 0; font-weight: 500;">{{ basename($announcement->csv_path) }}</p>
-                                <a href="{{ asset('storage/' . $announcement->csv_path) }}" download class="btn btn-sm btn-primary" style="margin-top: 0.5rem;">
+                                <a href="{{ storage_asset($announcement->csv_path) }}" download class="btn btn-sm btn-primary" style="margin-top: 0.5rem;">
                                     <i class="fas fa-download"></i> Download CSV
                                 </a>
                             </div>

@@ -35,8 +35,8 @@
                 @if($news->image_path)
                     <div class="media-item">
                         @php
-                            $imagePath = asset('storage/' . $news->image_path);
-                            $imageExists = file_exists(public_path('storage/' . $news->image_path));
+                            $imagePath = storage_asset($news->image_path);
+                            $imageExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($news->image_path);
                         @endphp
 
                         @if($imageExists)
@@ -49,7 +49,7 @@
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <p>Image file not found</p>
                                 <small>Path: {{ $news->image_path }}</small>
-                                <small>Full path: {{ $imagePath }}</small>
+                            <small>URL: {{ $imagePath }}</small>
                             </div>
                         @endif
                     </div>
@@ -59,8 +59,8 @@
                     <div class="media-item">
                         <h4><i class="fas fa-video"></i> Video</h4>
                         @php
-                            $videoPath = asset('storage/' . $news->video_path);
-                            $videoExists = file_exists(public_path('storage/' . $news->video_path));
+                            $videoPath = storage_asset($news->video_path);
+                            $videoExists = \Illuminate\Support\Facades\Storage::disk('public')->exists($news->video_path);
                             $extension = pathinfo($news->video_path, PATHINFO_EXTENSION);
                             $mimeType = match(strtolower($extension)) {
                                 'mp4' => 'video/mp4',
@@ -93,7 +93,7 @@
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <p>Video file not found on server</p>
                                 <small>Path: {{ $news->video }}</small>
-                                <small>Full path: {{ $videoPath }}</small>
+                                <small>URL: {{ $videoPath }}</small>
                             </div>
                         </div>
                         @endif
@@ -108,7 +108,7 @@
                                 <i class="fas fa-file-csv"></i>
                                 <div>
                                     <p class="file-name">{{ basename($news->csv_path) }}</p>
-                                    <a href="{{ asset('storage/' . $news->csv_path) }}" download class="btn btn-download">
+                                    <a href="{{ storage_asset($news->csv_path) }}" download class="btn btn-download">
                                         <i class="fas fa-download"></i> Download File
                                     </a>
                                 </div>

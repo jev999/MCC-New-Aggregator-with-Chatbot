@@ -69,8 +69,8 @@ class Event extends Model
         // Remove any leading slashes
         $relativePath = ltrim($relativePath, '/');
         
-        // Build URL using asset helper for proper storage access
-        return asset('storage/' . $relativePath);
+        // Build URL using storage_asset helper for proper storage access
+        return storage_asset($relativePath);
     }
 
     public function admin()

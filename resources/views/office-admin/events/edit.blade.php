@@ -215,7 +215,7 @@
                             <div class="current-media-grid">
                                 @foreach($currentImagePaths as $index => $imagePath)
                                     <div class="current-media-item">
-                                        <img src="{{ asset('storage/' . $imagePath) }}" alt="Current Image">
+                                        <img src="{{ storage_asset($imagePath) }}" alt="Current Image">
                                         <div class="remove-media-checkbox">
                                             <input type="checkbox" name="remove_images[]" value="{{ $index }}" id="remove_image_{{ $index }}">
                                             <label for="remove_image_{{ $index }}"><i class="fas fa-trash-alt"></i> Remove</label>
@@ -233,7 +233,7 @@
                                 @foreach($currentVideoPaths as $index => $videoPath)
                                     <div class="current-media-item">
                                         <video controls>
-                                            <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                            <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                         </video>
                                         <div class="remove-media-checkbox">
                                             <input type="checkbox" name="remove_videos[]" value="{{ $index }}" id="remove_video_{{ $index }}">

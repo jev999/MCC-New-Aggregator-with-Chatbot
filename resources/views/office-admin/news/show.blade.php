@@ -493,13 +493,13 @@
                     <div class="media-grid">
                         @foreach($currentImagePaths as $index => $imagePath)
                             <div class="media-item">
-                                <img src="{{ asset('storage/' . $imagePath) }}" alt="News Image {{ $index + 1 }}" onclick="openImageModal(this.src)">
+                                <img src="{{ storage_asset($imagePath) }}" alt="News Image {{ $index + 1 }}" onclick="openImageModal(this.src)">
                             </div>
                         @endforeach
                         @foreach($currentVideoPaths as $index => $videoPath)
                             <div class="media-item">
                                 <video controls>
-                                    <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                    <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>

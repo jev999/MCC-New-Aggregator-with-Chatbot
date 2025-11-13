@@ -222,7 +222,7 @@
                                @foreach($currentImages as $index => $imagePath)
                                    @if(Storage::disk('public')->exists($imagePath))
                                        <div class="current-media-item">
-                                           <img src="{{ asset('storage/' . $imagePath) }}" alt="Current Image">
+                                           <img src="{{ storage_asset($imagePath) }}" alt="Current Image">
                                            <div class="remove-media-checkbox">
                                                <input type="checkbox" name="remove_images[]" value="{{ $index }}" id="remove_image_{{ $index }}">
                                                <label for="remove_image_{{ $index }}"><i class="fas fa-trash-alt"></i> Remove</label>
@@ -243,7 +243,7 @@
                                        <div class="current-media-item video-media-item">
                                            <div class="video-container">
                                                <video controls preload="metadata" class="current-video">
-                                                   <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                                   <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                                    Your browser does not support the video tag.
                                                </video>
                                                <div class="video-overlay">

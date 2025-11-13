@@ -33,14 +33,14 @@ if ($model->media) {
 
 ✅ DISPLAY IN BLADE (Image)
 ────────────────────────────
-<img src="{{ asset('storage/' . $announcement->media) }}" 
+<img src="{{ storage_asset($announcement->media) }}" 
      alt="Image" 
      class="img-fluid">
 
 ✅ DISPLAY IN BLADE (Video)
 ────────────────────────────
 <video controls width="100%">
-    <source src="{{ asset('storage/' . $announcement->media) }}" type="video/mp4">
+    <source src="{{ storage_asset($announcement->media) }}" type="video/mp4">
 </video>
 
 ✅ VALIDATION RULES
@@ -108,10 +108,10 @@ public function store(Request $request)
 // Blade Display
 @if($announcement->media)
     @if(Str::endsWith($announcement->media, ['jpg','png','gif']))
-        <img src="{{ asset('storage/' . $announcement->media) }}">
+        <img src="{{ storage_asset($announcement->media) }}">
     @elseif(Str::endsWith($announcement->media, ['mp4','mov']))
         <video controls>
-            <source src="{{ asset('storage/' . $announcement->media) }}">
+            <source src="{{ storage_asset($announcement->media) }}">
         </video>
     @endif
 @endif

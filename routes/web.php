@@ -39,8 +39,8 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// Custom storage route to serve media files (workaround for Apache symlink issues)
-Route::get('/storage/{path}', function ($path) {
+// Custom media route to serve storage files (workaround for Apache symlink issues)
+Route::get('/media/{path}', function ($path) {
     // Clean the path to prevent directory traversal attacks
     $path = str_replace(['../', '../', '..\\', '..\\\\'], '', $path);
     
@@ -284,7 +284,7 @@ Route::get('/storage-diagnostics', function () {
         
         foreach ($imagePaths as $imagePath) {
             $fullPath = storage_path('app/public/' . $imagePath);
-            $publicUrl = asset('storage/' . $imagePath);
+            $publicUrl = storage_asset($imagePath);
             $routeUrl = route('storage.serve', ['path' => $imagePath]);
             
             $diagnostics['test_files'][] = [
@@ -1767,7 +1767,7 @@ Route::get('/test-profile-picture-functionality', function() {
     imagedestroy($image);
     
     // Test if the image can be accessed via URL
-    $testUrl = asset('storage/profile_pictures/test_image.png');
+    $testUrl = storage_asset('profile_pictures/test_image.png');
     
     return response()->json([
         'success' => true,

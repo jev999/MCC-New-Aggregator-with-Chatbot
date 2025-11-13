@@ -15,7 +15,7 @@
                 <div class="content-card">
                     @if($announcement->image_path)
                         <div class="card-image">
-                            <img src="{{ asset('storage/' . $announcement->image_path) }}" alt="{{ $announcement->title }}" loading="lazy">
+                            <img src="{{ storage_asset($announcement->image_path) }}" alt="{{ $announcement->title }}" loading="lazy">
                         </div>
                     @endif
                     

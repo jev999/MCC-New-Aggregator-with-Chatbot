@@ -515,13 +515,13 @@
                     <div class="media-grid">
                         @foreach($currentImagePaths as $index => $imagePath)
                             <div class="media-item">
-                                <img src="{{ asset('storage/' . $imagePath) }}" alt="Event Image {{ $index + 1 }}" onclick="openImageModal(this.src)">
+                                <img src="{{ storage_asset($imagePath) }}" alt="Event Image {{ $index + 1 }}" onclick="openImageModal(this.src)">
                             </div>
                         @endforeach
                         @foreach($currentVideoPaths as $index => $videoPath)
                             <div class="media-item">
                                 <video controls>
-                                    <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                    <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>
@@ -537,7 +537,7 @@
                         <i class="fas fa-file-csv" style="font-size: 2rem; color: var(--primary-color);"></i>
                         <div>
                             <p style="margin: 0; font-weight: 500;">{{ basename($event->csv_path) }}</p>
-                            <a href="{{ asset('storage/' . $event->csv_path) }}" download class="btn" style="margin-top: 0.5rem;">
+                            <a href="{{ storage_asset($event->csv_path) }}" download class="btn" style="margin-top: 0.5rem;">
                                 <i class="fas fa-download"></i> Download CSV
                             </a>
                         </div>

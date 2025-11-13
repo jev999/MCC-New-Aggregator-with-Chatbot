@@ -239,7 +239,7 @@ generateHostingInstructions();
 echo "\n📋 SUMMARY:\n";
 echo "===========\n";
 echo "Symlink Status: " . ($symlinkFixed ? "✅ Fixed" : "❌ Needs hosting provider help") . "\n";
-echo "Custom Route: ✅ Available at /storage/{path} (fallback)\n";
+echo "Custom Route: ✅ Available at /media/{path} (proxy)\n";
 echo "Diagnostics: ✅ Available at /storage-diagnostics\n";
 
 if (!$symlinkFixed) {

@@ -130,10 +130,7 @@ class User extends Authenticatable
      */
     public function getProfilePictureUrlAttribute()
     {
-        if ($this->profile_picture) {
-            return asset('storage/' . $this->profile_picture);
-        }
-        return null;
+        return $this->profile_picture ? storage_asset($this->profile_picture) : null;
     }
 
     /**

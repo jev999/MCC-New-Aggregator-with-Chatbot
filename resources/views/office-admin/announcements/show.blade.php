@@ -648,7 +648,7 @@
                         @if(!empty($imagePaths) && is_array($imagePaths))
                             @foreach($imagePaths as $image)
                                 <div class="media-item">
-                                    <img src="{{ asset('storage/' . $image) }}" alt="Announcement Image" onclick="openImageModal(this.src)">
+                                    <img src="{{ storage_asset($image) }}" alt="Announcement Image" onclick="openImageModal(this.src)">
                                 </div>
                             @endforeach
                         @endif
@@ -656,7 +656,7 @@
                         <!-- Single Image (backward compatibility) -->
                         @if($singleImage && (empty($imagePaths) || !is_array($imagePaths)))
                             <div class="media-item">
-                                <img src="{{ asset('storage/' . $singleImage) }}" alt="Announcement Image" onclick="openImageModal(this.src)">
+                                <img src="{{ storage_asset($singleImage) }}" alt="Announcement Image" onclick="openImageModal(this.src)">
                             </div>
                         @endif
 
@@ -665,7 +665,7 @@
                             @foreach($videoPaths as $video)
                                 <div class="media-item">
                                     <video controls>
-                                        <source src="{{ asset('storage/' . $video) }}" type="video/mp4">
+                                        <source src="{{ storage_asset($video) }}" type="video/mp4">
                                         Your browser does not support the video tag.
                                     </video>
                                 </div>
@@ -676,7 +676,7 @@
                         @if($singleVideo && (empty($videoPaths) || !is_array($videoPaths)))
                             <div class="media-item">
                                 <video controls>
-                                    <source src="{{ asset('storage/' . $singleVideo) }}" type="video/mp4">
+                                    <source src="{{ storage_asset($singleVideo) }}" type="video/mp4">
                                     Your browser does not support the video tag.
                                 </video>
                             </div>

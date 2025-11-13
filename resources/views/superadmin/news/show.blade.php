@@ -163,7 +163,7 @@
                 
                 @if($news->image)
                 <div class="content-image">
-                    <img src="{{ asset('storage/' . $news->image) }}" alt="{{ $news->title }}" class="news-image">
+                    <img src="{{ storage_asset($news->image) }}" alt="{{ $news->title }}" class="news-image">
                 </div>
                 @endif
 

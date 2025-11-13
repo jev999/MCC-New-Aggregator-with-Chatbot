@@ -97,7 +97,7 @@ ls -la storage/app/public/announcement-images/
 You should see your uploaded files.
 
 Step 3: Check if file is accessible via web:
-Open: https://mcc-nac.com/storage/announcement-images/FILENAME.jpg
+Open: https://mcc-nac.com/media/announcement-images/FILENAME.jpg
 
 If you get 404: Symlink is broken or not created
 If you see the image: Storage works, issue is in code
@@ -196,7 +196,7 @@ Run these checks in order:
 [ ] 3. Config cache cleared (php artisan config:clear)
 [ ] 4. Storage symlink exists (ls -la public/storage)
 [ ] 5. Files exist in storage/app/public/announcement-images/
-[ ] 6. Files accessible via https://mcc-nac.com/storage/...
+[ ] 6. Files accessible via https://mcc-nac.com/media/...
 [ ] 7. File permissions are 775 or 755
 [ ] 8. HTTPS forced in .htaccess (if using HTTPS)
 [ ] 9. Browser console shows no mixed content errors
@@ -215,7 +215,7 @@ After applying fixes:
 5. Check browser console (F12) for errors
 
 Expected result in browser:
-<img src="https://mcc-nac.com/storage/announcement-images/abc123.jpg">
+<img src="https://mcc-nac.com/media/announcement-images/abc123.jpg">
 
 NOT:
 <img src="http://localhost/storage/...">  ← Wrong domain
@@ -292,7 +292,7 @@ If images still broken after all fixes:
 5. Test file upload manually:
    - Upload image via superadmin
    - Check if file appears in storage/app/public/announcement-images/
-   - Try accessing directly: https://mcc-nac.com/storage/announcement-images/filename.jpg
+   - Try accessing directly: https://mcc-nac.com/media/announcement-images/filename.jpg
    
 6. Check database for correct paths:
    SELECT * FROM announcements WHERE id = [last_uploaded_id];

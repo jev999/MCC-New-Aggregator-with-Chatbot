@@ -1328,7 +1328,7 @@ use Illuminate\Support\Facades\Storage;
                                             @if($imagePath)
                                                 <div class="media-item">
                                                     <div class="media-preview">
-                                                        <img src="{{ asset('storage/' . $imagePath) }}" alt="Image {{ $index + 1 }}">
+                                                        <img src="{{ storage_asset($imagePath) }}" alt="Image {{ $index + 1 }}">
                                                     </div>
                                                     <div class="media-info">
                                                         <p class="media-name">{{ basename($imagePath) }}</p>
@@ -1357,7 +1357,7 @@ use Illuminate\Support\Facades\Storage;
                                                 <div class="media-item video-media-item">
                                                     <div class="video-container">
                                                         <video controls preload="metadata" class="current-video">
-                                                            <source src="{{ asset('storage/' . $videoPath) }}" type="video/mp4">
+                                                            <source src="{{ storage_asset($videoPath) }}" type="video/mp4">
                                                             Your browser does not support the video tag.
                                                         </video>
                                                         <div class="video-overlay">
