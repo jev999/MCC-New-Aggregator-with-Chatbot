@@ -1935,7 +1935,6 @@ Route::prefix('admin')->group(function () {
     Route::middleware(['auth:admin', 'session.security', 'can:view-admin-dashboard'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
-            ->middleware('log.admin.location')
             ->name('admin.dashboard');
         Route::post('logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
@@ -2020,7 +2019,6 @@ Route::prefix('superadmin')->group(function () {
     Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])
-            ->middleware('log.admin.location')
             ->name('superadmin.dashboard');
 
         // ====================================================================
@@ -2192,7 +2190,6 @@ Route::prefix('department-admin')->group(function () {
     Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
-            ->middleware('log.admin.location')
             ->name('department-admin.dashboard');
 
         // ====================================================================
@@ -2312,7 +2309,6 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
     Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])
-            ->middleware('log.admin.location')
             ->name('dashboard');
         Route::post('logout', [OfficeAdminAuthController::class, 'logout'])->name('logout');
 

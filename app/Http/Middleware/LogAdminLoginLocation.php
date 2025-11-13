@@ -19,6 +19,12 @@ class LogAdminLoginLocation
             $user = $this->resolveAdmin($request);
 
             if ($user && $this->shouldLog($request, $user)) {
+                // Check if AdminLoginLog model exists
+                if (!class_exists(\App\Models\AdminLoginLog::class)) {
+                    Log::warning('AdminLoginLog model not found, skipping location logging');
+                    return $response;
+                }
+
                 $ip = $this->resolveClientIp($request);
                 $ipData = $this->fetchIpGeolocation($ip);
 
@@ -26,7 +32,7 @@ class LogAdminLoginLocation
                 $longitude = $ipData['longitude'] ?? null;
                 $reverseGeo = $this->reverseGeocode($latitude, $longitude);
 
-                $log = AdminLoginLog::create([
+                AdminLoginLog::create([
                     'admin_id' => $user->id,
                     'role' => $user->role ?? null,
                     'ip' => $ip,
@@ -46,12 +52,14 @@ class LogAdminLoginLocation
                     'logged_at' => now(),
                 ]);
 
-                $this->rememberLogged($request, $user, $log->id);
+                $this->rememberLogged($request, $user, AdminLoginLog::latest()->first()->id ?? null);
             }
         } catch (\Throwable $e) {
             Log::warning('Failed to capture admin login location', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'user_id' => $user->id ?? 'unknown',
+                'request_path' => $request->path(),
             ]);
         }
 
