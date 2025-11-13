@@ -3281,14 +3281,27 @@
                                 }
                             });
                             
+                            // Get CSRF token
+                            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                            if (!csrfToken) {
+                                throw new Error('CSRF token not found. Please refresh the page.');
+                            }
+                            
                             fetch(`/user/notifications/${notificationId}`, {
                                 method: 'DELETE',
                                 headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
                                     'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                    'X-CSRF-TOKEN': csrfToken.getAttribute('content')
                                 }
                             })
-                            .then(response => response.json())
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                }
+                                return response.json();
+                            })
                             .then(data => {
                                 if (data.success) {
                                     // Remove notification from the list
@@ -3301,17 +3314,26 @@
                                         this.notificationCount = Math.max(0, this.notificationCount - 1);
                                     }
                                     
+                                    // If no notifications left, close the dropdown after showing success
+                                    const shouldCloseDropdown = this.notifications.length === 0;
+                                    
                                     Swal.fire({
                                         title: 'Removed!',
                                         text: 'The notification has been removed.',
                                         icon: 'success',
                                         confirmButtonColor: '#10b981',
-                                        confirmButtonText: 'OK'
+                                        confirmButtonText: 'OK',
+                                        timer: 2000,
+                                        timerProgressBar: true
+                                    }).then(() => {
+                                        if (shouldCloseDropdown) {
+                                            this.showNotifications = false;
+                                        }
                                     });
                                 } else {
                                     Swal.fire({
                                         title: 'Error!',
-                                        text: 'Error removing notification: ' + (data.error || 'Unknown error'),
+                                        text: 'Error removing notification: ' + (data.error || data.message || 'Unknown error'),
                                         icon: 'error',
                                         confirmButtonColor: '#ef4444',
                                         confirmButtonText: 'OK'
@@ -3320,9 +3342,21 @@
                             })
                             .catch(error => {
                                 console.error('Error removing notification:', error);
+                                let errorMessage = 'Error removing notification. Please try again.';
+                                
+                                if (error.message.includes('403')) {
+                                    errorMessage = 'You do not have permission to remove this notification.';
+                                } else if (error.message.includes('404')) {
+                                    errorMessage = 'Notification not found. It may have already been removed.';
+                                } else if (error.message.includes('500')) {
+                                    errorMessage = 'Server error. Please try again later.';
+                                } else if (!navigator.onLine) {
+                                    errorMessage = 'No internet connection. Please check your connection and try again.';
+                                }
+                                
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: 'Error removing notification. Please try again.',
+                                    text: errorMessage,
                                     icon: 'error',
                                     confirmButtonColor: '#ef4444',
                                     confirmButtonText: 'OK'

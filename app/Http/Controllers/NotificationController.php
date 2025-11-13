@@ -87,27 +87,53 @@ class NotificationController extends Controller
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $user = auth()->user();
-        $notification = \App\Models\Notification::where('id', $id)
-            ->where('user_id', $user->id)
-            ->first();
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'User not authenticated',
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+            
+            $notification = \App\Models\Notification::where('id', $id)
+                ->where('user_id', $user->id)
+                ->first();
 
-        if (!$notification) {
+            if (!$notification) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Notification not found',
+                    'message' => 'Notification not found or you do not have permission to delete it'
+                ], 404);
+            }
+
+            $notification->delete();
+
+            // Get updated unread count
+            $unreadCount = $this->notificationService->getUnreadCount($user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification deleted successfully',
+                'unread_count' => $unreadCount,
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error deleting notification: ' . $e->getMessage(), [
+                'notification_id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Notification not found',
-            ], 404);
+                'error' => 'An unexpected error occurred while deleting the notification',
+                'message' => 'An unexpected error occurred while deleting the notification'
+            ], 500);
         }
-
-        $notification->delete();
-
-        // Get updated unread count
-        $unreadCount = $this->notificationService->getUnreadCount($user);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Notification deleted successfully',
-            'unread_count' => $unreadCount,
-        ]);
     }
 }
