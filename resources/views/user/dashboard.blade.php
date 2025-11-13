@@ -14,26 +14,15 @@
         
         body {
             font-family: 'Poppins', sans-serif;
-            background: 
-                radial-gradient(circle at 20% 20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(143, 130, 255, 0.15) 0%, transparent 50%),
-                linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
-            padding: 2rem 1rem;
         }
         
         .bulletin-board {
-            background: 
-                linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            border-radius: 24px;
+            background: #e9e2d0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
             position: relative;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .bulletin-board::before {
@@ -42,142 +31,22 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: 
-                linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-            border-radius: 24px 24px 0 0;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
-        }
-        
-        .bulletin-board::after {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 24px;
-            height: 24px;
-            background: 
-                radial-gradient(circle, #ffd700 30%, #ffb300 70%);
-            border-radius: 50%;
-            box-shadow: 
-                0 4px 8px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.4);
-            border: 2px solid #e6a000;
+            height: 40px;
+            background: #8b5a2b;
+            border-radius: 12px 12px 0 0;
         }
         
         .section {
-            background: 
-                linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-            border: 1px solid rgba(148, 163, 184, 0.2);
-            border-radius: 20px;
-            box-shadow: 
-                0 10px 30px rgba(0, 0, 0, 0.08),
-                0 4px 8px rgba(0, 0, 0, 0.03),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-bottom: 32px;
-            position: relative;
-            overflow: hidden;
+            background: #fff;
+            border: 1px solid #d4c9a9;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
         }
         
         .section:hover {
-            transform: translateY(-8px);
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.12),
-                0 8px 16px rgba(0, 0, 0, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-        }
-        
-        .section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
-            background-size: 200% 100%;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-        
-        @keyframes shimmer {
-            0%, 100% { background-position: 200% 0; }
-            50% { background-position: -200% 0; }
-        }
-        
-        /* Entrance animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes slideInFromLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        @keyframes bounceIn {
-            0% {
-                opacity: 0;
-                transform: scale(0.3);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.05);
-            }
-            70% {
-                transform: scale(0.9);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-        
-        /* Apply animations to elements */
-        .bulletin-board {
-            animation: fadeInUp 0.8s ease-out;
-        }
-        
-        .section:nth-child(1) {
-            animation: slideInFromLeft 0.6s ease-out 0.2s both;
-        }
-        
-        .section:nth-child(2) {
-            animation: slideInFromLeft 0.6s ease-out 0.4s both;
-        }
-        
-        .section:nth-child(3) {
-            animation: slideInFromLeft 0.6s ease-out 0.6s both;
-        }
-        
-        .announcement-item {
-            animation: fadeInUp 0.5s ease-out both;
-        }
-        
-        .announcement-item:nth-child(1) { animation-delay: 0.1s; }
-        .announcement-item:nth-child(2) { animation-delay: 0.2s; }
-        .announcement-item:nth-child(3) { animation-delay: 0.3s; }
-        .announcement-item:nth-child(4) { animation-delay: 0.4s; }
-        .announcement-item:nth-child(5) { animation-delay: 0.5s; }
-        .announcement-item:nth-child(6) { animation-delay: 0.6s; }
-        
-        .pin::before,
-        .pin::after {
-            animation: bounceIn 0.6s ease-out 0.8s both;
+            transform: translateY(-5px);
         }
         
         .pin {
@@ -187,33 +56,16 @@
         .pin::before {
             content: '';
             position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 20px;
-            height: 20px;
-            background: 
-                radial-gradient(circle, #ffd700 20%, #ffb300 60%, #e6a000 100%);
-            border-radius: 50%;
-            box-shadow: 
-                0 4px 8px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.4);
-            border: 2px solid #d4af37;
-            z-index: 10;
-        }
-        
-        .pin::after {
-            content: '';
-            position: absolute;
             top: -8px;
             left: 50%;
             transform: translateX(-50%);
-            width: 12px;
-            height: 12px;
-            background: rgba(255, 215, 0, 0.6);
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(circle, #ffd700 30%, #daa520 90%);
             border-radius: 50%;
-            z-index: 11;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
+        
         
         /* Modal transitions now handled by Alpine.js */
         
@@ -250,110 +102,17 @@
         }
         
         .announcement-item {
-            background: 
-                linear-gradient(145deg, #ffffff 0%, #fefefe 100%);
-            border-radius: 16px;
-            box-shadow: 
-                0 4px 12px rgba(0, 0, 0, 0.05),
-                0 2px 4px rgba(0, 0, 0, 0.02),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            margin-bottom: 20px;
-            border: 1px solid rgba(226, 232, 240, 0.5);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .announcement-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.6), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .announcement-item:hover::before {
-            opacity: 1;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
         }
         
         .announcement-item:hover {
-            box-shadow: 
-                0 12px 32px rgba(0, 0, 0, 0.08),
-                0 4px 8px rgba(0, 0, 0, 0.04),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            transform: translateY(-4px);
-            border-color: rgba(99, 102, 241, 0.2);
-        }
-        
-        /* Enhanced media styling */
-        .item-media {
-            border-radius: 12px;
-            transition: all 0.3s ease;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .announcement-item:hover .item-media {
-            transform: scale(1.02);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Enhanced text styling within cards */
-        .announcement-item .font-medium {
-            font-weight: 600;
-            font-size: 1rem;
-            color: #1e293b;
-            line-height: 1.4;
-            margin-bottom: 8px;
-            transition: color 0.3s ease;
-        }
-        
-        .announcement-item:hover .font-medium {
-            color: #6366f1;
-        }
-        
-        .announcement-item p {
-            font-size: 0.875rem;
-            color: #64748b;
-            line-height: 1.5;
-            margin-bottom: 6px;
-        }
-        
-        .announcement-item .text-xs {
-            font-size: 0.75rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        /* Enhanced badge styling for media indicators */
-        .announcement-item .flex.items-center.mt-1 {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.05) 100%);
-            padding: 4px 8px;
-            border-radius: 12px;
-            border: 1px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.3s ease;
-        }
-        
-        .announcement-item:hover .flex.items-center.mt-1 {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
-            border-color: rgba(59, 130, 246, 0.2);
-        }
-        
-        /* Publisher info styling */
-        .announcement-item .flex.items-center.mt-2 {
-            background: linear-gradient(135deg, rgba(107, 114, 128, 0.03) 0%, rgba(148, 163, 184, 0.03) 100%);
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(148, 163, 184, 0.08);
-            transition: all 0.3s ease;
-        }
-        
-        .announcement-item:hover .flex.items-center.mt-2 {
-            background: linear-gradient(135deg, rgba(107, 114, 128, 0.06) 0%, rgba(148, 163, 184, 0.06) 100%);
-            border-color: rgba(148, 163, 184, 0.15);
+            transform: translateY(-2px);
         }
         
         /* Enhanced modal styles - now using Tailwind classes */
@@ -765,123 +524,25 @@
         .section-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            padding: 0 4px;
-            position: relative;
-        }
-        
-        .section-header h2 {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: #1e293b;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            position: relative;
-        }
-        
-        .section-header .flex {
-            gap: 12px;
-            align-items: center;
-        }
-        
-        .section-header i {
-            font-size: 1.5rem;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-            transition: all 0.3s ease;
-        }
-        
-        .section:hover .section-header i {
-            transform: scale(1.1);
-        }
-        
-        .section-header span {
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            color: #64748b;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(148, 163, 184, 0.2);
+            margin-bottom: 15px;
         }
         
         .section-content {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-            padding-top: 8px;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
         }
         
-        /* Mobile Responsive Styles for Enhanced Dashboard */
+        /* Mobile Responsive Styles for Modal Media */
         @media (max-width: 768px) {
-            body {
-                padding: 1rem 0.5rem;
-            }
-            
-            .bulletin-board {
-                border-radius: 20px;
-                margin: 0 auto;
-                max-width: calc(100vw - 1rem);
-            }
-            
             .bulletin-board::before {
-                height: 50px;
-                border-radius: 20px 20px 0 0;
-            }
-            
-            .bulletin-board::after {
-                width: 20px;
-                height: 20px;
-            }
-            
-            .section {
-                margin-bottom: 24px;
-                border-radius: 16px;
-                padding: 1.25rem !important;
-            }
-            
-            .pin::before {
-                width: 18px;
-                height: 18px;
-                top: -10px;
-            }
-            
-            .pin::after {
-                width: 10px;
-                height: 10px;
-                top: -6px;
+                height: 30px;
             }
             
             .section-content {
                 grid-template-columns: 1fr;
-                gap: 16px;
             }
             
-            .section-header {
-                margin-bottom: 20px;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-            
-            .section-header h2 {
-                font-size: 1.125rem;
-            }
-            
-            .section-header i {
-                font-size: 1.25rem;
-            }
-            
-            .announcement-item {
-                border-radius: 14px;
-                margin-bottom: 16px;
-            }
-            
-            .announcement-item .font-medium {
-                font-size: 0.9375rem;
-            }
-            
-            /* Modal responsive adjustments */
             .modal-media-container {
                 grid-template-columns: 1fr;
             }
@@ -892,48 +553,6 @@
             
             .modal-video-container {
                 height: 200px;
-            }
-            
-            /* Mobile bulletin board adjustments */
-            .modal-container {
-                margin: 0.5rem;
-                border-radius: 12px;
-                border-width: 2px;
-            }
-            
-            .bulletin-board-header {
-                padding: 1rem;
-            }
-            
-            .bulletin-board-header h3 {
-                font-size: 1.5rem;
-                line-height: 1.3;
-            }
-            
-            .bulletin-category-badge {
-                font-size: 0.7rem;
-                padding: 0.5rem 1rem;
-                transform: rotate(-0.5deg);
-            }
-            
-            .bulletin-content {
-                padding: 1rem;
-                margin-bottom: 1rem;
-            }
-            
-            .bulletin-content::before {
-                width: 16px;
-                height: 16px;
-                top: -3px;
-                right: 8px;
-            }
-            
-            /* Mobile enhanced close button */
-            .bulletin-board-header button {
-                width: 44px;
-                height: 44px;
-                min-width: 44px;
-                min-height: 44px;
             }
         }
 
