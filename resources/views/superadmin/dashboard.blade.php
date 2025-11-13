@@ -595,6 +595,13 @@
                 </div>
             </div>
 
+            <!-- Content Distribution Pie Chart -->
+            <div class="chart-container">
+                <h2><i class="fas fa-chart-pie"></i> Content Distribution</h2>
+                <div class="chart-wrapper">
+                    <canvas id="contentPieChart"></canvas>
+                </div>
+            </div>
 
             <!-- Quick Actions -->
             <div class="chart-container">
@@ -897,6 +904,110 @@
                     maximumAge: 0
                 }
             );
+        }
+
+        // =================================================================
+        // CONTENT DISTRIBUTION PIE CHART
+        // =================================================================
+        
+        // Initialize pie chart when page loads
+        window.addEventListener('load', function() {
+            initContentPieChart();
+        });
+
+        function initContentPieChart() {
+            const ctx = document.getElementById('contentPieChart').getContext('2d');
+            
+            // Chart data from PHP
+            const chartData = {
+                labels: ['Announcements', 'Events', 'News', 'Faculty', 'Students'],
+                datasets: [{
+                    data: [
+                        {{ $counts['announcements'] }},
+                        {{ $counts['events'] }},
+                        {{ $counts['news'] }},
+                        {{ $counts['faculty'] }},
+                        {{ $counts['students'] }}
+                    ],
+                    backgroundColor: [
+                        '#667eea', // Announcements - Primary blue
+                        '#764ba2', // Events - Purple
+                        '#f093fb', // News - Pink
+                        '#4facfe', // Faculty - Light blue
+                        '#43e97b'  // Students - Green
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(118, 75, 162, 0.8)',
+                        'rgba(240, 147, 251, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(67, 233, 123, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#ffffff'
+                }]
+            };
+
+            // Chart configuration
+            const config = {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                padding: 20,
+                                font: {
+                                    size: 13,
+                                    weight: '500'
+                                },
+                                color: '#333'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: {
+                                size: 14,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
+                    elements: {
+                        arc: {
+                            borderWidth: 2
+                        }
+                    }
+                }
+            };
+
+            // Create the chart
+            new Chart(ctx, config);
         }
 
     </script>
