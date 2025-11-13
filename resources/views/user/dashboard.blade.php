@@ -253,21 +253,133 @@
             background-color: #000;
         }
         
-        /* Enhanced Modal Styles with Media Grid Layout */
+        /* Enhanced Bulletin Board Modal Styles */
         .modal-container {
             max-width: 95vw;
             max-height: 95vh;
             width: 100%;
-            background: white;
-            border-radius: 10px;
+            background: #fefbf7;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(245, 158, 11, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            border: 3px solid #f5a623;
             transform: scale(0.7);
             transition: transform 0.4s ease;
+            position: relative;
         }
 
         .modal-container.active {
             transform: scale(1);
+        }
+
+        /* Bulletin Board Header Styling */
+        .bulletin-board-header {
+            background: 
+                linear-gradient(135deg, #fff8e1 0%, #ffecb3 50%, #ffe082 100%),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 241, 165, 0.3) 2px,
+                    rgba(255, 241, 165, 0.3) 4px
+                );
+            position: relative;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Category Badge Styling */
+        .bulletin-category-badge {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.2),
+                0 2px 4px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .bulletin-category-badge:hover {
+            transform: rotate(0deg) scale(1.05);
+        }
+
+        /* Enhanced content area */
+        .modal-content-area {
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(255, 248, 225, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 236, 179, 0.3) 0%, transparent 50%),
+                linear-gradient(180deg, #fffbf5 0%, #ffffff 100%);
+        }
+
+        /* Bulletin Content Styling */
+        .bulletin-content {
+            position: relative;
+            background: 
+                linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
+            box-shadow: 
+                0 8px 16px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .bulletin-content::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            background: #f59e0b;
+            border-radius: 50%;
+            box-shadow: 
+                0 2px 4px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border: 2px solid #d97706;
+        }
+
+        /* Enhanced typography for modal content */
+        .modal-content-area h1,
+        .modal-content-area h2,
+        .modal-content-area h3,
+        .modal-content-area h4,
+        .modal-content-area h5,
+        .modal-content-area h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.75rem;
+        }
+
+        .modal-content-area p {
+            font-family: 'Poppins', sans-serif;
+            color: #4b5563;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        /* Paper texture effect */
+        .bulletin-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 28px,
+                    rgba(0, 0, 0, 0.02) 28px,
+                    rgba(0, 0, 0, 0.02) 30px
+                );
+            pointer-events: none;
+            border-radius: 0.75rem;
         }
 
         @media (min-width: 640px) {
@@ -420,7 +532,7 @@
             gap: 15px;
         }
         
-        /* Mobile Responsive Styles for Modal Media */
+        /* Mobile Responsive Styles for Bulletin Board Modal */
         @media (max-width: 768px) {
             .bulletin-board::before {
                 height: 30px;
@@ -441,6 +553,48 @@
             .modal-video-container {
                 height: 200px;
             }
+            
+            /* Mobile bulletin board adjustments */
+            .modal-container {
+                margin: 0.5rem;
+                border-radius: 12px;
+                border-width: 2px;
+            }
+            
+            .bulletin-board-header {
+                padding: 1rem;
+            }
+            
+            .bulletin-board-header h3 {
+                font-size: 1.5rem;
+                line-height: 1.3;
+            }
+            
+            .bulletin-category-badge {
+                font-size: 0.7rem;
+                padding: 0.5rem 1rem;
+                transform: rotate(-0.5deg);
+            }
+            
+            .bulletin-content {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .bulletin-content::before {
+                width: 16px;
+                height: 16px;
+                top: -3px;
+                right: 8px;
+            }
+            
+            /* Mobile enhanced close button */
+            .bulletin-board-header button {
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+            }
         }
 
         /* Extra small screens */
@@ -451,6 +605,49 @@
             
             .modal-video-container {
                 height: 180px;
+            }
+            
+            /* Small screen bulletin board adjustments */
+            .modal-container {
+                margin: 0.25rem;
+                border-radius: 10px;
+            }
+            
+            .bulletin-board-header {
+                padding: 0.75rem;
+            }
+            
+            .bulletin-board-header h3 {
+                font-size: 1.25rem;
+            }
+            
+            .bulletin-category-badge {
+                font-size: 0.65rem;
+                padding: 0.4rem 0.8rem;
+            }
+            
+            .bulletin-content {
+                padding: 0.75rem;
+            }
+            
+            .bulletin-content::before {
+                width: 14px;
+                height: 14px;
+                top: -2px;
+                right: 6px;
+            }
+            
+            /* Smaller tape decorations */
+            .bulletin-board-header > div:last-child,
+            .bulletin-board-header > div:nth-last-child(2) {
+                width: 12px;
+                height: 5px;
+            }
+            
+            /* Smaller close button text */
+            .bg-gradient-to-r.from-red-500 {
+                padding: 0.5rem 1.5rem;
+                font-size: 0.875rem;
             }
         }
         
@@ -2054,20 +2251,39 @@
                  x-transition:leave-start="opacity-100 transform scale-100"
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
-                <div class="p-6 border-b border-gray-200 flex items-center justify-between modal-header">
-                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeModal?.title"></h3>
-                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+                <!-- Enhanced Bulletin Board Header -->
+                <div class="bulletin-board-header bg-gradient-to-r from-amber-50 to-yellow-50 border-b-4 border-amber-200 p-6 relative">
+                    <!-- Pin decoration -->
+                    <div class="absolute top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full shadow-lg border-2 border-yellow-300"></div>
+                    
+                    <!-- Category Badge - Top Center -->
+                    <template x-if="activeModal">
+                        <div class="text-center mb-4 pt-3">
+                            <span class="bulletin-category-badge inline-block px-6 py-2 rounded-full font-bold text-sm shadow-lg transform -rotate-1" :class="{
+                                'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-2 border-blue-400': activeModal.category === 'announcement',
+                                'bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-400': activeModal.category === 'event',
+                                'bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-400': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
+                        </div>
+                    </template>
+                    
+                    <!-- Title -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-bold text-gray-800 text-center leading-tight" x-text="activeModal?.title"></h3>
+                        </div>
+                        <button class="ml-4 w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-110" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Bulletin board tape effect -->
+                    <div class="absolute -top-1 left-8 w-16 h-6 bg-yellow-300 opacity-70 transform rotate-12 rounded"></div>
+                    <div class="absolute -top-1 right-8 w-16 h-6 bg-yellow-300 opacity-70 transform -rotate-12 rounded"></div>
                 </div>
-                <div class="p-6 modal-content-area pb-28">
+                <div class="bg-gradient-to-b from-amber-25 to-white p-6 modal-content-area pb-28">
                     <template x-if="activeModal">
                         <div>
-                            <span class="modal-category" :class="{
-                                'category-announcement': activeModal.category === 'announcement',
-                                'category-event': activeModal.category === 'event',
-                                'category-news': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
                             
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
@@ -2153,17 +2369,50 @@
                                 </div>
                             </template>
                             
-                            <p class="modal-date" x-text="activeModal.date"></p>
+                            <!-- Enhanced Date Display -->
+                            <div class="mb-4 text-center">
+                                <div class="inline-block bg-white px-4 py-2 rounded-lg shadow-md border-l-4 border-amber-400">
+                                    <i class="fas fa-calendar-alt text-amber-600 mr-2"></i>
+                                    <span class="text-gray-700 font-medium" x-text="activeModal.date"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Enhanced Location Display -->
                             <template x-if="activeModal.category === 'event' && activeModal.location">
-                                <div class="modal-location-container">
-                                    <p class="modal-location" x-text="activeModal.location"></p>
+                                <div class="mb-6">
+                                    <div class="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-4 shadow-sm">
+                                        <div class="flex items-center justify-center">
+                                            <div class="bg-green-500 text-white p-2 rounded-full mr-3">
+                                                <i class="fas fa-map-marker-alt"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Event Location</p>
+                                                <p class="text-green-800 font-medium" x-text="activeModal.location"></p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </template>
-                            <div class="modal-content" x-text="activeModal.body"></div>
-                            <div class="mt-4 pt-4 border-t border-gray-200">
-                                <div class="flex items-center text-sm text-gray-600">
-                                    <i class="fas fa-user-shield mr-2"></i>
-                                    <span x-text="activeModal.publisher"></span>
+                            
+                            <!-- Enhanced Content Display -->
+                            <div class="bulletin-content bg-white p-6 rounded-xl shadow-lg border-2 border-gray-100 mb-6">
+                                <div class="prose prose-gray max-w-none">
+                                    <div class="text-gray-800 leading-relaxed whitespace-pre-wrap" 
+                                         style="font-family: 'Poppins', sans-serif; font-size: 1rem; line-height: 1.7;"
+                                         x-text="activeModal.body"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Enhanced Publisher Info -->
+                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 shadow-sm">
+                                <div class="flex items-center">
+                                    <div class="bg-blue-500 text-white p-2 rounded-full mr-3">
+                                        <i class="fas fa-user-shield"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Published by</p>
+                                        <p class="text-blue-800 font-medium" x-text="activeModal.publisher"></p>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -2327,11 +2576,21 @@
                         </div>
                     </template>
                 </div>
-                <div class="p-6 border-t border-gray-200 flex justify-end">
-                    <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
-                            @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-                        Close
-                    </button>
+                <!-- Enhanced Bulletin Board Footer -->
+                <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-t-4 border-amber-200 p-6 relative">
+                    <!-- Paper corner curl effect -->
+                    <div class="absolute bottom-0 right-0 w-8 h-8 bg-amber-100 transform rotate-45 translate-x-4 translate-y-4 shadow-lg border-l border-t border-amber-300"></div>
+                    
+                    <div class="flex justify-center">
+                        <button class="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-red-400" 
+                                @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                            <i class="fas fa-times mr-2"></i>
+                            Close Notice
+                        </button>
+                    </div>
+                    
+                    <!-- Signature line decoration -->
+                    <div class="absolute bottom-2 left-6 right-6 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent opacity-50"></div>
                 </div>
             </div>
         </div>
