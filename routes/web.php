@@ -2317,32 +2317,32 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
         // Limited to office admin's own office
         // ====================================================================
 
-        // Announcements CRUD - with permission checks
-        Route::middleware('can:create-announcements')->post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
-        Route::middleware('can:edit-announcements')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
-        Route::middleware('can:delete-announcements')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
-        Route::middleware('can:view-announcements')->get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
-        Route::middleware('can:view-announcements')->get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
-        Route::middleware('can:view-announcements')->get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
-        Route::middleware('can:view-announcements')->get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+        // Announcements CRUD - with permission checks using admin guard
+        Route::middleware('can:create-announcements,admin')->post('announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::middleware('can:edit-announcements,admin')->put('announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::middleware('can:delete-announcements,admin')->delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+        Route::middleware('can:view-announcements,admin')->get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::middleware('can:view-announcements,admin')->get('announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+        Route::middleware('can:view-announcements,admin')->get('announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+        Route::middleware('can:view-announcements,admin')->get('announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
 
-        // Events CRUD - with permission checks
-        Route::middleware('can:create-events')->post('events', [EventController::class, 'store'])->name('events.store');
-        Route::middleware('can:edit-events')->put('events/{event}', [EventController::class, 'update'])->name('events.update');
-        Route::middleware('can:delete-events')->delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
-        Route::middleware('can:view-events')->get('events', [EventController::class, 'index'])->name('events.index');
-        Route::middleware('can:view-events')->get('events/create', [EventController::class, 'create'])->name('events.create');
-        Route::middleware('can:view-events')->get('events/{event}', [EventController::class, 'show'])->name('events.show');
-        Route::middleware('can:view-events')->get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
+        // Events CRUD - with permission checks using admin guard
+        Route::middleware('can:create-events,admin')->post('events', [EventController::class, 'store'])->name('events.store');
+        Route::middleware('can:edit-events,admin')->put('events/{event}', [EventController::class, 'update'])->name('events.update');
+        Route::middleware('can:delete-events,admin')->delete('events/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+        Route::middleware('can:view-events,admin')->get('events', [EventController::class, 'index'])->name('events.index');
+        Route::middleware('can:view-events,admin')->get('events/create', [EventController::class, 'create'])->name('events.create');
+        Route::middleware('can:view-events,admin')->get('events/{event}', [EventController::class, 'show'])->name('events.show');
+        Route::middleware('can:view-events,admin')->get('events/{event}/edit', [EventController::class, 'edit'])->name('events.edit');
 
-        // News CRUD - with permission checks
-        Route::middleware('can:create-news')->post('news', [NewsController::class, 'store'])->name('news.store');
-        Route::middleware('can:edit-news')->put('news/{news}', [NewsController::class, 'update'])->name('news.update');
-        Route::middleware('can:delete-news')->delete('news/{news}', [NewsController::class, 'destroy'])->name('news.destroy');
-        Route::middleware('can:view-news')->get('news', [NewsController::class, 'index'])->name('news.index');
-        Route::middleware('can:view-news')->get('news/create', [NewsController::class, 'create'])->name('news.create');
-        Route::middleware('can:view-news')->get('news/{news}', [NewsController::class, 'show'])->name('news.show');
-        Route::middleware('can:view-news')->get('news/{news}/edit', [NewsController::class, 'edit'])->name('news.edit');
+        // News CRUD - with permission checks using admin guard
+        Route::middleware('can:create-news,admin')->post('news', [NewsController::class, 'store'])->name('news.store');
+        Route::middleware('can:edit-news,admin')->put('news/{news}', [NewsController::class, 'update'])->name('news.update');
+        Route::middleware('can:delete-news,admin')->delete('news/{news}', [NewsController::class, 'destroy'])->name('news.destroy');
+        Route::middleware('can:view-news,admin')->get('news', [NewsController::class, 'index'])->name('news.index');
+        Route::middleware('can:view-news,admin')->get('news/create', [NewsController::class, 'create'])->name('news.create');
+        Route::middleware('can:view-news,admin')->get('news/{news}', [NewsController::class, 'show'])->name('news.show');
+        Route::middleware('can:view-news,admin')->get('news/{news}/edit', [NewsController::class, 'edit'])->name('news.edit');
     });
 });
 
