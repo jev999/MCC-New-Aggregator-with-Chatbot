@@ -56,12 +56,13 @@ class AdminAuthController extends Controller
             $request->session()->regenerate();
 
             // Log admin access with geolocation
-            $geoData = $this->getGeolocationData($request->ip());
+            $clientIp = $this->resolveClientIp($request);
+            $geoData = $this->getGeolocationData($clientIp);
             AdminAccessLog::create([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',
-                'ip_address' => $request->ip(),
+                'ip_address' => $clientIp,
                 'latitude' => $geoData['latitude'] ?? null,
                 'longitude' => $geoData['longitude'] ?? null,
                 'location_details' => $geoData['location_details'] ?? null,

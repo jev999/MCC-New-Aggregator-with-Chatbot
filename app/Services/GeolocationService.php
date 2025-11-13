@@ -422,8 +422,26 @@ class GeolocationService
      */
     protected function isLocalIp($ip)
     {
-        return $ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '192.168.') === 0 || 
-               strpos($ip, '10.') === 0 || strpos($ip, '172.') === 0;
+        if (!is_string($ip) || $ip === '') {
+            return true;
+        }
+
+        if (in_array($ip, ['127.0.0.1', '::1'], true)) {
+            return true;
+        }
+
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return true;
+        }
+
+        // If the IP remains valid after excluding private/reserved ranges, it is public.
+        $isPublic = filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+
+        return $isPublic === false;
     }
 
     /**

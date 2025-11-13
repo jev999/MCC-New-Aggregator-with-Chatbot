@@ -51,16 +51,27 @@ class UnifiedAuthController extends Controller
     {
         $location = $this->geolocationService->getLocationFromIp($ip);
         
-        // Add clear note that this is IP-based and GPS will provide exact location
+        // Add clear note that this is IP-based; when GPS is available it can refine further
         if ($location && isset($location['location_details'])) {
-            // Check if already has a tag
-            if (strpos($location['location_details'], '[GPS') === false && 
-                strpos($location['location_details'], '[IP-Based') === false) {
-                $location['location_details'] .= ' [IP-Based - Approximate. GPS will update with exact location]';
+            if (strpos($location['location_details'], '[IP-Based') === false) {
+                $location['location_details'] .= ' [IP-Based]';
             }
         }
         
         return $location;
+    }
+
+    /**
+     * Resolve the best client IP and its geolocation data in one step.
+     *
+     * @return array{0:string,1:array|null}
+     */
+    protected function resolveIpAndLocation(Request $request): array
+    {
+        $clientIp = $this->resolveClientIp($request);
+        $geoData = $this->getGeolocationData($clientIp);
+
+        return [$clientIp, $geoData];
     }
 
     /**
@@ -636,13 +647,13 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         // Log failed login attempt with geolocation
-                        $geoData = $this->getGeolocationData($request->ip());
+                        [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'superadmin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['ms365_account'] ?? null,
-                            'ip_address' => $request->ip(),
+                            'ip_address' => $clientIp,
                             'latitude' => $geoData['latitude'] ?? null,
                             'longitude' => $geoData['longitude'] ?? null,
                             'location_details' => $geoData['location_details'] ?? null,
@@ -666,13 +677,13 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     // Log failed login attempt with geolocation
-                    $geoData = $this->getGeolocationData($request->ip());
+                    [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'superadmin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['ms365_account'] ?? null,
-                        'ip_address' => $request->ip(),
+                        'ip_address' => $clientIp,
                         'latitude' => $geoData['latitude'] ?? null,
                         'longitude' => $geoData['longitude'] ?? null,
                         'location_details' => $geoData['location_details'] ?? null,
@@ -774,13 +785,13 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         // Log failed login attempt with geolocation
-                        $geoData = $this->getGeolocationData($request->ip());
+                        [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'department_admin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['ms365_account'],
-                            'ip_address' => $request->ip(),
+                            'ip_address' => $clientIp,
                             'latitude' => $geoData['latitude'] ?? null,
                             'longitude' => $geoData['longitude'] ?? null,
                             'location_details' => $geoData['location_details'] ?? null,
@@ -798,13 +809,13 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     // Log failed login attempt with geolocation
-                    $geoData = $this->getGeolocationData($request->ip());
+                    [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'department_admin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['ms365_account'],
-                        'ip_address' => $request->ip(),
+                        'ip_address' => $clientIp,
                         'latitude' => $geoData['latitude'] ?? null,
                         'longitude' => $geoData['longitude'] ?? null,
                         'location_details' => $geoData['location_details'] ?? null,
@@ -935,13 +946,13 @@ class UnifiedAuthController extends Controller
                         ]);
                         
                         // Log failed login attempt with geolocation
-                        $geoData = $this->getGeolocationData($request->ip());
+                        [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                         AdminAccessLog::create([
                             'admin_id' => null,
                             'role' => 'office_admin',
                             'status' => 'failed',
                             'username_attempted' => $credentials['ms365_account'],
-                            'ip_address' => $request->ip(),
+                            'ip_address' => $clientIp,
                             'latitude' => $geoData['latitude'] ?? null,
                             'longitude' => $geoData['longitude'] ?? null,
                             'location_details' => $geoData['location_details'] ?? null,
@@ -962,13 +973,13 @@ class UnifiedAuthController extends Controller
                     ]);
                     
                     // Log failed login attempt with geolocation
-                    $geoData = $this->getGeolocationData($request->ip());
+                    [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
                     AdminAccessLog::create([
                         'admin_id' => null,
                         'role' => 'office_admin',
                         'status' => 'failed',
                         'username_attempted' => $credentials['ms365_account'] ?? 'NULL',
-                        'ip_address' => $request->ip(),
+                        'ip_address' => $clientIp,
                         'latitude' => $geoData['latitude'] ?? null,
                         'longitude' => $geoData['longitude'] ?? null,
                         'location_details' => $geoData['location_details'] ?? null,
@@ -1425,12 +1436,12 @@ class UnifiedAuthController extends Controller
         $request->session()->forget('superadmin_otp');
 
         // Log admin access with geolocation
-        $geoData = $this->getGeolocationData($request->ip());
+        [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
         AdminAccessLog::create([
             'admin_id' => $admin->id,
             'role' => $admin->role,
             'status' => 'success',
-            'ip_address' => $request->ip(),
+            'ip_address' => $clientIp,
             'latitude' => $geoData['latitude'] ?? null,
             'longitude' => $geoData['longitude'] ?? null,
             'location_details' => $geoData['location_details'] ?? null,
@@ -1708,12 +1719,12 @@ class UnifiedAuthController extends Controller
             $request->session()->forget($sessionKey);
 
             // Log admin access with geolocation
-            $geoData = $this->getGeolocationData($request->ip());
+            [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
             AdminAccessLog::create([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',
-                'ip_address' => $request->ip(),
+                'ip_address' => $clientIp,
                 'latitude' => $geoData['latitude'] ?? null,
                 'longitude' => $geoData['longitude'] ?? null,
                 'location_details' => $geoData['location_details'] ?? null,
