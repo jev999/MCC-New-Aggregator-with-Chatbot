@@ -9,64 +9,73 @@
     RewriteRule ^storage/(.*)$ storage/$1 [L,NC]
 
     # -----------------------------
-    # 🔒 Security Headers (Additional Layer)
-    # Note: These complement the SecurityHeaders middleware
+    # 🔒 Security Headers
     # -----------------------------
     <IfModule mod_headers.c>
-        # Enforce HTTPS (HSTS) - Active in production
-        # This forces browsers to use HTTPS for 1 year
         Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-
-        # Prevent Clickjacking
         Header always set X-Frame-Options "SAMEORIGIN"
-
-        # Prevent MIME type sniffing
         Header always set X-Content-Type-Options "nosniff"
-
-        # XSS Protection (legacy browsers)
         Header always set X-XSS-Protection "1; mode=block"
-
-        # Control referrer information
         Header always set Referrer-Policy "strict-origin-when-cross-origin"
-
-        # Control browser features (Permissions Policy)
         Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), fullscreen=(self), picture-in-picture=(self)"
     </IfModule>
 
-    # Redirect HTTP to HTTPS (optional - uncomment if using HTTPS)
+    # --- Optional: Force HTTPS ---
     # RewriteCond %{HTTPS} off
     # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-    # Handle Authorization Header
+    # Pass Authorization header to Laravel
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
+    # XSRF header support
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # -------------------------------------------------------------
-    # ✅ Hide .php extension from URL (safe & 403-free)
-    # Example: /about will load /about.php if it exists
+    # ✅ Allow access to Laravel /storage/ files
+    # -------------------------------------------------------------
+    RewriteCond %{REQUEST_URI} ^/storage/
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # If a request points to /storage but no file found → 404
+    RewriteCond %{REQUEST_URI} ^/storage/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ - [R=404,L]
+
+    # -------------------------------------------------------------
+    # ✅ Hide .php extension
     # -------------------------------------------------------------
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME}.php -f
     RewriteRule ^(.+?)/?$ $1.php [L]
 
-    # Redirect Trailing Slashes If Not A Folder...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_URI} (.+)/$
-    RewriteRule ^ %1 [L,R=301]
+    # Redirect /foo.php → /foo
+    RewriteCond %{THE_REQUEST} \s/([^\s?]*?)\.php[?\s] [NC]
+    RewriteRule ^ /%1 [R=301,L]
 
-    # Send Requests To Front Controller (index.php)
+    # -------------------------------------------------------------
+    # ✅ Handle Laravel routes (Front Controller)
+    # -------------------------------------------------------------
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
 
-    # --- 2) Redirect any client-visible URL that contains .php to the extensionless URL ---
-    # Example: /foo.php  ->  /foo
-    RewriteCond %{THE_REQUEST} \s/([^\s?]*?)\.php[?\s] [NC]
-    RewriteRule ^ /%1 [R=301,L]
-    
+# -------------------------------------------------------------
+# ✅ Allow storage file access directly (in case host blocks it)
+# -------------------------------------------------------------
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|mp4|mov|avi|webm|svg|pdf|docx?)$">
+        Require all granted
+    </FilesMatch>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|mp4|mov|avi|webm|svg|pdf|docx?)$">
+        Order allow,deny
+        Allow from all
+    </FilesMatch>
 </IfModule>
