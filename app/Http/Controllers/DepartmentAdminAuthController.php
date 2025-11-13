@@ -73,7 +73,7 @@ class DepartmentAdminAuthController extends Controller
             // Log admin access with geolocation
             $clientIp = $this->resolveClientIp($request);
             $geoData = $this->getGeolocationData($clientIp);
-            AdminAccessLog::create([
+            AdminAccessLog::startSession([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',

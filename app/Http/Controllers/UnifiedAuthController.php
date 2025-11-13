@@ -1437,7 +1437,7 @@ class UnifiedAuthController extends Controller
 
         // Log admin access with geolocation
         [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
-        AdminAccessLog::create([
+        AdminAccessLog::startSession([
             'admin_id' => $admin->id,
             'role' => $admin->role,
             'status' => 'success',
@@ -1720,7 +1720,7 @@ class UnifiedAuthController extends Controller
 
             // Log admin access with geolocation
             [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
-            AdminAccessLog::create([
+            AdminAccessLog::startSession([
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',

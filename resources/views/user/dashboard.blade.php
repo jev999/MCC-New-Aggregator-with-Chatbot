@@ -2657,6 +2657,11 @@
                 touchCurrentY: 0,
                 isSwiping: false,
                 
+                getCsrfToken() {
+                    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                    return tokenMeta ? tokenMeta.getAttribute('content') : '';
+                },
+                
                 // Comments are now always visible, no toggle needed
                 
                 // Auto-load comments when modal opens and notifications on page load
@@ -3299,13 +3304,17 @@
                     
                     this.updatingProfile = true;
                     
+                    const csrfToken = this.getCsrfToken();
+
                     fetch('/user/profile/update', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
                         },
+                        credentials: 'same-origin',
                         body: JSON.stringify(this.profileForm)
                     })
                     .then(response => response.json())
@@ -3405,15 +3414,21 @@
                         }
                     });
                     
+                    const csrfToken = this.getCsrfToken();
                     const formData = new FormData();
                     formData.append('profile_picture', file);
+                    if (csrfToken) {
+                        formData.append('_token', csrfToken);
+                    }
                     
                     fetch('/user/profile/upload-picture', {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json'
                         },
+                        credentials: 'same-origin',
                         body: formData
                     })
                     .then(response => response.json())
@@ -3488,12 +3503,16 @@
                                 }
                             });
                             
+                            const csrfToken = this.getCsrfToken();
+
                             fetch('/user/profile/remove-picture', {
                                 method: 'DELETE',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                }
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    'Accept': 'application/json'
+                                },
+                                credentials: 'same-origin'
                             })
                             .then(response => response.json())
                             .then(data => {
