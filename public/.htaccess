@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Allow access to storage files
+    RewriteRule ^storage/(.*)$ storage/$1 [L,NC]
+
     # -----------------------------
     # 🔒 Security Headers (Additional Layer)
     # Note: These complement the SecurityHeaders middleware
