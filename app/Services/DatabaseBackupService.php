@@ -37,8 +37,10 @@ class DatabaseBackupService
     /**
      * Create a full database backup without using mysqldump
      * This works with remote databases and doesn't require system tools
+     * 
+     * @param bool $preferSql If true, prefer .sql files over .zip files (for scheduled backups)
      */
-    public function createBackup()
+    public function createBackup($preferSql = false)
     {
         try {
             // Increase memory and time limits for large databases
@@ -210,45 +212,48 @@ class DatabaseBackupService
                         }
                     }
                     
-                    // Set the zip path for this attempt
-                    $zipPath = empty($backupPath) 
-                        ? $this->storagePath($zipFilename) 
-                        : $this->storagePath($backupPath . '/' . $zipFilename);
-                    
-                    // For storage path (relative to storage disk)
-                    $storageRelativePath = empty($backupPath)
-                        ? $zipFilename
-                        : $backupPath . '/' . $zipFilename;
-                    
-                    // Try to create zip archive
-                    if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
-                        // Check if zip file was actually created
-                        if (file_exists($zipPath)) {
-                            $actualPath = $zipPath;
-                        } else {
-                            // Fall back to SQL file if ZIP creation failed
-                            $sqlPath = str_replace('.zip', '.sql', $zipPath);
-                            $actualPath = file_exists($sqlPath) ? $sqlPath : null;
-                        }
+                    // If preferSql is true (for scheduled backups), skip ZIP and go straight to SQL
+                    if (!$preferSql) {
+                        // Set the zip path for this attempt
+                        $zipPath = empty($backupPath) 
+                            ? $this->storagePath($zipFilename) 
+                            : $this->storagePath($backupPath . '/' . $zipFilename);
                         
-                        if ($actualPath && file_exists($actualPath)) {
-                            $actualFilename = basename($actualPath);
-                            $actualSize = filesize($actualPath);
-                            $success = true;
-                            $storagePath = str_replace('.zip', '', $storageRelativePath) . 
-                                          (preg_match('/\.zip$/i', $actualFilename) ? '.zip' : '.sql');
+                        // For storage path (relative to storage disk)
+                        $storageRelativePath = empty($backupPath)
+                            ? $zipFilename
+                            : $backupPath . '/' . $zipFilename;
+                        
+                        // Try to create zip archive
+                        if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
+                            // Check if zip file was actually created
+                            if (file_exists($zipPath)) {
+                                $actualPath = $zipPath;
+                            } else {
+                                // Fall back to SQL file if ZIP creation failed
+                                $sqlPath = str_replace('.zip', '.sql', $zipPath);
+                                $actualPath = file_exists($sqlPath) ? $sqlPath : null;
+                            }
                             
-                            Log::info('Backup created successfully', [
-                                'path' => $actualPath,
-                                'storage_path' => $storagePath,
-                                'directory' => $backupPath ?: 'root',
-                                'size' => $this->formatBytes($actualSize)
-                            ]);
-                            break; // Success - exit the loop
+                            if ($actualPath && file_exists($actualPath)) {
+                                $actualFilename = basename($actualPath);
+                                $actualSize = filesize($actualPath);
+                                $success = true;
+                                $storagePath = str_replace('.zip', '', $storageRelativePath) . 
+                                              (preg_match('/\.zip$/i', $actualFilename) ? '.zip' : '.sql');
+                                
+                                Log::info('Backup created successfully', [
+                                    'path' => $actualPath,
+                                    'storage_path' => $storagePath,
+                                    'directory' => $backupPath ?: 'root',
+                                    'size' => $this->formatBytes($actualSize)
+                                ]);
+                                break; // Success - exit the loop
+                            }
                         }
                     }
                     
-                    // If zip failed, try direct SQL file
+                    // Create direct SQL file (preferred for scheduled backups or if zip failed)
                     $sqlBackupPath = empty($backupPath)
                         ? $this->storagePath($filename)
                         : $this->storagePath($backupPath . '/' . $filename);

@@ -35,7 +35,8 @@ class PhpBackupCommand extends Command
             $backupService = new DatabaseBackupService();
             
             $this->info('Connecting to database...');
-            $result = $backupService->createBackup();
+            // Pass true to preferSql to create .sql files instead of .zip for scheduled backups
+            $result = $backupService->createBackup(true);
             
             $this->newLine();
             $this->info('✓ Backup completed successfully!');
