@@ -266,7 +266,8 @@
         }
 
         .backups-table thead {
-            background: #f1f5f9;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            color: #fff;
         }
 
         .backups-table th,
@@ -278,14 +279,130 @@
 
         .backups-table th {
             font-weight: 600;
-            color: #475569;
+            color: #e2e8f0;
             text-transform: uppercase;
             font-size: 0.85rem;
         }
 
-        .backups-table tr:hover {
-            background: #f8fafc;
+        .backups-table td {
+            vertical-align: middle;
         }
+
+        .backups-table tr:hover {
+            background: rgba(59, 130, 246, 0.06);
+        }
+
+        /* Modern table wrapper and chips */
+        .table-wrapper {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: auto;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #e2e8f0;
+            padding: 0.35rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .stat-chip.size {
+            background: #ecfeff;
+            color: #155e75;
+            border-color: #a5f3fc;
+        }
+
+        /* File meta & badges */
+        .file-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .file-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #93c5fd, #60a5fa);
+            color: #0b3a7e;
+            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.25);
+        }
+
+        .file-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .file-tags { display: flex; gap: 0.35rem; }
+
+        .file-badge {
+            display: inline-block;
+            padding: 0.18rem 0.45rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .file-badge.zip { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .file-badge.sql { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+
+        .size-chip {
+            display: inline-block;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            color: #075985;
+            border: 1px solid #bae6fd;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .date-badge {
+            display: inline-block;
+            background: #f5f3ff;
+            color: #5b21b6;
+            border: 1px solid #ddd6fe;
+            padding: 0.25rem 0.5rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .action-group { display: inline-flex; gap: 0.35rem; flex-wrap: wrap; }
 
         .action-btn {
             padding: 0.4rem 0.7rem;
@@ -470,6 +587,19 @@
                 </h2>
 
                 @if(count($backups) > 0)
+                    @php
+                        $totalBytes = ($backups instanceof \Illuminate\Support\Collection) ? $backups->sum('size_bytes') : 0;
+                        $size = $totalBytes; $u = ['B','KB','MB','GB','TB']; $i = 0;
+                        while ($size >= 1024 && $i < count($u) - 1) { $size /= 1024; $i++; }
+                        $totalSizeHuman = number_format($size, $size >= 100 ? 0 : ($size >= 10 ? 1 : 2)) . ' ' . $u[$i];
+                    @endphp
+                    <div class="table-toolbar">
+                        <div class="stat-chips">
+                            <span class="stat-chip"><i class="fas fa-archive"></i> {{ count($backups) }} Backups</span>
+                            <span class="stat-chip size"><i class="fas fa-weight-hanging"></i> {{ $totalSizeHuman }}</span>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
                     <table class="backups-table">
                         <thead>
                             <tr>
@@ -481,24 +611,43 @@
                         </thead>
                         <tbody>
                             @foreach($backups as $backup)
+                                @php $ext = strtolower(pathinfo($backup['filename'], PATHINFO_EXTENSION)); @endphp
                                 <tr>
-                                    <td><strong>{{ $backup['filename'] }}</strong></td>
-                                    <td>{{ $backup['size'] }}</td>
-                                    <td>{{ $backup['created_at_human'] }}</td>
                                     <td>
-                                        <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
-                                           class="action-btn download-btn">
-                                            <i class="fas fa-download"></i> Download
-                                        </a>
-                                        <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
-                                                class="action-btn delete-btn">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
+                                        <div class="file-meta">
+                                            <i class="fas fa-file-archive file-icon"></i>
+                                            <div class="file-text">
+                                                <div class="file-name">
+                                                    <strong>{{ $backup['filename'] }}</strong>
+                                                    @if(isset($backup['is_new']) && $backup['is_new'])
+                                                        <span class="new-badge">NEW</span>
+                                                    @endif
+                                                </div>
+                                                <div class="file-tags">
+                                                    <span class="file-badge {{ $ext === 'zip' ? 'zip' : 'sql' }}">{{ strtoupper($ext) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><span class="size-chip">{{ $backup['size'] }}</span></td>
+                                    <td><span class="date-badge" title="{{ isset($backup['created_at']) ? $backup['created_at']->format('Y-m-d H:i:s') : '' }}">{{ $backup['created_at_human'] }}</span></td>
+                                    <td>
+                                        <div class="action-group">
+                                            <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
+                                               class="action-btn download-btn" title="Download backup">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
+                                                    class="action-btn delete-btn" title="Delete backup">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
+                    </div>
                 @else
                     <div class="empty-state">
                         <i class="fas fa-folder-open"></i>
@@ -639,35 +788,48 @@
                     if (emptyState) {
                         emptyState.remove();
                         
-                        // Create a new table
+                        // Create a new table with modern markup
+                        const ext = (data.filename.split('.').pop() || '').toLowerCase();
                         const tableHTML = `
-                            <table class="backups-table">
-                                <thead>
-                                    <tr>
-                                        <th><i class="fas fa-file-archive"></i> Filename</th>
-                                        <th><i class="fas fa-weight"></i> Size</th>
-                                        <th><i class="fas fa-calendar"></i> Created</th>
-                                        <th><i class="fas fa-cogs"></i> Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr class="new-backup-row" style="background-color: rgba(16, 185, 129, 0.1);">
-                                        <td><strong>${data.filename}</strong> <span class="new-badge">NEW</span></td>
-                                        <td>${data.size}</td>
-                                        <td>Just now</td>
-                                        <td>
-                                            <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                               class="action-btn download-btn">
-                                                <i class="fas fa-download"></i> Download
-                                            </a>
-                                            <button onclick="deleteBackup('${data.filename}')" 
-                                                    class="action-btn delete-btn">
-                                                <i class="fas fa-trash"></i> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-wrapper">
+                                <table class="backups-table">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="fas fa-file-archive"></i> Filename</th>
+                                            <th><i class="fas fa-weight"></i> Size</th>
+                                            <th><i class="fas fa-calendar"></i> Created</th>
+                                            <th><i class="fas fa-cogs"></i> Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="new-backup-row" style="background-color: rgba(16, 185, 129, 0.1);">
+                                            <td>
+                                                <div class="file-meta">
+                                                    <i class="fas fa-file-archive file-icon"></i>
+                                                    <div class="file-text">
+                                                        <div class="file-name"><strong>${data.filename}</strong> <span class="new-badge">NEW</span></div>
+                                                        <div class="file-tags"><span class="file-badge ${ext === 'zip' ? 'zip' : 'sql'}">${ext.toUpperCase()}</span></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><span class="size-chip">${data.size}</span></td>
+                                            <td><span class="date-badge" title="${new Date().toLocaleString()}">Just now</span></td>
+                                            <td>
+                                                <div class="action-group">
+                                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
+                                                       class="action-btn download-btn" title="Download backup">
+                                                        <i class="fas fa-download"></i> Download
+                                                    </a>
+                                                    <button onclick="deleteBackup('${data.filename}')" 
+                                                            class="action-btn delete-btn" title="Delete backup">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         `;
                         
                         // Insert the table into the backup container
@@ -678,20 +840,30 @@
                         const newRow = document.createElement('tr');
                         newRow.className = 'new-backup-row';
                         newRow.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
-                        
+                        const ext2 = (data.filename.split('.').pop() || '').toLowerCase();
                         newRow.innerHTML = `
-                            <td><strong>${data.filename}</strong> <span class="new-badge">NEW</span></td>
-                            <td>${data.size}</td>
-                            <td>Just now</td>
                             <td>
-                                <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                   class="action-btn download-btn">
-                                    <i class="fas fa-download"></i> Download
-                                </a>
-                                <button onclick="deleteBackup('${data.filename}')" 
-                                        class="action-btn delete-btn">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
+                                <div class="file-meta">
+                                    <i class="fas fa-file-archive file-icon"></i>
+                                    <div class="file-text">
+                                        <div class="file-name"><strong>${data.filename}</strong> <span class="new-badge">NEW</span></div>
+                                        <div class="file-tags"><span class="file-badge ${ext2 === 'zip' ? 'zip' : 'sql'}">${ext2.toUpperCase()}</span></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="size-chip">${data.size}</span></td>
+                            <td><span class="date-badge" title="${new Date().toLocaleString()}">Just now</span></td>
+                            <td>
+                                <div class="action-group">
+                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
+                                       class="action-btn download-btn" title="Download backup">
+                                        <i class="fas fa-download"></i> Download
+                                    </a>
+                                    <button onclick="deleteBackup('${data.filename}')" 
+                                            class="action-btn delete-btn" title="Delete backup">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
                             </td>
                         `;
                         
