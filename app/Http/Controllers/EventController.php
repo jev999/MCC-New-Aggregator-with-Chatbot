@@ -33,8 +33,14 @@ class EventController extends Controller
                            ->where('admin_id', $admin->id)
                            ->latest()
                            ->get();
+            
+            // Calculate statistics
+            $totalCount = $events->count();
+            $publishedCount = $events->where('is_published', true)->count();
+            $draftCount = $events->where('is_published', false)->count();
+            
             $office = $admin->office;
-            return view('office-admin.events.index', compact('events', 'office'));
+            return view('office-admin.events.index', compact('events', 'office', 'totalCount', 'publishedCount', 'draftCount'));
         }
 
         // Super admins and regular admins can see all events

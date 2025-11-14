@@ -32,8 +32,14 @@ class NewsController extends Controller
                         ->where('admin_id', $admin->id)
                         ->latest()
                         ->get();
+            
+            // Calculate statistics
+            $totalCount = $news->count();
+            $publishedCount = $news->where('is_published', true)->count();
+            $draftCount = $news->where('is_published', false)->count();
+            
             $office = $admin->office;
-            return view('office-admin.news.index', compact('news', 'office'));
+            return view('office-admin.news.index', compact('news', 'office', 'totalCount', 'publishedCount', 'draftCount'));
         }
 
         // Super admins and regular admins can see all news

@@ -636,6 +636,112 @@
             .table td {
                 padding: 0.75rem 1rem;
             }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .stat-card {
+                padding: 1.25rem;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+        }
+
+        .stat-card.published::before {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-card.draft::before {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            background: var(--primary-gradient);
+            flex-shrink: 0;
+        }
+
+        .stat-card.published .stat-icon {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .stat-card.draft .stat-icon {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
     </style>
 </head>
@@ -711,10 +817,41 @@
                 </div>
             @endif
 
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card total">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $totalCount }}</div>
+                        <div class="stat-label">Total Events</div>
+                    </div>
+                </div>
+                <div class="stat-card published">
+                    <div class="stat-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $publishedCount }}</div>
+                        <div class="stat-label">Published</div>
+                    </div>
+                </div>
+                <div class="stat-card draft">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number">{{ $draftCount }}</div>
+                        <div class="stat-label">Drafts</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="content-container">
                 <div class="content-header">
                     <h2>My Events</h2>
-                    <span style="color: #6b7280; font-size: 0.875rem;">{{ $events->count() }} total</span>
+                    <span style="color: #6b7280; font-size: 0.875rem;">Showing all {{ $totalCount }} events</span>
                 </div>
 
                 @if($events->count() > 0)
