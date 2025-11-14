@@ -41,13 +41,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// CSRF token refresh route for long-running forms
-Route::get('/csrf-token', function () {
-    return response()->json([
-        'csrf_token' => csrf_token()
-    ]);
-})->name('csrf-token');
-
 // Custom media route to serve storage files (workaround for Apache symlink issues)
 Route::get('/media/{path}', function ($path) {
     // Clean the path to prevent directory traversal attacks
