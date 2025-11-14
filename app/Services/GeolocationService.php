@@ -9,13 +9,11 @@ class GeolocationService
 {
     /**
      * Get geolocation data from IP address using multiple providers for accuracy
-     * Uses parallel requests and averages results for better accuracy
      * 
      * @param string $ip
-     * @param bool $useParallel Whether to use parallel requests for better accuracy
      * @return array|null
      */
-    public function getLocationFromIp($ip, $useParallel = true)
+    public function getLocationFromIp($ip)
     {
         try {
             // Skip for local IPs
@@ -27,21 +25,6 @@ class GeolocationService
                 ];
             }
 
-            // Use parallel requests for better accuracy
-            if ($useParallel) {
-                $locations = $this->getLocationFromMultipleProviders($ip);
-                
-                if (!empty($locations)) {
-                    // Average coordinates from multiple providers for better accuracy
-                    $averagedLocation = $this->averageLocations($locations);
-                    if ($averagedLocation) {
-                        // Enhance with reverse geocoding for exact address
-                        return $this->enhanceWithReverseGeocoding($averagedLocation);
-                    }
-                }
-            }
-
-            // Fallback to sequential requests
             // Try primary provider: ipapi.co (most accurate, free tier 30k/month)
             $location = $this->getFromIpapiCo($ip);
             if ($location) {
@@ -63,12 +46,6 @@ class GeolocationService
                 return $this->enhanceWithReverseGeocoding($location);
             }
 
-            // Third fallback: ipgeolocation.io (more accurate for WiFi locations)
-            $location = $this->getFromIpGeolocation($ip);
-            if ($location) {
-                return $this->enhanceWithReverseGeocoding($location);
-            }
-
             // If all providers fail, return null
             Log::warning('All geolocation providers failed for IP: ' . $ip);
             return null;
@@ -81,172 +58,6 @@ class GeolocationService
             ]);
             return null;
         }
-    }
-
-    /**
-     * Get location from multiple providers in parallel for better accuracy
-     * Uses Laravel's Http pool for concurrent requests
-     * 
-     * @param string $ip
-     * @return array
-     */
-    protected function getLocationFromMultipleProviders($ip)
-    {
-        $locations = [];
-        
-        // Use Laravel's Http pool for parallel execution
-        try {
-            $responses = Http::pool(function ($pool) use ($ip) {
-                return [
-                    $pool->timeout(3)
-                        ->withHeaders(['Accept' => 'application/json'])
-                        ->get("https://ipapi.co/{$ip}/json/"),
-                    $pool->timeout(3)
-                        ->get("http://ip-api.com/json/{$ip}?fields=status,message,country,countryCode,region,regionName,city,district,zip,lat,lon,timezone,isp,org,as,query"),
-                    $pool->timeout(3)
-                        ->withHeaders(['Accept' => 'application/json'])
-                        ->get("https://ipinfo.io/{$ip}/json"),
-                ];
-            });
-            
-            // Process ipapi.co response
-            if (isset($responses[0]) && $responses[0]->successful()) {
-                $data = $responses[0]->json();
-                if (!empty($data['latitude']) && !empty($data['longitude']) && !isset($data['error'])) {
-                    $locations[] = [
-                        'latitude' => (float) $data['latitude'],
-                        'longitude' => (float) $data['longitude'],
-                        'source' => 'ipapi.co',
-                        'weight' => 1.0 // Higher weight for primary provider
-                    ];
-                }
-            }
-            
-            // Process ip-api.com response
-            if (isset($responses[1]) && $responses[1]->successful()) {
-                $data = $responses[1]->json();
-                if (isset($data['status']) && $data['status'] === 'success' && !empty($data['lat']) && !empty($data['lon'])) {
-                    $locations[] = [
-                        'latitude' => (float) $data['lat'],
-                        'longitude' => (float) $data['lon'],
-                        'source' => 'ip-api.com',
-                        'weight' => 0.9
-                    ];
-                }
-            }
-            
-            // Process ipinfo.io response
-            if (isset($responses[2]) && $responses[2]->successful()) {
-                $data = $responses[2]->json();
-                if (!empty($data['loc'])) {
-                    $coords = explode(',', $data['loc']);
-                    if (count($coords) === 2) {
-                        $locations[] = [
-                            'latitude' => (float) trim($coords[0]),
-                            'longitude' => (float) trim($coords[1]),
-                            'source' => 'ipinfo.io',
-                            'weight' => 0.8
-                        ];
-                    }
-                }
-            }
-            
-        } catch (\Exception $e) {
-            Log::warning('Parallel geolocation request failed', [
-                'ip' => $ip,
-                'error' => $e->getMessage()
-            ]);
-        }
-        
-        return $locations;
-    }
-
-    /**
-     * Average multiple location results for better accuracy
-     * Uses weighted average based on provider reliability
-     * 
-     * @param array $locations
-     * @return array|null
-     */
-    protected function averageLocations($locations)
-    {
-        if (empty($locations)) {
-            return null;
-        }
-        
-        if (count($locations) === 1) {
-            return [
-                'latitude' => $locations[0]['latitude'],
-                'longitude' => $locations[0]['longitude'],
-                'location_details' => 'Location from ' . $locations[0]['source']
-            ];
-        }
-        
-        // Calculate weighted average
-        $totalWeight = 0;
-        $weightedLat = 0;
-        $weightedLng = 0;
-        $sources = [];
-        
-        foreach ($locations as $loc) {
-            $weight = $loc['weight'] ?? 1.0;
-            $totalWeight += $weight;
-            $weightedLat += $loc['latitude'] * $weight;
-            $weightedLng += $loc['longitude'] * $weight;
-            $sources[] = $loc['source'];
-        }
-        
-        if ($totalWeight > 0) {
-            return [
-                'latitude' => $weightedLat / $totalWeight,
-                'longitude' => $weightedLng / $totalWeight,
-                'location_details' => 'Averaged from: ' . implode(', ', array_unique($sources))
-            ];
-        }
-        
-        return null;
-    }
-
-    /**
-     * Get location from ipgeolocation.io (Better accuracy for WiFi locations)
-     * 
-     * @param string $ip
-     * @return array|null
-     */
-    protected function getFromIpGeolocation($ip)
-    {
-        try {
-            // Using free tier endpoint
-            $response = Http::timeout(5)
-                ->withHeaders(['Accept' => 'application/json'])
-                ->get("https://api.ipgeolocation.io/ipgeo", [
-                    'ip' => $ip,
-                    'apiKey' => '' // Free tier doesn't require API key for basic queries
-                ]);
-            
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                if (!empty($data['latitude']) && !empty($data['longitude'])) {
-                    $parts = [];
-                    if (!empty($data['city'])) $parts[] = $data['city'];
-                    if (!empty($data['state_prov'])) $parts[] = $data['state_prov'];
-                    if (!empty($data['country_name'])) $parts[] = $data['country_name'];
-                    if (!empty($data['zipcode'])) $parts[] = 'ZIP: ' . $data['zipcode'];
-                    if (!empty($data['isp'])) $parts[] = 'ISP: ' . $data['isp'];
-                    
-                    return [
-                        'latitude' => (float) $data['latitude'],
-                        'longitude' => (float) $data['longitude'],
-                        'location_details' => !empty($parts) ? implode(', ', $parts) : 'Location from ipgeolocation.io'
-                    ];
-                }
-            }
-        } catch (\Exception $e) {
-            Log::warning('ipgeolocation.io request failed', ['ip' => $ip, 'error' => $e->getMessage()]);
-        }
-        
-        return null;
     }
 
     /**

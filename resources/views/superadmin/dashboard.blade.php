@@ -744,24 +744,44 @@
             });
         }
 
-        function captureGPSLocation() {
+        // WiFi-Based Real-Time Location Tracking
+        let locationWatchId = null;
+        let lastLocationUpdate = null;
+        const LOCATION_UPDATE_INTERVAL = 30000; // Update every 30 seconds
+
+        function startWiFiLocationTracking() {
             // Check if geolocation is supported
             if (!navigator.geolocation) {
                 console.log('Geolocation is not supported by this browser.');
                 return;
             }
 
-            // Request GPS coordinates
-            navigator.geolocation.getCurrentPosition(
+            // Stop any existing watch
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId);
+            }
+
+            // Use watchPosition for continuous real-time tracking
+            // This uses WiFi access points for better accuracy on desktop/laptop
+            locationWatchId = navigator.geolocation.watchPosition(
                 function(position) {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
                     const accuracy = position.coords.accuracy;
+                    const timestamp = Date.now();
 
-                    console.log('GPS Location captured:', {
+                    // Throttle updates to avoid too many requests
+                    if (lastLocationUpdate && (timestamp - lastLocationUpdate) < LOCATION_UPDATE_INTERVAL) {
+                        return;
+                    }
+
+                    lastLocationUpdate = timestamp;
+
+                    console.log('WiFi-Based Real-Time Location:', {
                         latitude: latitude,
                         longitude: longitude,
-                        accuracy: accuracy + ' meters'
+                        accuracy: accuracy + ' meters',
+                        source: 'WiFi Access Points + Network Triangulation'
                     });
 
                     // Send coordinates to server
@@ -780,59 +800,58 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            console.log('GPS location updated successfully:', data.location);
-                            
+                            console.log('✓ WiFi-based location updated:', data.location);
                             syncLoginLogLocation(latitude, longitude, accuracy);
-
-                            // Show success notification (optional, subtle)
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Exact location captured',
-                                text: 'Your GPS location has been recorded',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                timerProgressBar: true
-                            });
                         } else {
-                            console.error('Failed to update GPS location:', data.message);
+                            console.error('Failed to update location:', data.message);
                         }
                     })
                     .catch(error => {
-                        console.error('Error sending GPS coordinates:', error);
+                        console.error('Error sending location coordinates:', error);
                     });
                 },
                 function(error) {
                     // Handle errors
                     switch(error.code) {
                         case error.PERMISSION_DENIED:
-                            console.log('User denied GPS location permission.');
+                            console.warn('Location permission denied. Please enable location access for accurate tracking.');
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            console.log('GPS location information is unavailable.');
+                            console.warn('Location information unavailable. WiFi/GPS may be disabled.');
                             break;
                         case error.TIMEOUT:
-                            console.log('GPS location request timed out.');
+                            console.warn('Location request timed out. Retrying...');
+                            // Retry after a delay
+                            setTimeout(startWiFiLocationTracking, 5000);
                             break;
                         default:
-                            console.log('An unknown error occurred getting GPS location.');
+                            console.warn('An unknown error occurred:', error.message);
                     }
                 },
                 {
-                    enableHighAccuracy: true,  // Request high accuracy GPS
-                    timeout: 10000,            // 10 second timeout
-                    maximumAge: 0              // Don't use cached position
+                    enableHighAccuracy: true,      // Prioritize WiFi/cell tower over GPS
+                    timeout: 15000,                // 15 second timeout
+                    maximumAge: 0                  // Always get fresh position (no cache)
                 }
             );
+
+            console.log('✓ WiFi-based real-time location tracking started');
         }
 
-        // Capture GPS location on page load
+        // Start WiFi location tracking on page load
         window.addEventListener('load', function() {
-            // Wait 2 seconds before requesting GPS to avoid overwhelming the user
+            // Wait 2 seconds before starting to avoid overwhelming the user
             setTimeout(function() {
-                captureGPSLocation();
+                startWiFiLocationTracking();
             }, 2000);
+        });
+
+        // Stop tracking when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                console.log('Location tracking stopped');
+            }
         });
 
         // =================================================================
@@ -894,46 +913,7 @@
             }
         })();
 
-        // GPS Geolocation for Accurate Admin Location Tracking
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-                    
-                    // Send GPS coordinates to server
-                    fetch('{{ route("admin.update-gps-location") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({
-                            latitude: latitude,
-                            longitude: longitude
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            console.log('✓ GPS location updated:', data.location);
-                            syncLoginLogLocation(latitude, longitude, position.coords.accuracy);
-                        }
-                    })
-                    .catch(error => {
-                        console.warn('GPS location update failed:', error);
-                    });
-                },
-                function(error) {
-                    console.warn('GPS access denied or unavailable:', error.message);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        }
+        // Note: WiFi-based real-time location tracking is handled by startWiFiLocationTracking() above
 
         // =================================================================
         // CONTENT DISTRIBUTION PIE CHART

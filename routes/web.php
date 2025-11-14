@@ -429,9 +429,6 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
 
-// Real-time IP and location detection (public endpoint for login page)
-Route::get('/api/realtime-location', [App\Http\Controllers\AdminAccessController::class, 'getRealtimeLocation'])->name('api.realtime-location');
-
 // ============================================================================
 // SESSION MANAGEMENT ROUTES (RBAC: Authenticated Users Only)
 // ============================================================================
