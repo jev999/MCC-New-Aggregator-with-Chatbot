@@ -1572,6 +1572,84 @@
         }
     }
 
+    // CSRF Token Refresh System to prevent 419 errors
+    function refreshCSRFToken() {
+        fetch('{{ route("csrf-token") }}', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.csrf_token) {
+                // Update CSRF token in the form
+                const csrfInput = document.querySelector('input[name="_token"]');
+                if (csrfInput) {
+                    csrfInput.value = data.csrf_token;
+                }
+                // Update meta tag if exists
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                if (csrfMeta) {
+                    csrfMeta.setAttribute('content', data.csrf_token);
+                }
+                console.log('CSRF token refreshed successfully');
+            }
+        })
+        .catch(error => {
+            console.warn('Failed to refresh CSRF token:', error);
+        });
+    }
+
+    // Refresh CSRF token every 25 minutes (before 30-minute expiry)
+    setInterval(refreshCSRFToken, 25 * 60 * 1000);
+
+    // Refresh token when user becomes active after being idle
+    let isIdle = false;
+    let idleTimer;
+
+    function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        if (isIdle) {
+            refreshCSRFToken();
+            isIdle = false;
+        }
+        idleTimer = setTimeout(() => {
+            isIdle = true;
+        }, 15 * 60 * 1000); // 15 minutes idle
+    }
+
+    // Listen for user activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+        document.addEventListener(event, resetIdleTimer, true);
+    });
+
+    // Initial setup
+    resetIdleTimer();
+
+    // Handle form submission with token validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const csrfToken = document.querySelector('input[name="_token"]').value;
+        if (!csrfToken || csrfToken.length < 40) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Session Expired',
+                text: 'Your session has expired. Please refresh the page and try again.',
+                confirmButtonText: 'Refresh Page',
+                allowOutsideClick: false,
+                customClass: {
+                    popup: 'swal-custom-popup',
+                    confirmButton: 'swal-custom-button'
+                }
+            }).then(() => {
+                window.location.reload();
+            });
+            return false;
+        }
+    });
+
     // Initialize available slots on page load
     document.addEventListener('DOMContentLoaded', function() {
         updateAvailableSlots();
