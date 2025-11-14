@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 use App\Services\DatabaseBackupService;
 
@@ -126,6 +127,36 @@ class BackupController extends Controller
                 }
             }
 
+            // Check if there's a newly created backup in the session
+            if (session()->has('new_backup')) {
+                $newBackup = session('new_backup');
+                $filename = $newBackup['filename'];
+                
+                // Check if this backup is already in our list
+                if (!isset($seen[$filename])) {
+                    // Add the new backup to our list if it's not already there
+                    // Use storage_path if available, otherwise construct a path
+                    $storagePath = $newBackup['storage_path'] ?? '';
+                    if (empty($storagePath)) {
+                        $storagePath = $this->backupPath . '/' . $filename;
+                    }
+                    
+                    $seen[$filename] = [
+                        'name' => $filename,
+                        'filename' => $filename,
+                        'path' => $storagePath, // Use storage path for consistency
+                        'size' => $newBackup['size'] ?? $this->formatBytes(0),
+                        'size_bytes' => is_numeric($newBackup['size']) ? $newBackup['size'] : 0,
+                        'last_modified' => $newBackup['created_at'] ?? now()->timestamp,
+                        'created_at' => Carbon::createFromTimestamp($newBackup['created_at'] ?? now()->timestamp),
+                        'created_at_human' => Carbon::createFromTimestamp($newBackup['created_at'] ?? now()->timestamp)->diffForHumans(),
+                        'is_new' => true,
+                    ];
+                    
+                    Log::info("Added new backup from session: {$filename}");
+                }
+            }
+
             $backups = collect(array_values($seen))->sortByDesc('last_modified')->values();
             
             // Get database statistics
@@ -186,9 +217,26 @@ class BackupController extends Controller
                 'timestamp' => now()
             ]);
             
+            // Clear any cached backup list to ensure fresh data
+            Cache::forget('backup_list');
+            
             // Always use PHP-based backup for better compatibility
             // This avoids issues with mysqldump not being available or accessible
-            return $this->createPhpBackup($admin);
+            $result = $this->createPhpBackup($admin);
+            
+            // Add the newly created backup to the session for immediate display
+            if ($result->original['success'] && isset($result->original['filename'])) {
+                // Store the new backup info in session for immediate display
+                session()->flash('new_backup', [
+                    'filename' => $result->original['filename'],
+                    'size' => $result->original['size'],
+                    'path' => $result->original['path'] ?? '',
+                    'storage_path' => $result->original['storage_path'] ?? '',
+                    'created_at' => now()->timestamp
+                ]);
+            }
+            
+            return $result;
 
         } catch (\Exception $e) {
             Log::error('Backup creation failed with exception', [
@@ -223,18 +271,58 @@ class BackupController extends Controller
                 throw new \Exception('Backup creation failed: ' . ($result['message'] ?? 'Unknown error'));
             }
             
+            // Get the actual path of the backup file
+            $actualPath = $result['path'] ?? '';
+            $actualFilename = $result['filename'] ?? '';
+            $actualSize = $result['size'] ?? 0;
+            $storagePath = $result['storage_path'] ?? '';
+            
+            // Verify the file exists in the storage
+            $disk = Storage::disk($this->backupDisk);
+            $fileExists = false;
+            $filePath = '';
+            
+            // Try to find the file in storage
+            if (!empty($actualPath) && file_exists($actualPath)) {
+                // File exists at the specified path
+                $fileExists = true;
+                $filePath = $actualPath;
+            } else {
+                // Try to find the file in various directories
+                $filePath = $this->findBackupFile($disk, $actualFilename);
+                $fileExists = !empty($filePath);
+            }
+            
+            if (!$fileExists) {
+                Log::warning('Backup file not found after creation', [
+                    'filename' => $actualFilename,
+                    'expected_path' => $actualPath
+                ]);
+            } else {
+                Log::info('Backup file verified after creation', [
+                    'filename' => $actualFilename,
+                    'path' => $filePath
+                ]);
+            }
+            
             Log::info('PHP-based backup created successfully', [
                 'user' => $admin->username,
-                'filename' => $result['filename'],
-                'size' => $result['size']
+                'filename' => $actualFilename,
+                'size' => $actualSize,
+                'path' => $filePath,
+                'exists' => $fileExists
             ]);
             
             return response()->json([
                 'success' => true,
                 'message' => 'Database backup created successfully!',
                 'method' => 'php',
-                'filename' => $result['filename'],
-                'size' => $this->formatBytes($result['size'])
+                'filename' => $actualFilename,
+                'path' => $filePath,
+                'storage_path' => $storagePath,
+                'size' => $this->formatBytes($actualSize),
+                'raw_size' => $actualSize,
+                'exists' => $fileExists
             ]);
             
         } catch (\Exception $e) {

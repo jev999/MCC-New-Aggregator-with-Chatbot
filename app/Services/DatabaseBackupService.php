@@ -108,9 +108,10 @@ class DatabaseBackupService
                 'size' => $bytesWritten
             ]);
             
-            // Create ZIP archive - try multiple backup paths for better compatibility
+            // Always save to the primary backup directory for consistency
+            $primaryBackupPath = config('backup.backup.name', 'Laravel');
             $backupPaths = [
-                config('backup.backup.name', 'Laravel'),
+                $primaryBackupPath,
                 'backups',
                 'Laravel',
                 '' // Root directory as fallback
@@ -121,6 +122,7 @@ class DatabaseBackupService
             $actualPath = null;
             $actualFilename = null;
             $actualSize = 0;
+            $storagePath = null;
             
             foreach ($backupPaths as $backupPath) {
                 try {
@@ -138,6 +140,11 @@ class DatabaseBackupService
                         ? storage_path('app/' . $zipFilename) 
                         : storage_path('app/' . $backupPath . '/' . $zipFilename);
                     
+                    // For storage path (relative to storage disk)
+                    $storageRelativePath = empty($backupPath)
+                        ? $zipFilename
+                        : $backupPath . '/' . $zipFilename;
+                    
                     // Try to create zip archive
                     if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
                         // Check if file was actually created
@@ -146,9 +153,12 @@ class DatabaseBackupService
                             $actualFilename = basename($actualPath);
                             $actualSize = filesize($actualPath);
                             $success = true;
+                            $storagePath = str_replace('.zip', '', $storageRelativePath) . 
+                                          (preg_match('/\.zip$/i', $actualFilename) ? '.zip' : '.sql');
                             
                             Log::info('Backup created successfully', [
                                 'path' => $actualPath,
+                                'storage_path' => $storagePath,
                                 'directory' => $backupPath ?: 'root',
                                 'size' => $this->formatBytes($actualSize)
                             ]);
@@ -161,14 +171,21 @@ class DatabaseBackupService
                         ? storage_path('app/' . $filename)
                         : storage_path('app/' . $backupPath . '/' . $filename);
                     
+                    // For storage path (relative to storage disk)
+                    $sqlStorageRelativePath = empty($backupPath)
+                        ? $filename
+                        : $backupPath . '/' . $filename;
+                    
                     if (copy($sqlFilePath, $sqlBackupPath) || file_put_contents($sqlBackupPath, $sqlDump) !== false) {
                         $actualPath = $sqlBackupPath;
                         $actualFilename = $filename;
                         $actualSize = filesize($sqlBackupPath);
                         $success = true;
+                        $storagePath = $sqlStorageRelativePath;
                         
                         Log::info('Backup saved as SQL file', [
                             'path' => $actualPath,
+                            'storage_path' => $storagePath,
                             'directory' => $backupPath ?: 'root',
                             'size' => $this->formatBytes($actualSize)
                         ]);
@@ -198,6 +215,7 @@ class DatabaseBackupService
                     'success' => true,
                     'filename' => $actualFilename,
                     'path' => $actualPath,
+                    'storage_path' => $storagePath,
                     'size' => $actualSize
                 ];
             } else {

@@ -138,6 +138,40 @@
         .refresh-btn i {
             font-size: 0.9rem;
         }
+        
+        .new-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+        
+        .new-backup-row {
+            animation: fadeIn 1s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
 
         .alert {
@@ -590,6 +624,96 @@
                 btn.innerHTML = '<i class="fas fa-plus-circle"></i> Create Manual Backup';
 
                 if (data.success) {
+                    // Add the new backup to the table immediately
+                    const backupTable = document.querySelector('.backups-table');
+                    const emptyState = document.querySelector('.empty-state');
+                    
+                    // If there's an empty state message, remove it and create a table
+                    if (emptyState) {
+                        emptyState.remove();
+                        
+                        // Create a new table
+                        const tableHTML = `
+                            <table class="backups-table">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-file-archive"></i> Filename</th>
+                                        <th><i class="fas fa-weight"></i> Size</th>
+                                        <th><i class="fas fa-calendar"></i> Created</th>
+                                        <th><i class="fas fa-cogs"></i> Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="new-backup-row" style="background-color: rgba(16, 185, 129, 0.1);">
+                                        <td><strong>${data.filename}</strong> <span class="new-badge">NEW</span></td>
+                                        <td>${data.size}</td>
+                                        <td>Just now</td>
+                                        <td>
+                                            <a href="{{ url('super-admin/backup/download') }}/${data.filename}" 
+                                               class="action-btn download-btn">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <button onclick="deleteBackup('${data.filename}')" 
+                                                    class="action-btn delete-btn">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        `;
+                        
+                        // Insert the table into the backup container
+                        document.querySelector('.backup-container').insertAdjacentHTML('beforeend', tableHTML);
+                        
+                    } else if (backupTable) {
+                        // Add a new row to the existing table
+                        const newRow = document.createElement('tr');
+                        newRow.className = 'new-backup-row';
+                        newRow.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+                        
+                        newRow.innerHTML = `
+                            <td><strong>${data.filename}</strong> <span class="new-badge">NEW</span></td>
+                            <td>${data.size}</td>
+                            <td>Just now</td>
+                            <td>
+                                <a href="{{ url('super-admin/backup/download') }}/${data.filename}" 
+                                   class="action-btn download-btn">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                                <button onclick="deleteBackup('${data.filename}')" 
+                                        class="action-btn delete-btn">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        `;
+                        
+                        // Insert at the top of the table
+                        const tbody = backupTable.querySelector('tbody');
+                        if (tbody.firstChild) {
+                            tbody.insertBefore(newRow, tbody.firstChild);
+                        } else {
+                            tbody.appendChild(newRow);
+                        }
+                    }
+                    
+                    // Update the total backups count
+                    const totalBackupsElements = document.querySelectorAll('.info-item');
+                    totalBackupsElements.forEach(element => {
+                        if (element.textContent.includes('Total Backups')) {
+                            const countText = element.textContent;
+                            const match = countText.match(/(\d+)\s+file/);
+                            if (match) {
+                                const currentCount = parseInt(match[1]);
+                                element.textContent = element.textContent.replace(
+                                    `${currentCount} file`, 
+                                    `${currentCount + 1} file`
+                                );
+                            }
+                        }
+                    });
+                    
+                    // Show success message
                     Swal.fire({
                         icon: 'success',
                         title: 'Backup Created Successfully!',
@@ -599,11 +723,10 @@
                                 ${data.method ? `<p><small>Method: ${data.method.toUpperCase()}</small></p>` : ''}
                                 ${data.filename ? `<p><small>File: ${data.filename}</small></p>` : ''}
                                 ${data.size ? `<p><small>Size: ${data.size}</small></p>` : ''}
+                                <p><strong>✓</strong> Backup is now visible in the list below!</p>
                             </div>
                         `,
                         confirmButtonColor: '#10b981'
-                    }).then(() => {
-                        window.location.reload();
                     });
                 } else {
                     Swal.fire({
