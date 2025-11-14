@@ -1348,6 +1348,20 @@
                         <a href="{{ route('password.request') }}">Forgot Password?</a>
                     </div>
 
+                    <!-- Location Permission Checkbox (Only for Admin Types) -->
+                    <div class="form-group" id="location-permission-field" style="display: none;">
+                        <div class="checkbox-container" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-sm); margin-top: 0.5rem;">
+                            <input type="checkbox" 
+                                   id="location_permission" 
+                                   name="location_permission" 
+                                   value="1"
+                                   style="margin-top: 0.25rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--secondary); flex-shrink: 0;">
+                            <label for="location_permission" style="margin: 0; font-size: 0.875rem; color: var(--gray-700); cursor: pointer; line-height: 1.5; flex: 1;">
+                                <i class="fas fa-map-marker-alt" style="color: var(--secondary); margin-right: 0.5rem;"></i>
+                                <strong>Allow location tracking</strong> for security monitoring. Your exact location and IP address will be tracked through your WiFi internet provider. (Optional - you can proceed without checking this)
+                            </label>
+                        </div>
+                    </div>
 
             <!-- reCAPTCHA removed -->
 
@@ -1703,9 +1717,15 @@
                 setRequired('password', false);
 
                 // Show fields based on selection
+                // Get location permission field
+                const locationPermissionField = document.getElementById('location-permission-field');
+                
                 if (selectedType === 'ms365') {
                     // Clear admin fields
                     clearGroup(['username-field']);
+                    
+                    // Hide location permission checkbox for students/faculty
+                    if (locationPermissionField) locationPermissionField.style.display = 'none';
                     
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
@@ -1727,6 +1747,9 @@
                     // Clear student/gmail fields
                     clearGroup(['gmail-field', 'username-field']);
                     
+                    // Show location permission checkbox for superadmin
+                    if (locationPermissionField) locationPermissionField.style.display = 'block';
+                    
                     // Show MS365 fields for superadmin
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
@@ -1743,6 +1766,9 @@
                     // Clear other fields
                     clearGroup(['username-field', 'gmail-field']);
                     
+                    // Show location permission checkbox for department and office admins
+                    if (locationPermissionField) locationPermissionField.style.display = 'block';
+                    
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
                     passwordField.style.display = 'block';
@@ -1757,6 +1783,8 @@
                     submitBtn.disabled = false;
                     
                 } else {
+                    // Hide location permission checkbox for other types
+                    if (locationPermissionField) locationPermissionField.style.display = 'none';
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Select Login Type';
                     submitBtn.disabled = true;
                 }

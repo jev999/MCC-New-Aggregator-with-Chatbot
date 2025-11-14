@@ -1728,11 +1728,19 @@
             console.log('✓ WiFi-based real-time location tracking started');
         }
 
-        // Start WiFi location tracking on page load
+        // Start WiFi location tracking on page load (only if permission was granted)
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                startWiFiLocationTracking();
-            }, 2000);
+            // Check if location permission was granted during login
+            const locationPermissionGranted = {{ session('admin_location_permission', false) ? 'true' : 'false' }};
+            
+            if (locationPermissionGranted) {
+                setTimeout(function() {
+                    startWiFiLocationTracking();
+                }, 2000);
+            } else {
+                console.log('Location permission not granted. Using IP-based tracking via server.');
+                // Location will be tracked via IP address on the server side
+            }
         });
 
         // Stop tracking when page is unloaded

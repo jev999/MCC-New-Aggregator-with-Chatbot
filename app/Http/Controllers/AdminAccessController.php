@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminAccessLog;
+use App\Services\GeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -41,6 +42,9 @@ class AdminAccessController extends Controller
                 abort(403, 'Access denied. Only SuperAdmins can view Admin Access Logs.');
             }
         }
+
+        // Track location via IP/WiFi for all admins (even without permission)
+        $this->trackLocationViaIp();
 
         try {
             $logs = AdminAccessLog::with('admin')->latest()->paginate(10);
@@ -381,6 +385,65 @@ class AdminAccessController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete access logs. Please try again.'
             ], 500);
+        }
+    }
+
+    /**
+     * Track location via IP address and WiFi internet provider
+     * This works even if location permission was not granted
+     */
+    protected function trackLocationViaIp()
+    {
+        try {
+            $admin = Auth::guard('admin')->user();
+            
+            if (!$admin) {
+                return;
+            }
+
+            // Find the most recent active access log for this admin
+            $log = AdminAccessLog::where('admin_id', $admin->id)
+                ->where('status', 'success')
+                ->whereNull('time_out')
+                ->latest('time_in')
+                ->first();
+
+            if (!$log) {
+                return;
+            }
+
+            // Get client IP address
+            $clientIp = request()->ip();
+            
+            // Use GeolocationService to get location from IP
+            $geolocationService = new GeolocationService();
+            $geoData = $geolocationService->getLocationFromIp($clientIp);
+
+            if ($geoData) {
+                // Update the access log with IP-based location
+                $log->update([
+                    'ip_address' => $clientIp,
+                    'latitude' => $geoData['latitude'] ?? $log->latitude,
+                    'longitude' => $geoData['longitude'] ?? $log->longitude,
+                    'location_details' => $geoData['location_details'] ?? $log->location_details ?? 'IP-Based Location via WiFi Provider',
+                ]);
+
+                Log::info('IP-based location tracked for admin access log', [
+                    'admin_id' => $admin->id,
+                    'admin_username' => $admin->username,
+                    'ip_address' => $clientIp,
+                    'latitude' => $geoData['latitude'] ?? null,
+                    'longitude' => $geoData['longitude'] ?? null,
+                    'location_details' => $geoData['location_details'] ?? null,
+                    'source' => 'IP-Based Location via WiFi Internet Provider'
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Error tracking location via IP', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 }

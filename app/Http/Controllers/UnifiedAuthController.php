@@ -680,6 +680,7 @@ class UnifiedAuthController extends Controller
                                 'expires_at' => now()->addMinutes(10)->toIso8601String(),
                                 'attempts' => 0,
                                 'max_attempts' => 5,
+                                'location_permission' => $request->has('location_permission') ? (bool)$request->input('location_permission') : false,
                             ];
 
                             // Store OTP data in session under a dedicated key
@@ -1522,6 +1523,10 @@ class UnifiedAuthController extends Controller
             'logged_in_at' => now()->toDateTimeString(),
         ]);
 
+        // Store location permission preference
+        $locationPermission = $otpSession['location_permission'] ?? false;
+        $request->session()->put('admin_location_permission', $locationPermission);
+
         // Clear OTP session
         $request->session()->forget('superadmin_otp');
 
@@ -1556,6 +1561,7 @@ class UnifiedAuthController extends Controller
             'expires_at' => now()->addMinutes(10)->toIso8601String(),
             'attempts' => 0,
             'max_attempts' => 5,
+            'location_permission' => $request->has('location_permission') ? (bool)$request->input('location_permission') : false,
         ];
 
         // Store OTP data in session with login_type specific key
@@ -1804,6 +1810,10 @@ class UnifiedAuthController extends Controller
                 'role' => $admin->role,
                 'logged_in_at' => now()->toDateTimeString(),
             ]);
+
+            // Store location permission preference
+            $locationPermission = $otpSession['location_permission'] ?? false;
+            $request->session()->put('admin_location_permission', $locationPermission);
 
             // Clear OTP session
             $request->session()->forget($sessionKey);
