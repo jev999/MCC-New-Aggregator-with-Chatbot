@@ -559,13 +559,27 @@ class BackupController extends Controller
                 'download_as' => $downloadFilename
             ]);
             
-            // Get the full path to the file
-            $fullPath = $this->storagePath($filePath);
+            // Get the full absolute path using Storage disk's path method
+            $disk = Storage::disk($this->backupDisk);
+            try {
+                $fullPath = $disk->path($filePath);
+            } catch (\Exception $e) {
+                // Fallback to storagePath method if disk->path() fails
+                $fullPath = $this->storagePath($filePath);
+            }
             
             // Check if the file exists
             if (!file_exists($fullPath)) {
-                Log::error('File not found at full path', ['path' => $fullPath]);
-                abort(404, 'File not found');
+                Log::error('File not found at full path', ['path' => $fullPath, 'filePath' => $filePath]);
+                
+                // Try alternative path resolution
+                $alternativePath = $this->findBackupFileByName($decodedFilename);
+                if ($alternativePath && file_exists($alternativePath)) {
+                    Log::info('Found alternative path for file', ['path' => $alternativePath]);
+                    $fullPath = $alternativePath;
+                } else {
+                    abort(404, 'File not found');
+                }
             }
             
             // Get the file's MIME type (safe detection with fallbacks)
@@ -751,132 +765,71 @@ class BackupController extends Controller
             // Decode URL if it's URL encoded
             $decodedFilename = urldecode($filename);
             
-            // Get the database name from config
-            $dbName = config('database.connections.mysql.database', '');
-            
-            // Try to find the most recent backup file with matching date
             $disk = Storage::disk($this->backupDisk);
-            $candidateDirs = array_values(array_unique([
-                $this->backupPath,
-                config('backup.backup.name', 'Laravel'),
-                config('app.name', 'Laravel'),
-                'backups',
-                'Laravel',
-                '', // Root directory
-            ]));
             
-            $matchingFiles = [];
-            foreach ($candidateDirs as $dir) {
-                try {
-                    $dirFiles = $disk->files($dir);
-                    foreach ($dirFiles as $file) {
-                        if (preg_match('/\.(zip|sql)$/i', $file)) {
-                            // Check if this file matches the database name and date pattern
-                            if (strpos($file, $dbName) !== false) {
-                                // Extract date from filename
-                                if (preg_match('/(\d{4}-\d{2}-\d{2})/', $file, $matches)) {
-                                    $fileDate = $matches[1];
-                                    // Check if date in requested filename matches
-                                    if (strpos($decodedFilename, $fileDate) !== false) {
-                                        $matchingFiles[] = $file;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (\Exception $e) {
-                    // Ignore errors for individual directories
-                }
+            // Use the existing findBackupFile method to locate the file
+            $filePath = $this->findBackupFile($disk, $decodedFilename);
+            
+            if (!$filePath) {
+                // Try with original filename if decoded didn't work
+                $filePath = $this->findBackupFile($disk, $filename);
             }
             
-            // Sort files by modification time (newest first)
-            usort($matchingFiles, function($a, $b) use ($disk) {
-                return $disk->lastModified($b) - $disk->lastModified($a);
-            });
-            
-            // Use the most recent matching file
-            if (!empty($matchingFiles)) {
-                $filePath = $matchingFiles[0];
-                
-                // Ensure we preserve the requested extension
-                $requestedExtension = pathinfo($filename, PATHINFO_EXTENSION);
-                $actualFilename = basename($filePath);
-                $actualExtension = pathinfo($actualFilename, PATHINFO_EXTENSION);
-                
-                // If the requested file has a specific extension (zip/sql), try to find a file with that extension
-                if (!empty($requestedExtension) && strtolower($requestedExtension) !== strtolower($actualExtension)) {
-                    // Look for a file with the same name but different extension
-                    foreach ($matchingFiles as $file) {
-                        $fileExt = pathinfo($file, PATHINFO_EXTENSION);
-                        if (strtolower($fileExt) === strtolower($requestedExtension)) {
-                            $filePath = $file;
-                            $actualFilename = basename($file);
-                            break;
-                        }
-                    }
-                }
-                
-                Log::info('Found matching backup file', [
-                    'requested' => $filename,
-                    'requested_extension' => $requestedExtension,
-                    'found' => $actualFilename,
-                    'found_extension' => pathinfo($actualFilename, PATHINFO_EXTENSION),
-                    'path' => $filePath
+            if (!$filePath) {
+                Log::warning('Backup file not found for direct download', [
+                    'filename' => $filename, 
+                    'decoded' => $decodedFilename
                 ]);
-                
-                // Get the full path to the file
+                abort(404, 'Backup file not found: ' . $filename);
+            }
+            
+            // Get the actual filename from the path
+            $actualFilename = basename($filePath);
+            
+            // Get the full absolute path using Storage disk's path method
+            try {
+                $fullPath = $disk->path($filePath);
+            } catch (\Exception $e) {
+                // Fallback to storagePath method if disk->path() fails
                 $fullPath = $this->storagePath($filePath);
-                
-                // Log detailed information about the file
-                Log::info('File details before download', [
-                    'filePath' => $filePath,
-                    'fullPath' => $fullPath,
-                    'exists' => file_exists($fullPath),
-                    'readable' => is_readable($fullPath),
-                    'size' => file_exists($fullPath) ? filesize($fullPath) : 0,
-                    'permissions' => file_exists($fullPath) ? substr(sprintf('%o', fileperms($fullPath)), -4) : 'N/A'
-                ]);
-                
-                // Check if the file exists
-                if (!file_exists($fullPath)) {
-                    Log::error('File not found at full path', ['path' => $fullPath]);
-                    
-                    // Try a direct approach to find the file
-                    $alternativePath = $this->findBackupFileByName($decodedFilename);
-                    if ($alternativePath && file_exists($alternativePath)) {
-                        Log::info('Found alternative path for file', ['path' => $alternativePath]);
-                        $fullPath = $alternativePath;
-                    } else {
-                        abort(404, 'File not found: ' . $decodedFilename);
-                    }
-                }
-                
-                // Get the file's MIME type using safe helper
-                $mimeType = $this->getMimeType($fullPath, 'application/octet-stream');
-                
-                // Set appropriate headers for download
-                $headers = [
-                    'Content-Type' => $mimeType,
-                    'Content-Disposition' => 'attachment; filename="' . $actualFilename . '"',
-                    'Content-Length' => filesize($fullPath),
-                    'Cache-Control' => 'no-cache, no-store, must-revalidate',
-                    'Pragma' => 'no-cache',
-                    'Expires' => '0'
-                ];
-                
-                Log::info('Serving file for download', [
-                    'path' => $fullPath,
-                    'filename' => $actualFilename,
-                    'mime' => $mimeType,
-                    'size' => filesize($fullPath)
-                ]);
-                
-                // Return the file as a download (streamed, memory-safe)
-                return response()->download($fullPath, $actualFilename, $headers);
             }
             
-            // If no matching file found, try the regular download method
-            return $this->download($filename);
+            // Verify the file exists
+            if (!file_exists($fullPath)) {
+                Log::error('File not found at full path', ['path' => $fullPath, 'filePath' => $filePath]);
+                
+                // Try alternative path resolution
+                $alternativePath = $this->findBackupFileByName($decodedFilename);
+                if ($alternativePath && file_exists($alternativePath)) {
+                    Log::info('Found alternative path for file', ['path' => $alternativePath]);
+                    $fullPath = $alternativePath;
+                } else {
+                    abort(404, 'File not found: ' . $decodedFilename);
+                }
+            }
+            
+            // Get the file's MIME type using safe helper
+            $mimeType = $this->getMimeType($fullPath, 'application/octet-stream');
+            
+            // Set appropriate headers for download
+            $headers = [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . $actualFilename . '"',
+                'Content-Length' => filesize($fullPath),
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ];
+            
+            Log::info('Serving file for download', [
+                'path' => $fullPath,
+                'filename' => $actualFilename,
+                'mime' => $mimeType,
+                'size' => filesize($fullPath)
+            ]);
+            
+            // Return the file as a download (streamed, memory-safe)
+            return response()->download($fullPath, $actualFilename, $headers);
         } catch (\Exception $e) {
             Log::error('Direct download failed', [
                 'filename' => $filename,
