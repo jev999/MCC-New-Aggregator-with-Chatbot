@@ -553,12 +553,19 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <h3><i class="fas fa-crown"></i> Super Admin</h3>
+                <h3><i class="fas fa-crown"></i> Super Admin Panel</h3>
             </div>
             <ul class="sidebar-menu">
                 <li><a href="{{ route('superadmin.dashboard') }}">
-                    <i class="fas fa-chart-line"></i> Dashboard
+                    <i class="fas fa-chart-pie"></i> Dashboard
                 </a></li>
+                <li><a href="{{ route('superadmin.admins.index') }}">
+                    <i class="fas fa-users-cog"></i> Department Admin Management
+                </a></li>
+                <li><a href="{{ route('superadmin.office-admins.index') }}">
+                    <i class="fas fa-briefcase"></i> Officer Management
+                </a></li>
+               
                 <li><a href="{{ route('superadmin.announcements.index') }}">
                     <i class="fas fa-bullhorn"></i> Announcements
                 </a></li>
