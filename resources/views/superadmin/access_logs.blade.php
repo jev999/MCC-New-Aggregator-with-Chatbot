@@ -84,7 +84,7 @@
             display: flex;
             align-items: center;
             padding: 0.875rem 1.5rem;
-            color: #cbd5e1;
+            color: white;
             text-decoration: none;
             font-weight: 500;
             transition: all 0.3s ease;
@@ -93,28 +93,15 @@
         }
 
         .sidebar-menu a::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            transform: scaleY(0);
-            transition: transform 0.3s ease;
+            display: none;
         }
 
         .sidebar-menu a:hover,
         .sidebar-menu a.active {
-            background: rgba(255, 255, 255, 0.1);
             color: white;
-            transform: translateX(5px);
         }
 
-        .sidebar-menu a.active::before {
-            transform: scaleY(1);
-            background: rgba(255, 255, 255, 0.8);
-        }
+        /* Active indicator removed */
 
         .sidebar-menu a i {
             width: 20px;
