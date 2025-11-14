@@ -110,28 +110,30 @@ class DatabaseBackupService
                 throw new Exception('Backup directory is not writable: ' . $backupDir . '. Please set permissions to 775 or 777.');
             }
             
-            // Create zip
-            Log::info('Creating ZIP archive', ['source' => $sqlFilePath, 'destination' => $zipPath]);
-            
+            // Create zip (or copy .sql if ZipArchive is unavailable)
             if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
+                // Determine actual saved file (zip or sql fallback)
+                $actualPath = file_exists($zipPath) ? $zipPath : str_replace('.zip', '.sql', $zipPath);
+                $actualFilename = basename($actualPath);
+                $actualSize = file_exists($actualPath) ? filesize($actualPath) : 0;
+
                 // Clean up temporary SQL file
                 if (file_exists($sqlFilePath)) {
                     unlink($sqlFilePath);
-                    Log::info('Cleaned up temporary SQL file');
                 }
                 
-                $zipSize = filesize($zipPath);
                 Log::info('Backup completed successfully', [
-                    'zip_file' => $zipFilename,
-                    'size' => $zipSize,
-                    'size_formatted' => $this->formatBytes($zipSize)
+                    'file' => $actualFilename,
+                    'path' => $actualPath,
+                    'size' => $actualSize,
+                    'size_formatted' => $this->formatBytes($actualSize)
                 ]);
                 
                 return [
                     'success' => true,
-                    'filename' => $zipFilename,
-                    'path' => $zipPath,
-                    'size' => $zipSize
+                    'filename' => $actualFilename,
+                    'path' => $actualPath,
+                    'size' => $actualSize
                 ];
             } else {
                 throw new Exception('Failed to create ZIP archive. ZipArchive may not be available.');
@@ -144,7 +146,6 @@ class DatabaseBackupService
                 'line' => $e->getLine(),
                 'file' => $e->getFile()
             ]);
-            
             throw $e;
         }
     }

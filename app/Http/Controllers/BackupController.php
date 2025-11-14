@@ -51,24 +51,46 @@ class BackupController extends Controller
             $disk = Storage::disk($this->backupDisk);
             $backups = collect();
             
-            // Get all files from the backup directory
-            $files = $disk->allFiles($this->backupPath);
-            
-            foreach ($files as $file) {
-                // Only show .zip files (Spatie backup creates zip files)
-                if (substr($file, -4) === '.zip') {
-                    $backups->push([
-                        'name' => basename($file),
-                        'filename' => basename($file),
-                        'path' => $file,
-                        'size' => $this->formatBytes($disk->size($file)),
-                        'size_bytes' => $disk->size($file),
-                        'last_modified' => $disk->lastModified($file),
-                        'created_at' => Carbon::createFromTimestamp($disk->lastModified($file)),
-                        'created_at_human' => Carbon::createFromTimestamp($disk->lastModified($file))->diffForHumans(),
-                    ]);
+            // Scan multiple candidate directories to avoid APP_NAME mismatches
+            $candidateDirs = array_values(array_unique([
+                $this->backupPath,
+                config('backup.backup.name', 'Laravel'),
+                config('app.name', 'Laravel'),
+                'backups',
+                'Laravel',
+            ]));
+
+            $seen = [];
+            foreach ($candidateDirs as $dir) {
+                try {
+                    $files = $disk->allFiles($dir);
+                } catch (\Exception $e) {
+                    $files = [];
+                }
+
+                foreach ($files as $file) {
+                    if (preg_match('/\.(zip|sql)$/i', $file)) {
+                        $basename = basename($file);
+                        $sizeBytes = $disk->size($file);
+                        $lastMod = $disk->lastModified($file);
+                        // Deduplicate by filename, keep the latest
+                        if (!isset($seen[$basename]) || $lastMod > $seen[$basename]['last_modified']) {
+                            $seen[$basename] = [
+                                'name' => $basename,
+                                'filename' => $basename,
+                                'path' => $file,
+                                'size' => $this->formatBytes($sizeBytes),
+                                'size_bytes' => $sizeBytes,
+                                'last_modified' => $lastMod,
+                                'created_at' => Carbon::createFromTimestamp($lastMod),
+                                'created_at_human' => Carbon::createFromTimestamp($lastMod)->diffForHumans(),
+                            ];
+                        }
+                    }
                 }
             }
+
+            $backups = collect(array_values($seen))->sortByDesc('last_modified')->values();
             
             // Sort by latest modified date
             $backups = $backups->sortByDesc('last_modified')->values();
@@ -356,8 +378,31 @@ class BackupController extends Controller
             $disk = Storage::disk($this->backupDisk);
             $filePath = $this->backupPath . '/' . $filename;
 
+            // Fallback: alternate extension and directories
             if (!$disk->exists($filePath)) {
-                abort(404, 'Backup file not found');
+                $candidates = [];
+                $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
+                $candidateDirs = array_values(array_unique([
+                    $this->backupPath,
+                    config('backup.backup.name', 'Laravel'),
+                    config('app.name', 'Laravel'),
+                    'backups',
+                    'Laravel',
+                ]));
+                foreach ($candidateDirs as $dir) {
+                    $candidates[] = $dir . '/' . $filename;
+                    if ($alt) $candidates[] = $dir . '/' . $alt;
+                }
+                $resolved = null;
+                foreach ($candidates as $cand) {
+                    if ($disk->exists($cand)) { $resolved = $cand; break; }
+                }
+                if ($resolved) {
+                    $filePath = $resolved;
+                    $filename = basename($resolved);
+                } else {
+                    abort(404, 'Backup file not found');
+                }
             }
 
             Log::info('Backup download initiated', [
@@ -387,11 +432,34 @@ class BackupController extends Controller
             $disk = Storage::disk($this->backupDisk);
             $filePath = $this->backupPath . '/' . $filename;
 
+            // Fallback: alternate extension and directories
             if (!$disk->exists($filePath)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Backup file not found'
-                ], 404);
+                $candidates = [];
+                $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
+                $candidateDirs = array_values(array_unique([
+                    $this->backupPath,
+                    config('backup.backup.name', 'Laravel'),
+                    config('app.name', 'Laravel'),
+                    'backups',
+                    'Laravel',
+                ]));
+                foreach ($candidateDirs as $dir) {
+                    $candidates[] = $dir . '/' . $filename;
+                    if ($alt) $candidates[] = $dir . '/' . $alt;
+                }
+                $resolved = null;
+                foreach ($candidates as $cand) {
+                    if ($disk->exists($cand)) { $resolved = $cand; break; }
+                }
+                if ($resolved) {
+                    $filePath = $resolved;
+                    $filename = basename($resolved);
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Backup file not found'
+                    ], 404);
+                }
             }
 
             $disk->delete($filePath);
