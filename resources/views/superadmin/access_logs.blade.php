@@ -440,9 +440,10 @@
             color: white;
             border-color: #2563eb;
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
-        .pagination .active {
+        .pagination span[style*="background: linear-gradient"] {
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             color: white;
             border-color: #2563eb;
@@ -726,7 +727,41 @@
 
                         <!-- Pagination -->
                         <div class="pagination">
-                            {{ $logs->links() }}
+                            @if ($logs->onFirstPage())
+                                <span style="padding: 0.6rem 0.9rem; border: 2px solid #e2e8f0; border-radius: 8px; color: #ccc; cursor: not-allowed;">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </span>
+                            @else
+                                <a href="{{ $logs->previousPageUrl() }}" style="padding: 0.6rem 0.9rem; border: 2px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </a>
+                            @endif
+
+                            @foreach ($logs->getUrlRange(1, $logs->lastPage()) as $page => $url)
+                                @if ($page == $logs->currentPage())
+                                    <span style="padding: 0.6rem 0.9rem; border: 2px solid #2563eb; border-radius: 8px; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); color: white; font-weight: 600;">
+                                        {{ $page }}
+                                    </span>
+                                @else
+                                    <a href="{{ $url }}" style="padding: 0.6rem 0.9rem; border: 2px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.3s ease; font-weight: 600; display: inline-block;">
+                                        {{ $page }}
+                                    </a>
+                                @endif
+                            @endforeach
+
+                            @if ($logs->hasMorePages())
+                                <a href="{{ $logs->nextPageUrl() }}" style="padding: 0.6rem 0.9rem; border: 2px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #333; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </a>
+                            @else
+                                <span style="padding: 0.6rem 0.9rem; border: 2px solid #e2e8f0; border-radius: 8px; color: #ccc; cursor: not-allowed;">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </span>
+                            @endif
+
+                            <span style="margin-left: 1rem; color: #666; font-weight: 600;">
+                                Showing {{ $logs->firstItem() }} to {{ $logs->lastItem() }} of {{ $logs->total() }} results
+                            </span>
                         </div>
                     @else
                         <div class="empty-state">
