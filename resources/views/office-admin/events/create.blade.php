@@ -1333,30 +1333,6 @@
                             inputElement.style.backgroundColor = '';
                         }, 600);
                         
-                        // Show a subtle notification
-                        const notification = document.createElement('div');
-                        notification.innerHTML = '<i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Please select a future date and time';
-                        notification.style.cssText = `
-                            position: fixed;
-                            top: 20px;
-                            right: 20px;
-                            background: #f59e0b;
-                            color: white;
-                            padding: 0.75rem 1rem;
-                            border-radius: 8px;
-                            font-size: 0.9rem;
-                            font-weight: 500;
-                            z-index: 10000;
-                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-                            animation: slideInRight 0.3s ease-out;
-                        `;
-                        document.body.appendChild(notification);
-                        
-                        setTimeout(() => {
-                            notification.style.animation = 'slideOutRight 0.3s ease-in';
-                            setTimeout(() => notification.remove(), 300);
-                        }, 3000);
-                        
                     } catch (error) {
                         console.error('Error in focus handling:', error);
                     }
@@ -1542,28 +1518,6 @@
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
     }
 
-    /* Notification slide animations */
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
 
     /* Visibility Notice */
     .visibility-notice {
