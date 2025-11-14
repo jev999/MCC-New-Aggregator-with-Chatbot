@@ -479,7 +479,7 @@
                                     <td>{{ $backup['size'] }}</td>
                                     <td>{{ $backup['created_at_human'] }}</td>
                                     <td>
-                                        <a href="{{ route('superadmin.backup.download', $backup['filename']) }}" 
+                                        <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
                                            class="action-btn download-btn">
                                             <i class="fas fa-download"></i> Download
                                         </a>
@@ -649,7 +649,7 @@
                                         <td>${data.size}</td>
                                         <td>Just now</td>
                                         <td>
-                                            <a href="{{ url('super-admin/backup/download') }}/${data.filename}" 
+                                            <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
                                                class="action-btn download-btn">
                                                 <i class="fas fa-download"></i> Download
                                             </a>
@@ -677,7 +677,7 @@
                             <td>${data.size}</td>
                             <td>Just now</td>
                             <td>
-                                <a href="{{ url('super-admin/backup/download') }}/${data.filename}" 
+                                <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
                                    class="action-btn download-btn">
                                     <i class="fas fa-download"></i> Download
                                 </a>
@@ -797,7 +797,7 @@
                 if (result.isConfirmed) {
                     document.getElementById('loading').classList.add('active');
 
-                    fetch(`{{ url('super-admin/backup/delete') }}/${filename}`, {
+                    fetch(`{{ url('superadmin/backup/delete') }}/${filename}`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',

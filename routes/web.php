@@ -2027,6 +2027,15 @@ Route::prefix('superadmin')->group(function () {
         Route::get('backup/check', [BackupController::class, 'checkBackupsInRoot'])->name('superadmin.backup.check');
         Route::get('backup/download/{filename}', [BackupController::class, 'download'])->name('superadmin.backup.download');
         Route::delete('backup/delete/{filename}', [BackupController::class, 'delete'])->name('superadmin.backup.delete');
+        
+        // Fallback routes for backup downloads with super-admin prefix (for compatibility)
+        Route::get('backup/download-direct/{filename}', [BackupController::class, 'downloadDirect'])->name('superadmin.backup.download.direct');
+        
+        // Legacy URL support
+        Route::prefix('super-admin')->group(function () {
+            Route::get('backup/download/{filename}', [BackupController::class, 'downloadDirect']);
+            Route::get('backup/download-direct/{filename}', [BackupController::class, 'downloadDirect']);
+        });
 
         // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)

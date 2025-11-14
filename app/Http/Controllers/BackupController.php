@@ -470,14 +470,54 @@ class BackupController extends Controller
     public function download($filename)
     {
         try {
+            Log::info('Download request received', ['filename' => $filename]);
+            
+            // Decode URL if it's URL encoded
+            $decodedFilename = urldecode($filename);
+            
             $disk = Storage::disk($this->backupDisk);
             
             // Find the file in any possible location
-            $filePath = $this->findBackupFile($disk, $filename);
+            $filePath = $this->findBackupFile($disk, $decodedFilename);
             
             if (!$filePath) {
-                Log::warning('Backup file not found for download', ['filename' => $filename]);
-                abort(404, 'Backup file not found');
+                // Try with original filename if decoded didn't work
+                $filePath = $this->findBackupFile($disk, $filename);
+            }
+            
+            if (!$filePath) {
+                Log::warning('Backup file not found for download', [
+                    'filename' => $filename, 
+                    'decoded' => $decodedFilename
+                ]);
+                
+                // List all available backup files for debugging
+                $allFiles = [];
+                $candidateDirs = array_values(array_unique([
+                    $this->backupPath,
+                    config('backup.backup.name', 'Laravel'),
+                    config('app.name', 'Laravel'),
+                    'backups',
+                    'Laravel',
+                    '', // Also scan root directory
+                ]));
+                
+                foreach ($candidateDirs as $dir) {
+                    try {
+                        $dirFiles = $disk->files($dir);
+                        foreach ($dirFiles as $file) {
+                            if (preg_match('/\.(zip|sql)$/i', $file)) {
+                                $allFiles[] = $file;
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore errors for individual directories
+                    }
+                }
+                
+                Log::warning('Available backup files', ['files' => $allFiles]);
+                
+                abort(404, 'Backup file not found: ' . $filename);
             }
 
             Log::info('Backup download initiated', [
@@ -492,7 +532,8 @@ class BackupController extends Controller
         } catch (\Exception $e) {
             Log::error('Backup download failed', [
                 'filename' => $filename,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             abort(500, 'Failed to download backup: ' . $e->getMessage());
@@ -504,20 +545,27 @@ class BackupController extends Controller
      */
     protected function findBackupFile($disk, $filename)
     {
+        Log::info('Looking for backup file', ['filename' => $filename]);
+        
+        // Clean up filename to handle URL encoding and special characters
+        $cleanFilename = basename(trim($filename));
+        
         // Check if file exists directly
-        if ($disk->exists($filename)) {
-            return $filename;
+        if ($disk->exists($cleanFilename)) {
+            Log::info('Found file directly', ['path' => $cleanFilename]);
+            return $cleanFilename;
         }
         
         // Try with the direct path first
-        $filePath = $this->backupPath . '/' . $filename;
+        $filePath = $this->backupPath . '/' . $cleanFilename;
         if ($disk->exists($filePath)) {
+            Log::info('Found file in primary path', ['path' => $filePath]);
             return $filePath;
         }
         
         // Prepare candidates with all possible locations and extensions
         $candidates = [];
-        $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
+        $alt = preg_match('/\.zip$/i', $cleanFilename) ? preg_replace('/\.zip$/i', '.sql', $cleanFilename) : preg_replace('/\.sql$/i', '.zip', $cleanFilename);
         
         $candidateDirs = array_values(array_unique([
             $this->backupPath,
@@ -532,7 +580,7 @@ class BackupController extends Controller
         foreach ($candidateDirs as $dir) {
             // Skip empty directory for direct filename check (already done above)
             if (!empty($dir)) {
-                $candidates[] = $dir . '/' . $filename;
+                $candidates[] = $dir . '/' . $cleanFilename;
                 if ($alt) $candidates[] = $dir . '/' . $alt;
             }
         }
@@ -540,6 +588,7 @@ class BackupController extends Controller
         // Check all candidates
         foreach ($candidates as $candidate) {
             if ($disk->exists($candidate)) {
+                Log::info('Found file in candidate path', ['path' => $candidate]);
                 return $candidate;
             }
         }
@@ -572,15 +621,124 @@ class BackupController extends Controller
         // Look for exact filename match or alternate extension
         foreach ($allFiles as $file) {
             $baseFilename = basename($file);
-            if ($baseFilename === $filename || $baseFilename === $alt) {
+            if ($baseFilename === $cleanFilename || $baseFilename === $alt) {
+                Log::info('Found file in exhaustive search', ['path' => $file]);
                 return $file;
             }
         }
         
+        // Try fuzzy matching as a last resort
+        foreach ($allFiles as $file) {
+            $baseFilename = basename($file);
+            // Check if the filename contains the date part of the requested filename
+            // This helps with cases where timestamps might be slightly different
+            if (strpos($cleanFilename, $this->database) !== false && 
+                strpos($baseFilename, $this->database) !== false) {
+                // Extract date parts for comparison
+                $datePattern = '/\d{4}-\d{2}-\d{2}/'; // matches YYYY-MM-DD
+                preg_match($datePattern, $cleanFilename, $requestedDateMatch);
+                preg_match($datePattern, $baseFilename, $fileNameDateMatch);
+                
+                if (!empty($requestedDateMatch) && !empty($fileNameDateMatch) && 
+                    $requestedDateMatch[0] === $fileNameDateMatch[0]) {
+                    Log::info('Found file with fuzzy matching', [
+                        'requested' => $cleanFilename,
+                        'found' => $baseFilename,
+                        'path' => $file
+                    ]);
+                    return $file;
+                }
+            }
+        }
+        
         // Not found anywhere
+        Log::warning('File not found anywhere', ['filename' => $cleanFilename]);
         return null;
     }
 
+    /**
+     * Direct download backup file (fallback method)
+     */
+    public function downloadDirect($filename)
+    {
+        try {
+            Log::info('Direct download request received', ['filename' => $filename]);
+            
+            // Decode URL if it's URL encoded
+            $decodedFilename = urldecode($filename);
+            
+            // Get the database name from config
+            $dbName = config('database.connections.mysql.database', '');
+            
+            // Try to find the most recent backup file with matching date
+            $disk = Storage::disk($this->backupDisk);
+            $candidateDirs = array_values(array_unique([
+                $this->backupPath,
+                config('backup.backup.name', 'Laravel'),
+                config('app.name', 'Laravel'),
+                'backups',
+                'Laravel',
+                '', // Root directory
+            ]));
+            
+            $matchingFiles = [];
+            foreach ($candidateDirs as $dir) {
+                try {
+                    $dirFiles = $disk->files($dir);
+                    foreach ($dirFiles as $file) {
+                        if (preg_match('/\.(zip|sql)$/i', $file)) {
+                            // Check if this file matches the database name and date pattern
+                            if (strpos($file, $dbName) !== false) {
+                                // Extract date from filename
+                                if (preg_match('/(\d{4}-\d{2}-\d{2})/', $file, $matches)) {
+                                    $fileDate = $matches[1];
+                                    // Check if date in requested filename matches
+                                    if (strpos($decodedFilename, $fileDate) !== false) {
+                                        $matchingFiles[] = $file;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    // Ignore errors for individual directories
+                }
+            }
+            
+            // Sort files by modification time (newest first)
+            usort($matchingFiles, function($a, $b) use ($disk) {
+                return $disk->lastModified($b) - $disk->lastModified($a);
+            });
+            
+            // Use the most recent matching file
+            if (!empty($matchingFiles)) {
+                $filePath = $matchingFiles[0];
+                $actualFilename = basename($filePath);
+                
+                Log::info('Found matching backup file', [
+                    'requested' => $filename,
+                    'found' => $actualFilename,
+                    'path' => $filePath
+                ]);
+                
+                // Download the file
+                return $disk->download($filePath, $actualFilename);
+            }
+            
+            // If no matching file found, try the regular download method
+            return $this->download($filename);
+            
+        } catch (\Exception $e) {
+            Log::error('Direct download failed', [
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            abort(500, 'Failed to download backup: ' . $e->getMessage());
+        }
+    }
+    
     /**
      * Delete backup file
      */
