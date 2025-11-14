@@ -389,7 +389,8 @@
                 <li><a href="{{ route('superadmin.admins.index') }}" class="active">
                     <i class="fas fa-users-cog"></i> Department Admin Management
                 </a></li>
-                 <li><a href="{{ route('superadmin.office-admins.index') }}">
+               
+                <li><a href="{{ route('superadmin.office-admins.index') }}">
                     <i class="fas fa-briefcase"></i> Officer Management
                 </a></li>
                 <li><a href="{{ route('superadmin.announcements.index') }}">
