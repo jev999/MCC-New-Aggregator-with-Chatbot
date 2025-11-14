@@ -2,8 +2,6 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminDashboardController;
-use App\Http\Controllers\AdminLoginLogController;
-use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\AdminFacultyController;
 use App\Http\Controllers\AdminStudentController;
 use App\Http\Controllers\SuperAdminDashboardController;
@@ -2016,7 +2014,7 @@ Route::prefix('superadmin')->group(function () {
     // PROTECTED SUPERADMIN ROUTES (RBAC: SuperAdmin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\SuperAdminAuth::class, \App\Http\Middleware\LogAdminLoginLocation::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])
             ->name('superadmin.dashboard');
@@ -2038,8 +2036,6 @@ Route::prefix('superadmin')->group(function () {
         
         // GPS Location Update (Available to all authenticated admins)
         Route::post('admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])->name('admin.update-gps-location');
-
-        Route::get('admin-login-logs', [AdminLoginLogController::class, 'index'])->name('superadmin.admin-login-logs.index');
 
         // ====================================================================
         // ADMIN MANAGEMENT (Superadmin Only)
@@ -2187,7 +2183,7 @@ Route::prefix('department-admin')->group(function () {
     // PROTECTED DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class, \App\Http\Middleware\LogAdminLoginLocation::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
             ->name('department-admin.dashboard');
@@ -2306,7 +2302,7 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
     // PROTECTED OFFICE ADMIN ROUTES (RBAC: Office Admin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class, \App\Http\Middleware\LogAdminLoginLocation::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class])->group(function () {
         // Dashboard access
         Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])
             ->name('dashboard');

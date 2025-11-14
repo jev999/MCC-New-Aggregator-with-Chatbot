@@ -53,6 +53,5 @@ class Kernel extends HttpKernel
         'session.security' => \App\Http\Middleware\SessionSecurityMiddleware::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
-        'log.admin.location' => \App\Http\Middleware\LogAdminLoginLocation::class,
     ];
 }
