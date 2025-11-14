@@ -271,6 +271,128 @@ class AdminAccessController extends Controller
     }
 
     /**
+     * Get real-time IP and location (public endpoint for login page)
+     * This allows the login page to detect the user's real IP and location before authentication
+     */
+    public function getRealtimeLocation(Request $request)
+    {
+        try {
+            $clientIp = $this->resolveClientIp($request);
+            $geolocationService = new \App\Services\GeolocationService();
+            $geoData = $geolocationService->getLocationFromIp($clientIp);
+            
+            return response()->json([
+                'success' => true,
+                'ip_address' => $clientIp,
+                'latitude' => $geoData['latitude'] ?? null,
+                'longitude' => $geoData['longitude'] ?? null,
+                'location_details' => $geoData['location_details'] ?? 'Location unavailable',
+                'timestamp' => now()->toIso8601String()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting real-time location', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get location',
+                'ip_address' => $request->ip() ?? 'Unknown'
+            ], 500);
+        }
+    }
+
+    /**
+     * Resolve client IP address (helper method)
+     */
+    protected function resolveClientIp(Request $request): string
+    {
+        $headersToInspect = [
+            'CF-Connecting-IP',
+            'True-Client-IP',
+            'X-Forwarded-For',
+            'X-Real-IP',
+            'X-Client-IP',
+            'X-Cluster-Client-IP',
+            'Forwarded',
+        ];
+
+        foreach ($headersToInspect as $header) {
+            $values = $request->headers->get($header);
+            if (!$values) {
+                continue;
+            }
+
+            $candidates = $this->extractIpCandidates($header, $values);
+
+            foreach ($candidates as $candidate) {
+                if ($this->isValidPublicIp($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        $fallback = $request->getClientIp();
+        return is_string($fallback) ? $fallback : '0.0.0.0';
+    }
+
+    /**
+     * Extract potential IPs from a header value
+     */
+    private function extractIpCandidates(string $header, string $value): array
+    {
+        if (strcasecmp($header, 'Forwarded') === 0) {
+            preg_match_all('/for="?([^;"]+)"?/i', $value, $matches);
+            return array_map([$this, 'sanitizeIpValue'], $matches[1] ?? []);
+        }
+
+        $parts = array_map('trim', explode(',', $value));
+        return array_map([$this, 'sanitizeIpValue'], $parts);
+    }
+
+    /**
+     * Sanitize IP value
+     */
+    private function sanitizeIpValue(string $value): string
+    {
+        $value = trim($value, " \t\n\r\0\x0B\"");
+
+        if (str_contains($value, ':') && str_contains($value, '.')) {
+            $lastColon = strrpos($value, ':');
+            if ($lastColon !== false) {
+                $maybeIp = substr($value, 0, $lastColon);
+                $maybePort = substr($value, $lastColon + 1);
+                if (ctype_digit($maybePort)) {
+                    return $maybeIp;
+                }
+            }
+        }
+
+        if (preg_match('/^\[(.*)\]:(\d+)$/', $value, $matches)) {
+            return $matches[1];
+        }
+
+        return $value;
+    }
+
+    /**
+     * Check if IP is valid public IP
+     */
+    private function isValidPublicIp(string $ip): bool
+    {
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        return (bool) filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        );
+    }
+
+    /**
      * Delete an admin access log entry
      */
     public function destroy($id)
