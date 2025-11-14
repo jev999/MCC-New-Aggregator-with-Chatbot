@@ -207,7 +207,7 @@ class NewsController extends Controller
             'csv_path' => $csvPath,
             'image_paths' => !empty($imagePaths) ? $imagePaths : null,
             'video_paths' => !empty($videoPaths) ? $videoPaths : null,
-            'is_published' => $request->has('is_published'),
+            'is_published' => $request->has('is_published') && $request->input('is_published') == '1',
             'visibility_scope' => $visibilityScope,
             'target_department' => $targetDepartment,
             'target_office' => $targetOffice,
@@ -384,7 +384,7 @@ class NewsController extends Controller
         $updateData = [
             'title' => $request->title,
             'content' => $request->content,
-            'is_published' => $request->has('is_published'),
+            'is_published' => $request->has('is_published') && $request->input('is_published') == '1',
         ];
 
         // Handle visibility scope and targets based on admin type

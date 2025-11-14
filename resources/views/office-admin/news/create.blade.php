@@ -236,10 +236,10 @@
                                        class="checkbox-input">
                                 <span class="checkbox-custom"></span>
                                 <span class="checkbox-text">
-                                    <i class="fas fa-eye"></i> Publish immediately
+                                    <i class="fas fa-globe"></i> Publish Now
                                 </span>
                             </label>
-                            <small class="form-help">If unchecked, the news will be saved as a draft</small>
+                            <small class="form-help">Check this box to make the news visible to all users immediately. If unchecked, it will be saved as a draft and won't be visible until published later.</small>
                         </div>
                     </div>
                 </div>

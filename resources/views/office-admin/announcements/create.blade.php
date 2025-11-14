@@ -190,10 +190,10 @@
                                        class="checkbox-input">
                                 <span class="checkbox-custom"></span>
                                 <span class="checkbox-text">
-                                    <i class="fas fa-eye"></i> Publish immediately
+                                    <i class="fas fa-globe"></i> Publish Now
                                 </span>
                             </label>
-                            <small class="form-help">If unchecked, the announcement will be saved as a draft</small>
+                            <small class="form-help">Check this box to make the announcement visible to all users immediately. If unchecked, it will be saved as a draft and won't be visible until published later.</small>
                         </div>
                     </div>
                 </div>
@@ -258,9 +258,8 @@
                 </div>
 
                 <div class="form-actions">
-
-                    <button type="submit" name="action" value="save_and_publish" class="btn btn-success">
-                        <i class="fas fa-paper-plane"></i> Create Announcement
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Save Announcement
                     </button>
                     <a href="{{ route('office-admin.announcements.index') }}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Cancel

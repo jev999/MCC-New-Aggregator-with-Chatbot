@@ -31,8 +31,14 @@ class AnnouncementController extends Controller
                                         ->where('admin_id', $admin->id)
                                         ->latest()
                                         ->get();
+            
+            // Calculate statistics
+            $totalCount = $announcements->count();
+            $publishedCount = $announcements->where('is_published', true)->count();
+            $draftCount = $announcements->where('is_published', false)->count();
+            
             $office = $admin->office;
-            return view('office-admin.announcements.index', compact('announcements', 'office'));
+            return view('office-admin.announcements.index', compact('announcements', 'office', 'totalCount', 'publishedCount', 'draftCount'));
         }
 
         // Super admins and regular admins can see all announcements
@@ -185,9 +191,8 @@ class AnnouncementController extends Controller
                 $csvPath = $request->file('csv_file')->store('announcement-csv', 'public');
             }
 
-            // Determine if announcement should be published
-            // Either checkbox is checked OR "Save & Publish" button was clicked
-            $isPublished = $request->has('is_published') || $request->input('action') === 'save_and_publish';
+            // Determine if announcement should be published based on checkbox
+            $isPublished = $request->has('is_published') && $request->input('is_published') == '1';
 
             // Handle visibility logic for different admin types
             $targetDepartment = null;
@@ -417,9 +422,8 @@ class AnnouncementController extends Controller
         $request->validate($validationRules);
 
         // Handle file uploads
-        // Determine if announcement should be published
-        // Either checkbox is checked OR "Save & Publish" button was clicked
-        $isPublished = $request->has('is_published') || $request->input('action') === 'save_and_publish';
+        // Determine if announcement should be published based on checkbox
+        $isPublished = $request->has('is_published') && $request->input('is_published') == '1';
 
         $updateData = [
             'title' => $request->title,
