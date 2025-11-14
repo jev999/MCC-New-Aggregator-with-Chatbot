@@ -12,11 +12,26 @@ class DatabaseBackupService
 {
     protected $connection;
     protected $database;
+    protected $storageDisk;
+    protected $storageBasePath;
     
     public function __construct()
     {
         $this->connection = config('database.default');
         $this->database = config("database.connections.{$this->connection}.database");
+        $this->storageDisk = Storage::disk('local');
+        
+        try {
+            $diskPath = rtrim($this->storageDisk->path(''), DIRECTORY_SEPARATOR);
+        } catch (Exception $e) {
+            $diskPath = '';
+        }
+        
+        $this->storageBasePath = $diskPath ?: storage_path('app/private');
+
+        if (!is_dir($this->storageBasePath)) {
+            @mkdir($this->storageBasePath, 0775, true);
+        }
     }
     
     /**
@@ -64,7 +79,7 @@ class DatabaseBackupService
             ]);
             
             // Check disk space before proceeding
-            $freeSpace = disk_free_space(storage_path());
+            $freeSpace = disk_free_space($this->storageBasePath);
             $freeSpaceMB = round($freeSpace / 1024 / 1024, 2);
             
             if ($freeSpaceMB < 100) { // Less than 100MB free
@@ -89,7 +104,7 @@ class DatabaseBackupService
             $zipFilename = $this->database . '_' . $timestamp . '.zip';
             
             // Save SQL file temporarily
-            $tempPath = storage_path('app/backup-temp');
+            $tempPath = $this->storagePath('backup-temp');
             
             // Ensure temp directory exists and is writable
             if (!file_exists($tempPath)) {
@@ -178,7 +193,7 @@ class DatabaseBackupService
             foreach ($backupPaths as $backupPath) {
                 try {
                     // Create the directory path for this attempt
-                    $backupDir = storage_path('app/' . $backupPath);
+                    $backupDir = $this->storagePath($backupPath);
                     if (!empty($backupPath) && !file_exists($backupDir)) {
                         if (!@mkdir($backupDir, 0775, true)) {
                             Log::warning("Could not create directory: {$backupDir}");
@@ -197,8 +212,8 @@ class DatabaseBackupService
                     
                     // Set the zip path for this attempt
                     $zipPath = empty($backupPath) 
-                        ? storage_path('app/' . $zipFilename) 
-                        : storage_path('app/' . $backupPath . '/' . $zipFilename);
+                        ? $this->storagePath($zipFilename) 
+                        : $this->storagePath($backupPath . '/' . $zipFilename);
                     
                     // For storage path (relative to storage disk)
                     $storageRelativePath = empty($backupPath)
@@ -235,8 +250,8 @@ class DatabaseBackupService
                     
                     // If zip failed, try direct SQL file
                     $sqlBackupPath = empty($backupPath)
-                        ? storage_path('app/' . $filename)
-                        : storage_path('app/' . $backupPath . '/' . $filename);
+                        ? $this->storagePath($filename)
+                        : $this->storagePath($backupPath . '/' . $filename);
                     
                     // For storage path (relative to storage disk)
                     $sqlStorageRelativePath = empty($backupPath)
@@ -345,11 +360,11 @@ class DatabaseBackupService
     {
         $backupPath = config('backup.backup.name', 'Laravel');
         $directories = [
-            storage_path('app/backup-temp'),
-            storage_path('app/' . $backupPath),
+            $this->storagePath('backup-temp'),
+            $this->storagePath($backupPath),
             // Add fallback directories
-            storage_path('app/Laravel'),
-            storage_path('app/backups')
+            $this->storagePath('Laravel'),
+            $this->storagePath('backups')
         ];
         
         foreach ($directories as $dir) {
@@ -668,5 +683,16 @@ class DatabaseBackupService
             Log::error('Failed to get backups list', ['error' => $e->getMessage()]);
             return collect();
         }
+    }
+
+    /**
+     * Resolve an absolute path within the configured local storage disk.
+     */
+    protected function storagePath(string $relative = ''): string
+    {
+        $clean = trim($relative, '/\\');
+        return $clean === ''
+            ? $this->storageBasePath
+            : $this->storageBasePath . DIRECTORY_SEPARATOR . $clean;
     }
 }

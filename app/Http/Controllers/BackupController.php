@@ -16,6 +16,7 @@ class BackupController extends Controller
 {
     protected $backupDisk;
     protected $backupPath;
+    protected $storageBasePath;
 
     public function __construct()
     {
@@ -24,6 +25,17 @@ class BackupController extends Controller
             $this->backupDisk = 'local';
             // Get backup name from config, fallback to APP_NAME or default
             $this->backupPath = config('backup.backup.name') ?? config('app.name', 'Laravel');
+            $diskPath = '';
+            try {
+                $diskPath = rtrim(Storage::disk($this->backupDisk)->path(''), DIRECTORY_SEPARATOR);
+            } catch (\Exception $e) {
+                $diskPath = '';
+            }
+            $this->storageBasePath = $diskPath ?: storage_path('app/private');
+
+            if (!is_dir($this->storageBasePath)) {
+                @mkdir($this->storageBasePath, 0775, true);
+            }
             
             Log::info('BackupController initialized', [
                 'disk' => $this->backupDisk,
@@ -346,11 +358,11 @@ class BackupController extends Controller
     protected function ensureBackupDirectoriesExist()
     {
         $directories = [
-            storage_path('app/' . $this->backupPath),
-            storage_path('app/backup-temp'),
+            $this->storagePath($this->backupPath),
+            $this->storagePath('backup-temp'),
             // Add fallback directories
-            storage_path('app/Laravel'),
-            storage_path('app/backups'),
+            $this->storagePath('Laravel'),
+            $this->storagePath('backups'),
         ];
         
         $success = false;
@@ -548,7 +560,7 @@ class BackupController extends Controller
             ]);
             
             // Get the full path to the file
-            $fullPath = storage_path('app/' . $filePath);
+            $fullPath = $this->storagePath($filePath);
             
             // Check if the file exists
             if (!file_exists($fullPath)) {
@@ -813,7 +825,7 @@ class BackupController extends Controller
                 ]);
                 
                 // Get the full path to the file
-                $fullPath = storage_path('app/' . $filePath);
+                $fullPath = $this->storagePath($filePath);
                 
                 // Log detailed information about the file
                 Log::info('File details before download', [
@@ -975,13 +987,13 @@ class BackupController extends Controller
         $cleanFilename = basename(trim($filename));
         
         // Get the storage path
-        $storagePath = storage_path('app');
+        $storagePath = $this->storagePath();
         
         // Possible locations to search
         $possibleDirs = [
-            $storagePath . '/' . $this->backupPath,
-            $storagePath . '/' . config('backup.backup.name', 'Laravel'),
-            $storagePath . '/' . config('app.name', 'Laravel'),
+            $storagePath . '/' . trim($this->backupPath, '/'),
+            $storagePath . '/' . trim(config('backup.backup.name', 'Laravel'), '/'),
+            $storagePath . '/' . trim(config('app.name', 'Laravel'), '/'),
             $storagePath . '/backups',
             $storagePath . '/Laravel',
             $storagePath, // Root directory
@@ -1047,5 +1059,17 @@ class BackupController extends Controller
         }
 
         return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Get absolute path inside the configured storage disk root.
+     */
+    protected function storagePath(string $relative = ''): string
+    {
+        $clean = trim($relative, '/\\');
+        if ($clean === '') {
+            return $this->storageBasePath;
+        }
+        return $this->storageBasePath . DIRECTORY_SEPARATOR . $clean;
     }
 }
