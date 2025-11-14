@@ -801,6 +801,105 @@
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.5/dist/sweetalert2.min.css" rel="stylesheet">
     
+    <style>
+        /* Enhanced SweetAlert2 Delete Dialog Styling */
+        .swal-delete-popup {
+            border-radius: 15px !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25) !important;
+            border: none !important;
+            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+        }
+
+        .swal-delete-title {
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            margin-bottom: 0.5rem !important;
+        }
+
+        .swal-delete-content {
+            font-size: 0.95rem !important;
+            color: #4b5563 !important;
+            line-height: 1.6 !important;
+            margin: 1.5rem 0 !important;
+        }
+
+        .swal-delete-icon {
+            color: #f59e0b !important;
+            font-size: 3rem !important;
+            margin-bottom: 1rem !important;
+        }
+
+        .swal-delete-actions {
+            gap: 1rem !important;
+            padding: 1.5rem 0 0 0 !important;
+        }
+
+        /* Cancel Button Styling */
+        .swal-delete-cancel-btn {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+            color: #374151 !important;
+            border: 2px solid #d1d5db !important;
+            padding: 0.75rem 1.75rem !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        .swal-delete-cancel-btn:hover {
+            background: linear-gradient(135deg, #d1d5db 0%, #b4b8c1 100%) !important;
+            border-color: #b4b8c1 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
+        }
+
+        .swal-delete-cancel-btn:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+        }
+
+        /* Delete Confirm Button Styling */
+        .swal-delete-confirm-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+            color: #ffffff !important;
+            border: 2px solid #dc2626 !important;
+            padding: 0.75rem 1.75rem !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.95rem !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+            position: relative !important;
+        }
+
+        .swal-delete-confirm-btn:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            border-color: #b91c1c !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4) !important;
+        }
+
+        .swal-delete-confirm-btn:active {
+            transform: translateY(0) !important;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+        }
+
+        /* Loading state for confirm button */
+        .swal-delete-confirm-btn.swal2-loading {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+        }
+
+        /* Button container spacing */
+        .swal2-actions {
+            margin-top: 1.5rem !important;
+        }
+    </style>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.5/dist/sweetalert2.all.min.js"></script>
     <script>
         // Handle delete button click
@@ -826,12 +925,13 @@
                     cancelButtonText: 'Cancel',
                     reverseButtons: true,
                     customClass: {
-                        confirmButton: 'px-4 py-2 rounded-md font-medium',
-                        cancelButton: 'px-4 py-2 rounded-md font-medium mr-2',
-                        popup: 'rounded-lg',
-                        title: 'text-xl font-semibold',
-                        htmlContainer: 'text-left',
-                        icon: '!text-yellow-500 !text-4xl',
+                        confirmButton: 'swal-delete-confirm-btn',
+                        cancelButton: 'swal-delete-cancel-btn',
+                        popup: 'swal-delete-popup',
+                        title: 'swal-delete-title',
+                        htmlContainer: 'swal-delete-content',
+                        icon: 'swal-delete-icon',
+                        actions: 'swal-delete-actions'
                     },
                     buttonsStyling: false,
                     showLoaderOnConfirm: true,
