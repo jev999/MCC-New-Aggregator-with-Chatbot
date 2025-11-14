@@ -825,6 +825,14 @@ class BackupController extends Controller
             
             // If no matching file found, try the regular download method
             return $this->download($filename);
+        } catch (\Exception $e) {
+            Log::error('Direct download failed', [
+                'filename' => $filename,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            abort(500, 'Failed to download backup: ' . $e->getMessage());
         }
     }
     
