@@ -26,15 +26,23 @@ class DatabaseBackupService
     public function createBackup()
     {
         try {
+            // Get database connection info
+            $host = config("database.connections.{$this->connection}.host");
+            $username = config("database.connections.{$this->connection}.username");
+            
             Log::info('Starting PHP-based database backup', [
                 'database' => $this->database,
-                'connection' => $this->connection
+                'connection' => $this->connection,
+                'host' => $host,
+                'username' => $username
             ]);
             
             // Test database connection first
             if (!$this->testDatabaseConnection()) {
-                throw new Exception('Cannot connect to database. Please check your database credentials.');
+                throw new Exception('Cannot connect to database. Please check your database credentials and connection settings.');
             }
+            
+            Log::info('Database connection verified successfully');
             
             // Get all tables
             $tables = $this->getTables();
@@ -43,10 +51,18 @@ class DatabaseBackupService
                 throw new Exception('No tables found in database');
             }
             
-            Log::info('Found tables to backup', ['count' => count($tables)]);
+            Log::info('Found tables to backup', [
+                'count' => count($tables),
+                'tables' => implode(', ', array_slice($tables, 0, 5)) . (count($tables) > 5 ? '...' : '')
+            ]);
             
             // Generate SQL dump
             $sqlDump = $this->generateSqlDump($tables);
+            
+            Log::info('SQL dump generated', [
+                'size_bytes' => strlen($sqlDump),
+                'size_mb' => round(strlen($sqlDump) / 1024 / 1024, 2)
+            ]);
             
             // Create filename with timestamp
             $filename = $this->database . '_' . date('Y-m-d_His') . '.sql';
@@ -56,24 +72,25 @@ class DatabaseBackupService
             $tempPath = storage_path('app/backup-temp');
             if (!file_exists($tempPath)) {
                 if (!@mkdir($tempPath, 0775, true)) {
-                    throw new Exception('Failed to create temp directory: ' . $tempPath);
+                    throw new Exception('Failed to create temp directory: ' . $tempPath . '. Check directory permissions.');
                 }
+                Log::info('Created temp directory', ['path' => $tempPath]);
             }
             
             if (!is_writable($tempPath)) {
-                throw new Exception('Temp directory is not writable: ' . $tempPath);
+                throw new Exception('Temp directory is not writable: ' . $tempPath . '. Please set permissions to 775 or 777.');
             }
             
             $sqlFilePath = $tempPath . '/' . $filename;
             $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
             
             if ($bytesWritten === false) {
-                throw new Exception('Failed to write SQL dump to: ' . $sqlFilePath);
+                throw new Exception('Failed to write SQL dump to: ' . $sqlFilePath . '. Check disk space and permissions.');
             }
             
-            Log::info('SQL dump created', [
+            Log::info('SQL dump saved to temp file', [
                 'file' => $sqlFilePath,
-                'size' => filesize($sqlFilePath)
+                'size' => $bytesWritten
             ]);
             
             // Create ZIP archive
@@ -84,32 +101,40 @@ class DatabaseBackupService
             $backupDir = storage_path('app/' . $backupPath);
             if (!file_exists($backupDir)) {
                 if (!@mkdir($backupDir, 0775, true)) {
-                    throw new Exception('Failed to create backup directory: ' . $backupDir);
+                    throw new Exception('Failed to create backup directory: ' . $backupDir . '. Check directory permissions.');
                 }
+                Log::info('Created backup directory', ['path' => $backupDir]);
             }
             
             if (!is_writable($backupDir)) {
-                throw new Exception('Backup directory is not writable: ' . $backupDir);
+                throw new Exception('Backup directory is not writable: ' . $backupDir . '. Please set permissions to 775 or 777.');
             }
             
             // Create zip
+            Log::info('Creating ZIP archive', ['source' => $sqlFilePath, 'destination' => $zipPath]);
+            
             if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
                 // Clean up temporary SQL file
-                unlink($sqlFilePath);
+                if (file_exists($sqlFilePath)) {
+                    unlink($sqlFilePath);
+                    Log::info('Cleaned up temporary SQL file');
+                }
                 
+                $zipSize = filesize($zipPath);
                 Log::info('Backup completed successfully', [
                     'zip_file' => $zipFilename,
-                    'size' => filesize($zipPath)
+                    'size' => $zipSize,
+                    'size_formatted' => $this->formatBytes($zipSize)
                 ]);
                 
                 return [
                     'success' => true,
                     'filename' => $zipFilename,
                     'path' => $zipPath,
-                    'size' => filesize($zipPath)
+                    'size' => $zipSize
                 ];
             } else {
-                throw new Exception('Failed to create ZIP archive');
+                throw new Exception('Failed to create ZIP archive. ZipArchive may not be available.');
             }
             
         } catch (Exception $e) {
@@ -122,6 +147,18 @@ class DatabaseBackupService
             
             throw $e;
         }
+    }
+    
+    /**
+     * Format bytes to human readable size
+     */
+    protected function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+        return round($bytes, $precision) . ' ' . $units[$i];
     }
     
     /**

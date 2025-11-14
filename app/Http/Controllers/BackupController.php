@@ -129,14 +129,20 @@ class BackupController extends Controller
             ]);
 
             // Check if we should use PHP-based backup (fallback mode)
-            $usePhpBackup = config('backup.use_php_backup', false) || !$this->isMysqldumpAvailable();
+            // Detect remote database connection
+            $isRemoteDatabase = $this->isRemoteDatabase();
+            $usePhpBackup = config('backup.use_php_backup', false) || 
+                            !$this->isMysqldumpAvailable() || 
+                            $isRemoteDatabase;
             
             if ($usePhpBackup) {
-                Log::info('Using PHP-based backup (mysqldump not available or configured)');
+                $reason = $isRemoteDatabase ? 'remote database detected' : 
+                         (!$this->isMysqldumpAvailable() ? 'mysqldump not available' : 'configured');
+                Log::info("Using PHP-based backup ({$reason})");
                 return $this->createPhpBackup($admin);
             }
 
-            // Try Spatie backup first
+            // Try Spatie backup first (only for local databases)
             try {
                 // Set custom mysqldump path if configured
                 $mysqldumpPath = config('backup.backup.database_dump_settings.mysql.dump_binary_path');
@@ -152,14 +158,18 @@ class BackupController extends Controller
 
                 $output = Artisan::output();
                 
-                // Check if backup failed due to mysqldump
-                if (strpos($output, 'mysqldump') !== false && strpos($output, 'not recognized') !== false) {
-                    Log::warning('Spatie backup failed due to missing mysqldump, falling back to PHP backup');
+                // Check if backup failed due to mysqldump or authentication
+                if (strpos($output, 'mysqldump') !== false || 
+                    strpos($output, 'Access denied') !== false ||
+                    strpos($output, 'connection') !== false) {
+                    Log::warning('Spatie backup failed, falling back to PHP backup', ['output' => $output]);
                     return $this->createPhpBackup($admin);
                 }
                 
                 // Check if backup was successful
-                if (strpos($output, 'Backup completed') !== false || strpos($output, 'successfully') !== false || strpos($output, 'Success') !== false) {
+                if (strpos($output, 'Backup completed') !== false || 
+                    strpos($output, 'successfully') !== false || 
+                    strpos($output, 'Success') !== false) {
                     Log::info('Backup created successfully via Spatie', [
                         'user' => $admin->username,
                         'output' => $output
@@ -289,6 +299,50 @@ class BackupController extends Controller
             
         } catch (\Exception $e) {
             return false;
+        }
+    }
+    
+    /**
+     * Check if database connection is remote
+     * Remote databases require PHP-based backup instead of mysqldump
+     */
+    protected function isRemoteDatabase()
+    {
+        try {
+            $host = config('database.connections.mysql.host');
+            $username = config('database.connections.mysql.username');
+            $database = config('database.connections.mysql.database');
+            
+            // Check if using a remote database based on common patterns:
+            // 1. Database name contains hosting provider prefixes (u123456_xxx format)
+            // 2. Username contains hosting provider prefixes
+            // 3. Host is not localhost/127.0.0.1
+            
+            $isRemoteByNaming = (
+                // Check for cPanel/hosting provider naming convention (user_database format)
+                preg_match('/^[a-z]\d+_/', $database) || 
+                preg_match('/^[a-z]\d+_/', $username)
+            );
+            
+            $isRemoteByHost = !in_array($host, ['localhost', '127.0.0.1', '::1', 'local']);
+            
+            $isRemote = $isRemoteByNaming || $isRemoteByHost;
+            
+            if ($isRemote) {
+                Log::info('Remote database detected', [
+                    'host' => $host,
+                    'database' => $database,
+                    'username' => $username,
+                    'reason' => $isRemoteByNaming ? 'naming convention' : 'remote host'
+                ]);
+            }
+            
+            return $isRemote;
+            
+        } catch (\Exception $e) {
+            Log::warning('Failed to detect remote database', ['error' => $e->getMessage()]);
+            // Default to assuming remote for safety
+            return true;
         }
     }
 

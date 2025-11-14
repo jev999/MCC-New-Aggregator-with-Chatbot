@@ -455,7 +455,16 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Server error');
+                    }).catch(() => {
+                        throw new Error('HTTP error ' + response.status);
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 document.getElementById('loading').classList.remove('active');
                 btn.disabled = false;
@@ -464,8 +473,15 @@
                 if (data.success) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Backup Created!',
-                        text: data.message,
+                        title: 'Backup Created Successfully!',
+                        html: `
+                            <div style="text-align: left; padding: 10px;">
+                                <p><strong>✓</strong> ${data.message}</p>
+                                ${data.method ? `<p><small>Method: ${data.method.toUpperCase()}</small></p>` : ''}
+                                ${data.filename ? `<p><small>File: ${data.filename}</small></p>` : ''}
+                                ${data.size ? `<p><small>Size: ${data.size}</small></p>` : ''}
+                            </div>
+                        `,
                         confirmButtonColor: '#10b981'
                     }).then(() => {
                         window.location.reload();
@@ -474,8 +490,17 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Backup Failed',
-                        text: data.message,
-                        confirmButtonColor: '#ef4444'
+                        html: `
+                            <div style="text-align: left;">
+                                <p>${data.message}</p>
+                                <details style="margin-top: 10px; font-size: 12px;">
+                                    <summary style="cursor: pointer;">Technical Details</summary>
+                                    <pre style="text-align: left; padding: 10px; background: #f5f5f5; border-radius: 5px; margin-top: 5px;">${JSON.stringify(data, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `,
+                        confirmButtonColor: '#ef4444',
+                        width: 600
                     });
                 }
             })
@@ -486,11 +511,25 @@
                 
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to create backup. Please try again.',
-                    confirmButtonColor: '#ef4444'
+                    title: 'Error Creating Backup',
+                    html: `
+                        <div style="text-align: left;">
+                            <p>Failed to create backup. Please check:</p>
+                            <ul style="text-align: left; padding-left: 20px;">
+                                <li>Database connection is working</li>
+                                <li>Storage directory permissions</li>
+                                <li>Server has enough disk space</li>
+                            </ul>
+                            <details style="margin-top: 10px; font-size: 12px;">
+                                <summary style="cursor: pointer;">Error Details</summary>
+                                <pre style="text-align: left; padding: 10px; background: #f5f5f5; border-radius: 5px; margin-top: 5px;">${error.message}</pre>
+                            </details>
+                        </div>
+                    `,
+                    confirmButtonColor: '#ef4444',
+                    width: 600
                 });
-                console.error('Error:', error);
+                console.error('Backup Error:', error);
             });
         }
 
