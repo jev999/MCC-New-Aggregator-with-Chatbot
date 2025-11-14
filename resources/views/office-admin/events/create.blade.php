@@ -1263,38 +1263,35 @@
                         <div style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
                             Please choose a date and time that hasn't passed yet
                         </div>
-                        <div style="background: #e0f2fe; border: 1px solid #0288d1; border-radius: 8px; padding: 0.75rem; color: #01579b; font-size: 0.85rem;">
-                            <i class="fas fa-lightbulb" style="margin-right: 0.5rem; color: #ffa000;"></i>
-                            <strong>Tip:</strong> After clicking "Choose New Date", the date field will be highlighted and focused for easy editing.
+                        <div style="background: #f0f9ff; border: 1px solid #60a5fa; border-radius: 8px; padding: 0.75rem; color: #1e40af; font-size: 0.85rem;">
+                            <i class="fas fa-mouse-pointer" style="margin-right: 0.5rem; color: #3b82f6;"></i>
+                            <strong>Click anywhere</strong> to close this message and select a future date
                         </div>
                     </div>
                 `,
                 icon: 'warning',
-                confirmButtonText: '<i class="fas fa-calendar-check"></i> Choose New Date',
-                confirmButtonColor: '#f59e0b',
+                showConfirmButton: false,
                 showCancelButton: false,
                 allowOutsideClick: true,
                 allowEscapeKey: true,
                 customClass: {
-                    popup: 'swal-enhanced-popup',
+                    popup: 'swal-enhanced-popup swal-clickable',
                     title: 'swal-enhanced-title',
-                    content: 'swal-enhanced-content',
-                    confirmButton: 'swal-enhanced-button'
+                    content: 'swal-enhanced-content'
                 },
                 didOpen: () => {
                     // Add some animation
                     const popup = Swal.getPopup();
                     popup.style.animation = 'swal2-show 0.3s ease-out';
+                    popup.style.cursor = 'pointer';
                     
-                    // Ensure the confirm button works properly
-                    const confirmButton = Swal.getConfirmButton();
-                    if (confirmButton) {
-                        confirmButton.addEventListener('click', () => {
-                            // This will be handled by the .then() callback
-                            console.log('Choose New Date button clicked');
-                        });
-                    }
-                }
+                    // Make the entire popup clickable to close
+                    popup.addEventListener('click', () => {
+                        Swal.close();
+                    });
+                },
+                timer: 5000, // Auto-close after 5 seconds
+                timerProgressBar: true
             }).then((result) => {
                 console.log('SweetAlert result:', result);
                 
@@ -1443,6 +1440,16 @@
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
         backdrop-filter: blur(8px) !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .swal-clickable {
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .swal-clickable:hover {
+        transform: scale(1.02) !important;
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3) !important;
     }
 
     .swal-enhanced-title {
