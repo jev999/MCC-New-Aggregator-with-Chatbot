@@ -37,6 +37,9 @@ class DatabaseBackupService
                 'username' => $username
             ]);
             
+            // Create necessary directories first
+            $this->createBackupDirectories();
+            
             // Test database connection first
             if (!$this->testDatabaseConnection()) {
                 throw new Exception('Cannot connect to database. Please check your database credentials and connection settings.');
@@ -70,22 +73,34 @@ class DatabaseBackupService
             
             // Save SQL file temporarily
             $tempPath = storage_path('app/backup-temp');
-            if (!file_exists($tempPath)) {
-                if (!@mkdir($tempPath, 0775, true)) {
-                    throw new Exception('Failed to create temp directory: ' . $tempPath . '. Check directory permissions.');
-                }
-                Log::info('Created temp directory', ['path' => $tempPath]);
-            }
-            
-            if (!is_writable($tempPath)) {
-                throw new Exception('Temp directory is not writable: ' . $tempPath . '. Please set permissions to 775 or 777.');
-            }
-            
             $sqlFilePath = $tempPath . '/' . $filename;
-            $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
+            
+            // Write the SQL dump to file
+            // Try multiple methods to ensure it works
+            $bytesWritten = false;
+            
+            // Method 1: file_put_contents
+            try {
+                $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
+            } catch (Exception $e) {
+                Log::warning('file_put_contents failed: ' . $e->getMessage());
+            }
+            
+            // Method 2: fopen/fwrite if method 1 failed
+            if ($bytesWritten === false) {
+                try {
+                    $handle = fopen($sqlFilePath, 'w');
+                    if ($handle) {
+                        $bytesWritten = fwrite($handle, $sqlDump);
+                        fclose($handle);
+                    }
+                } catch (Exception $e) {
+                    Log::warning('fopen/fwrite failed: ' . $e->getMessage());
+                }
+            }
             
             if ($bytesWritten === false) {
-                throw new Exception('Failed to write SQL dump to: ' . $sqlFilePath . '. Check disk space and permissions.');
+                throw new Exception('Failed to write SQL dump to file. Check disk space and permissions.');
             }
             
             Log::info('SQL dump saved to temp file', [
@@ -97,19 +112,6 @@ class DatabaseBackupService
             $backupPath = config('backup.backup.name', 'Laravel');
             $zipPath = storage_path('app/' . $backupPath . '/' . $zipFilename);
             
-            // Ensure directory exists
-            $backupDir = storage_path('app/' . $backupPath);
-            if (!file_exists($backupDir)) {
-                if (!@mkdir($backupDir, 0775, true)) {
-                    throw new Exception('Failed to create backup directory: ' . $backupDir . '. Check directory permissions.');
-                }
-                Log::info('Created backup directory', ['path' => $backupDir]);
-            }
-            
-            if (!is_writable($backupDir)) {
-                throw new Exception('Backup directory is not writable: ' . $backupDir . '. Please set permissions to 775 or 777.');
-            }
-            
             // Create zip (or copy .sql if ZipArchive is unavailable)
             if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
                 // Determine actual saved file (zip or sql fallback)
@@ -119,7 +121,7 @@ class DatabaseBackupService
 
                 // Clean up temporary SQL file
                 if (file_exists($sqlFilePath)) {
-                    unlink($sqlFilePath);
+                    @unlink($sqlFilePath);
                 }
                 
                 Log::info('Backup completed successfully', [
@@ -136,7 +138,32 @@ class DatabaseBackupService
                     'size' => $actualSize
                 ];
             } else {
-                throw new Exception('Failed to create ZIP archive. ZipArchive may not be available.');
+                // Last resort: Try to save SQL file directly to backup directory
+                $sqlBackupPath = storage_path('app/' . $backupPath . '/' . $filename);
+                if (copy($sqlFilePath, $sqlBackupPath) || file_put_contents($sqlBackupPath, $sqlDump) !== false) {
+                    $actualFilename = $filename;
+                    $actualSize = filesize($sqlBackupPath);
+                    
+                    // Clean up temporary SQL file
+                    if (file_exists($sqlFilePath)) {
+                        @unlink($sqlFilePath);
+                    }
+                    
+                    Log::info('Backup saved as SQL (ZIP failed)', [
+                        'file' => $actualFilename,
+                        'path' => $sqlBackupPath,
+                        'size' => $actualSize
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'filename' => $actualFilename,
+                        'path' => $sqlBackupPath,
+                        'size' => $actualSize
+                    ];
+                }
+                
+                throw new Exception('Failed to create backup file. Please check directory permissions.');
             }
             
         } catch (Exception $e) {
@@ -147,6 +174,39 @@ class DatabaseBackupService
                 'file' => $e->getFile()
             ]);
             throw $e;
+        }
+    }
+    
+    /**
+     * Create all necessary backup directories
+     */
+    protected function createBackupDirectories()
+    {
+        $backupPath = config('backup.backup.name', 'Laravel');
+        $directories = [
+            storage_path('app/backup-temp'),
+            storage_path('app/' . $backupPath),
+            // Add fallback directories
+            storage_path('app/Laravel'),
+            storage_path('app/backups')
+        ];
+        
+        foreach ($directories as $dir) {
+            if (!file_exists($dir)) {
+                if (!@mkdir($dir, 0775, true)) {
+                    Log::warning("Could not create directory: {$dir}");
+                } else {
+                    Log::info("Created directory: {$dir}");
+                }
+            }
+            
+            // Try to make writable if it exists but isn't writable
+            if (file_exists($dir) && !is_writable($dir)) {
+                @chmod($dir, 0775);
+                if (!is_writable($dir)) {
+                    Log::warning("Directory exists but is not writable: {$dir}");
+                }
+            }
         }
     }
     
@@ -168,11 +228,21 @@ class DatabaseBackupService
     protected function testDatabaseConnection()
     {
         try {
+            // Try with PDO first
             DB::connection()->getPdo();
+            
+            // Try a simple query to verify full access
+            $result = DB::select('SELECT 1 as test');
+            if (empty($result) || !isset($result[0]->test) || $result[0]->test != 1) {
+                throw new Exception('Database query test failed');
+            }
+            
             return true;
         } catch (Exception $e) {
             Log::error('Database connection test failed', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'connection' => $this->connection,
+                'database' => $this->database
             ]);
             return false;
         }
@@ -204,6 +274,9 @@ class DatabaseBackupService
      */
     protected function generateSqlDump($tables)
     {
+        ini_set('memory_limit', '512M'); // Increase memory limit for large databases
+        set_time_limit(300); // 5 minutes timeout
+        
         $dump = "-- PHP-based Database Backup\n";
         $dump .= "-- Database: {$this->database}\n";
         $dump .= "-- Date: " . date('Y-m-d H:i:s') . "\n";
@@ -231,32 +304,56 @@ class DatabaseBackupService
                 
                 // Get CREATE TABLE statement
                 $createTable = DB::select("SHOW CREATE TABLE `{$table}`");
-                $dump .= $createTable[0]->{'Create Table'} . ";\n\n";
+                if (isset($createTable[0]->{'Create Table'})) {
+                    $dump .= $createTable[0]->{'Create Table'} . ";\n\n";
+                } else if (isset($createTable[0]->{'Create View'})) {
+                    $dump .= $createTable[0]->{'Create View'} . ";\n\n";
+                    continue; // Skip data export for views
+                } else {
+                    $dump .= "-- Could not determine table structure for {$table}\n\n";
+                    continue;
+                }
                 
                 // Get table data
                 $dump .= "-- Dumping data for table `{$table}`\n\n";
                 
-                $rows = DB::table($table)->get();
+                // Get row count first to decide on strategy
+                $count = DB::table($table)->count();
                 
-                if ($rows->count() > 0) {
-                    $columns = array_keys((array) $rows[0]);
-                    $columnsList = '`' . implode('`, `', $columns) . '`';
+                // Skip empty tables
+                if ($count === 0) {
+                    $dump .= "-- Table is empty\n\n";
+                    continue;
+                }
+                
+                // For large tables, use pagination to avoid memory issues
+                $batchSize = 100;
+                $totalPages = ceil($count / $batchSize);
+                
+                for ($page = 0; $page < $totalPages; $page++) {
+                    $rows = DB::table($table)
+                        ->skip($page * $batchSize)
+                        ->take($batchSize)
+                        ->get();
                     
-                    // Insert data in batches to avoid memory issues
-                    $batchSize = 100;
-                    $batches = $rows->chunk($batchSize);
-                    
-                    foreach ($batches as $batch) {
+                    if ($rows->count() > 0) {
+                        // Get column names from the first row
+                        $columns = array_keys((array) $rows[0]);
+                        $columnsList = '`' . implode('`, `', $columns) . '`';
+                        
                         $dump .= "INSERT INTO `{$table}` ({$columnsList}) VALUES\n";
                         
                         $values = [];
-                        foreach ($batch as $row) {
+                        foreach ($rows as $row) {
                             $rowData = (array) $row;
                             $escapedValues = array_map(function($value) {
                                 if (is_null($value)) {
                                     return 'NULL';
+                                } else if (is_numeric($value) && !is_string($value)) {
+                                    return $value;
+                                } else {
+                                    return "'" . addslashes($value) . "'";
                                 }
-                                return "'" . addslashes($value) . "'";
                             }, $rowData);
                             
                             $values[] = '(' . implode(', ', $escapedValues) . ')';
@@ -288,22 +385,82 @@ class DatabaseBackupService
             if (!class_exists('ZipArchive')) {
                 // Fallback: just save the SQL file without compression
                 Log::warning('ZipArchive not available, saving uncompressed SQL');
-                copy($sqlFilePath, str_replace('.zip', '.sql', $zipPath));
+                $sqlDestPath = str_replace('.zip', '.sql', $zipPath);
+                
+                // Make sure the directory exists
+                $dir = dirname($sqlDestPath);
+                if (!file_exists($dir)) {
+                    mkdir($dir, 0775, true);
+                }
+                
+                // Copy the file
+                if (!@copy($sqlFilePath, $sqlDestPath)) {
+                    // If copy fails, try file_put_contents
+                    $content = file_get_contents($sqlFilePath);
+                    if ($content !== false) {
+                        file_put_contents($sqlDestPath, $content);
+                    } else {
+                        throw new Exception("Failed to read source SQL file");
+                    }
+                }
+                
                 return true;
+            }
+            
+            // Make sure the directory exists
+            $dir = dirname($zipPath);
+            if (!file_exists($dir)) {
+                mkdir($dir, 0775, true);
             }
             
             $zip = new \ZipArchive();
+            $result = $zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
             
-            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
-                $zip->addFile($sqlFilePath, $filename);
-                $zip->close();
+            if ($result === true) {
+                // Read file content and add it to zip
+                $content = file_get_contents($sqlFilePath);
+                if ($content !== false) {
+                    $zip->addFromString($filename, $content);
+                    $zip->close();
+                    return true;
+                } else {
+                    $zip->close();
+                    throw new Exception("Failed to read SQL file content");
+                }
+            } else {
+                // Handle ZipArchive error codes
+                $errorMessages = [
+                    \ZipArchive::ER_EXISTS => 'File already exists',
+                    \ZipArchive::ER_INCONS => 'Zip archive inconsistent',
+                    \ZipArchive::ER_INVAL => 'Invalid argument',
+                    \ZipArchive::ER_MEMORY => 'Memory allocation failure',
+                    \ZipArchive::ER_NOENT => 'No such file',
+                    \ZipArchive::ER_NOZIP => 'Not a zip archive',
+                    \ZipArchive::ER_OPEN => 'Can\'t open file',
+                    \ZipArchive::ER_READ => 'Read error',
+                    \ZipArchive::ER_SEEK => 'Seek error'
+                ];
+                
+                $errorMessage = isset($errorMessages[$result]) ? $errorMessages[$result] : 'Unknown error';
+                Log::error('ZipArchive error', ['code' => $result, 'message' => $errorMessage]);
+                
+                // Fallback to SQL file
+                $sqlDestPath = str_replace('.zip', '.sql', $zipPath);
+                copy($sqlFilePath, $sqlDestPath);
                 return true;
             }
-            
-            return false;
         } catch (Exception $e) {
             Log::error('Failed to create ZIP', ['error' => $e->getMessage()]);
-            return false;
+            
+            // Last resort fallback - try to save the SQL file directly
+            try {
+                $sqlDestPath = str_replace('.zip', '.sql', $zipPath);
+                copy($sqlFilePath, $sqlDestPath);
+                return true;
+            } catch (Exception $e2) {
+                Log::error('Failed to save SQL file as fallback', ['error' => $e2->getMessage()]);
+                return false;
+            }
         }
     }
     

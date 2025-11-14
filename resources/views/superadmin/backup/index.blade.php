@@ -448,6 +448,42 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Backup...';
             document.getElementById('loading').classList.add('active');
 
+            // Set a timeout to prevent UI from being stuck if the server doesn't respond
+            const timeoutId = setTimeout(() => {
+                document.getElementById('loading').classList.remove('active');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus-circle"></i> Create Manual Backup';
+                
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Backup Taking Too Long',
+                    html: `
+                        <div style="text-align: left;">
+                            <p>The backup process is taking longer than expected. This could be because:</p>
+                            <ul style="text-align: left; padding-left: 20px;">
+                                <li>Your database is very large</li>
+                                <li>The server is experiencing high load</li>
+                                <li>The connection timed out</li>
+                            </ul>
+                            <p>The backup may still be processing in the background. You can:</p>
+                            <ol style="text-align: left; padding-left: 20px;">
+                                <li>Wait a few minutes and refresh the page to check if a new backup appears</li>
+                                <li>Try again with the button below</li>
+                            </ol>
+                        </div>
+                    `,
+                    confirmButtonText: 'Try Again',
+                    confirmButtonColor: '#3b82f6',
+                    showCancelButton: true,
+                    cancelButtonText: 'Close',
+                    width: 600
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        createBackup();
+                    }
+                });
+            }, 60000); // 60 second timeout
+
             fetch('{{ route('superadmin.backup.create') }}', {
                 method: 'POST',
                 headers: {
@@ -456,12 +492,22 @@
                 }
             })
             .then(response => {
+                clearTimeout(timeoutId); // Clear the timeout since we got a response
+                
                 if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.message || 'Server error');
-                    }).catch(() => {
-                        throw new Error('HTTP error ' + response.status);
-                    });
+                    if (response.status === 419) {
+                        // CSRF token mismatch
+                        throw new Error('Your session has expired. Please refresh the page and try again.');
+                    } else {
+                        return response.json().then(data => {
+                            throw new Error(data.message || `Server error (${response.status})`);
+                        }).catch(e => {
+                            if (e instanceof SyntaxError) {
+                                throw new Error(`HTTP error ${response.status}: The server response was not valid JSON`);
+                            }
+                            throw e;
+                        });
+                    }
                 }
                 return response.json();
             })
@@ -492,7 +538,7 @@
                         title: 'Backup Failed',
                         html: `
                             <div style="text-align: left;">
-                                <p>${data.message}</p>
+                                <p>${data.message || 'An unknown error occurred'}</p>
                                 <details style="margin-top: 10px; font-size: 12px;">
                                     <summary style="cursor: pointer;">Technical Details</summary>
                                     <pre style="text-align: left; padding: 10px; background: #f5f5f5; border-radius: 5px; margin-top: 5px;">${JSON.stringify(data, null, 2)}</pre>
@@ -505,6 +551,7 @@
                 }
             })
             .catch(error => {
+                clearTimeout(timeoutId); // Clear the timeout since we got a response
                 document.getElementById('loading').classList.remove('active');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-plus-circle"></i> Create Manual Backup';
@@ -519,6 +566,7 @@
                                 <li>Database connection is working</li>
                                 <li>Storage directory permissions</li>
                                 <li>Server has enough disk space</li>
+                                <li>Your session is still valid (try refreshing the page)</li>
                             </ul>
                             <details style="margin-top: 10px; font-size: 12px;">
                                 <summary style="cursor: pointer;">Error Details</summary>
@@ -527,7 +575,14 @@
                         </div>
                     `,
                     confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Try Again',
+                    showCancelButton: true,
+                    cancelButtonText: 'Close',
                     width: 600
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        createBackup();
+                    }
                 });
                 console.error('Backup Error:', error);
             });

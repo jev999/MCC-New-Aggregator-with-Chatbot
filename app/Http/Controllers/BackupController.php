@@ -116,7 +116,7 @@ class BackupController extends Controller
     }
 
     /**
-     * Create new database backup - tries Spatie first, falls back to PHP-based backup
+     * Create new database backup - uses PHP-based backup method for better compatibility
      */
     public function create(Request $request)
     {
@@ -149,73 +149,10 @@ class BackupController extends Controller
                 'ip' => $request->ip(),
                 'timestamp' => now()
             ]);
-
-            // Check if we should use PHP-based backup (fallback mode)
-            // Detect remote database connection
-            $isRemoteDatabase = $this->isRemoteDatabase();
-            $usePhpBackup = config('backup.use_php_backup', false) || 
-                            !$this->isMysqldumpAvailable() || 
-                            $isRemoteDatabase;
             
-            if ($usePhpBackup) {
-                $reason = $isRemoteDatabase ? 'remote database detected' : 
-                         (!$this->isMysqldumpAvailable() ? 'mysqldump not available' : 'configured');
-                Log::info("Using PHP-based backup ({$reason})");
-                return $this->createPhpBackup($admin);
-            }
-
-            // Try Spatie backup first (only for local databases)
-            try {
-                // Set custom mysqldump path if configured
-                $mysqldumpPath = config('backup.backup.database_dump_settings.mysql.dump_binary_path');
-                if ($mysqldumpPath && file_exists($mysqldumpPath)) {
-                    putenv("MYSQLDUMP_PATH={$mysqldumpPath}");
-                    Log::info('Using custom mysqldump path', ['path' => $mysqldumpPath]);
-                }
-
-                // Run Spatie backup command
-                Artisan::call('backup:run', [
-                    '--only-db' => true,  // Only backup database, not files
-                ]);
-
-                $output = Artisan::output();
-                
-                // Check if backup failed due to mysqldump or authentication
-                if (strpos($output, 'mysqldump') !== false || 
-                    strpos($output, 'Access denied') !== false ||
-                    strpos($output, 'connection') !== false) {
-                    Log::warning('Spatie backup failed, falling back to PHP backup', ['output' => $output]);
-                    return $this->createPhpBackup($admin);
-                }
-                
-                // Check if backup was successful
-                if (strpos($output, 'Backup completed') !== false || 
-                    strpos($output, 'successfully') !== false || 
-                    strpos($output, 'Success') !== false) {
-                    Log::info('Backup created successfully via Spatie', [
-                        'user' => $admin->username,
-                        'output' => $output
-                    ]);
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Database backup created successfully!',
-                        'method' => 'spatie',
-                        'output' => $output
-                    ]);
-                } else {
-                    Log::warning('Spatie backup output unclear, falling back to PHP backup', [
-                        'output' => $output
-                    ]);
-                    return $this->createPhpBackup($admin);
-                }
-                
-            } catch (\Exception $spatieException) {
-                Log::warning('Spatie backup failed, falling back to PHP backup', [
-                    'error' => $spatieException->getMessage()
-                ]);
-                return $this->createPhpBackup($admin);
-            }
+            // Always use PHP-based backup for better compatibility
+            // This avoids issues with mysqldump not being available or accessible
+            return $this->createPhpBackup($admin);
 
         } catch (\Exception $e) {
             Log::error('Backup creation failed with exception', [
@@ -242,8 +179,13 @@ class BackupController extends Controller
             // Check if directories exist and are writable
             $this->ensureBackupDirectoriesExist();
             
+            // Create backup service instance and generate backup
             $backupService = new DatabaseBackupService();
             $result = $backupService->createBackup();
+            
+            if (!isset($result['success']) || !$result['success']) {
+                throw new \Exception('Backup creation failed: ' . ($result['message'] ?? 'Unknown error'));
+            }
             
             Log::info('PHP-based backup created successfully', [
                 'user' => $admin->username,
@@ -253,7 +195,7 @@ class BackupController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => 'Database backup created successfully using PHP method!',
+                'message' => 'Database backup created successfully!',
                 'method' => 'php',
                 'filename' => $result['filename'],
                 'size' => $this->formatBytes($result['size'])
@@ -267,7 +209,10 @@ class BackupController extends Controller
                 'file' => $e->getFile()
             ]);
             
-            throw $e;
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create backup: ' . $e->getMessage()
+            ], 500);
         }
     }
     
@@ -279,20 +224,46 @@ class BackupController extends Controller
         $directories = [
             storage_path('app/' . $this->backupPath),
             storage_path('app/backup-temp'),
+            // Add fallback directories
+            storage_path('app/Laravel'),
+            storage_path('app/backups'),
         ];
         
+        $success = false;
+        $errors = [];
+        
         foreach ($directories as $directory) {
-            if (!file_exists($directory)) {
-                if (!@mkdir($directory, 0775, true)) {
-                    throw new \Exception("Failed to create directory: {$directory}. Please check permissions.");
+            try {
+                if (!file_exists($directory)) {
+                    if (!@mkdir($directory, 0775, true)) {
+                        $errors[] = "Failed to create directory: {$directory}";
+                        continue;
+                    }
+                    Log::info("Created backup directory: {$directory}");
                 }
-                Log::info("Created backup directory: {$directory}");
-            }
-            
-            if (!is_writable($directory)) {
-                throw new \Exception("Directory is not writable: {$directory}. Please check permissions (should be 775 or 777).");
+                
+                // Try to make writable if it exists but isn't writable
+                if (!is_writable($directory)) {
+                    @chmod($directory, 0775);
+                    if (!is_writable($directory)) {
+                        $errors[] = "Directory exists but is not writable: {$directory}";
+                        continue;
+                    }
+                }
+                
+                // At least one directory is writable
+                $success = true;
+                
+            } catch (\Exception $e) {
+                $errors[] = "Error with directory {$directory}: " . $e->getMessage();
             }
         }
+        
+        if (!$success) {
+            throw new \Exception("Failed to create or access backup directories. Please check permissions. Errors: " . implode(", ", $errors));
+        }
+        
+        return $success;
     }
     
     /**
