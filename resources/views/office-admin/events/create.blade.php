@@ -82,18 +82,16 @@
             </div>
         @endif
 
-        @if(Auth::guard('admin')->user()->office === 'NSTP')
-            <!-- NSTP Visibility Notice -->
-            <div class="nstp-visibility-notice">
-                <div class="notice-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <div class="notice-content">
-                    <h4><i class="fas fa-info-circle"></i> NSTP Event Visibility</h4>
-                    <p>This event will be visible to <strong>all 1st year students</strong> across all departments (Bachelor of Science in Information Technology, Bachelor of Science in Business Administration, Bachelor of Elementary Education, Bachelor of Science in Hospitality Management, Bachelor of Secondary Education) when published.</p>
-                </div>
+        <!-- Info notice for all office admins -->
+        <div class="visibility-notice">
+            <div class="notice-icon">
+                <i class="fas fa-globe"></i>
             </div>
-        @endif
+            <div class="notice-content">
+                <h4><i class="fas fa-info-circle"></i> Event Visibility</h4>
+                <p>All events created by {{ Auth::guard('admin')->user()->office_display }} will be visible to <strong>all students and faculty</strong> when published. The event will show "Posted by {{ Auth::guard('admin')->user()->office_display }}".</p>
+            </div>
+        </div>
 
         <div class="form-container">
             <form method="POST" action="{{ route('office-admin.events.store') }}" enctype="multipart/form-data" class="event-form">
@@ -225,78 +223,8 @@
                 <div class="form-section">
                     <h3><i class="fas fa-cog"></i> Publishing Settings</h3>
 
-                    @if(Auth::guard('admin')->user()->office === 'NSTP')
-                        <!-- NSTP Auto-visibility Info -->
-                        <div class="form-group">
-                            <label class="form-label">
-                                <i class="fas fa-users"></i> Visibility
-                            </label>
-                            <div class="nstp-auto-visibility">
-                                <div class="auto-visibility-card">
-                                    <div class="auto-visibility-icon">
-                                        <i class="fas fa-graduation-cap"></i>
-                                    </div>
-                                    <div class="auto-visibility-content">
-                                        <h4>Automatic Visibility</h4>
-                                        <p>This event will automatically be visible to <strong>all 1st year students</strong> across all departments when published.</p>
-                                        <div class="departments-list">
-                                            <div class="department-item">
-                                                <i class="fas fa-check-circle"></i> Bachelor of Science in Information Technology
-                                            </div>
-                                            <div class="department-item">
-                                                <i class="fas fa-check-circle"></i> Bachelor of Science in Business Administration
-                                            </div>
-                                            <div class="department-item">
-                                                <i class="fas fa-check-circle"></i> Bachelor of Elementary Education
-                                            </div>
-                                            <div class="department-item">
-                                                <i class="fas fa-check-circle"></i> Bachelor of Science in Hospitality Management
-                                            </div>
-                                            <div class="department-item">
-                                                <i class="fas fa-check-circle"></i> Bachelor of Secondary Education
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Hidden input to set visibility_scope to 'all' for NSTP -->
-                            <input type="hidden" name="visibility_scope" value="all">
-                        </div>
-                    @else
-                        <!-- Regular visibility options for other offices -->
-                        <div class="form-group">
-                            <label class="form-label">
-                                <i class="fas fa-users"></i> Visibility
-                            </label>
-                            <div class="radio-group">
-                                <label class="radio-label">
-                                    <input type="radio"
-                                           name="visibility_scope"
-                                           value="office"
-                                           {{ old('visibility_scope', 'office') === 'office' ? 'checked' : '' }}
-                                           class="radio-input">
-                                    <span class="radio-custom"></span>
-                                    <span class="radio-text">
-                                        <i class="fas fa-briefcase"></i> {{ Auth::guard('admin')->user()->office_display }} Office Only
-                                    </span>
-                                </label>
-                                <label class="radio-label">
-                                    <input type="radio"
-                                           name="visibility_scope"
-                                           value="all"
-                                           {{ old('visibility_scope') === 'all' ? 'checked' : '' }}
-                                           class="radio-input">
-                                    <span class="radio-custom"></span>
-                                    <span class="radio-text">
-                                        <i class="fas fa-globe"></i> All Departments (will show "Posted by {{ Auth::guard('admin')->user()->office_display }}")
-                                    </span>
-                                </label>
-                            </div>
-                            <small class="form-help" style="margin-top: 0.5rem; color: #666;">
-                                Select exactly one option.
-                            </small>
-                        </div>
-                    @endif
+                    <!-- Hidden input to automatically set visibility to all users -->
+                    <input type="hidden" name="visibility_scope" value="all">
 
                     <div class="form-group">
                         <div class="checkbox-group">
@@ -1386,6 +1314,49 @@
     .swal2-icon.swal2-error {
         border-color: #ef4444 !important;
         color: #ef4444 !important;
+    }
+
+    /* Visibility Notice */
+    .visibility-notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+        border: 1px solid #93c5fd;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+    }
+
+    .visibility-notice .notice-icon {
+        background: #3b82f6;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.25rem;
+    }
+
+    .visibility-notice .notice-content h4 {
+        color: #1e40af;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .visibility-notice .notice-content p {
+        color: #1d4ed8;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
     }
 </style>
 

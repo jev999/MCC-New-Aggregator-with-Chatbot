@@ -110,7 +110,7 @@ class NewsController extends Controller
         } elseif ($admin->isDepartmentAdmin()) {
             $validationRules['visibility_scope'] = 'required|in:department,all';
         } elseif ($admin->isOfficeAdmin()) {
-            $validationRules['visibility_scope'] = 'required|in:office,all';
+            $validationRules['visibility_scope'] = 'required|in:all';
         }
 
         $request->validate($validationRules);
@@ -180,11 +180,10 @@ class NewsController extends Controller
         $targetOffice = null;
 
         if ($admin->isOfficeAdmin()) {
-            // Office admins: can select office or all departments
-            $visibilityScope = $request->input('visibility_scope', 'office');
-            if ($visibilityScope === 'office') {
-                $targetOffice = $admin->office;
-            }
+            // Office admins: always visible to all users
+            $visibilityScope = 'all';
+            // target_office remains null for 'all' visibility
+            $targetOffice = null;
         } elseif ($admin->isDepartmentAdmin()) {
             $visibilityScope = $request->input('visibility_scope', 'department');
             if ($visibilityScope === 'department') {
