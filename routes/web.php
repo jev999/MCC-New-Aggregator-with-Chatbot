@@ -1932,7 +1932,7 @@ Route::prefix('admin')->group(function () {
     // PROTECTED DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role + Permissions)
     // ========================================================================
 
-    Route::middleware(['auth:admin', 'session.security', 'can:view-admin-dashboard'])->group(function () {
+    Route::middleware(['auth:admin', 'session.security', 'log.admin.location', 'can:view-admin-dashboard'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
             ->name('admin.dashboard');
@@ -2016,7 +2016,7 @@ Route::prefix('superadmin')->group(function () {
     // PROTECTED SUPERADMIN ROUTES (RBAC: SuperAdmin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\SuperAdminAuth::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\SuperAdminAuth::class, 'log.admin.location'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [SuperAdminDashboardController::class, 'index'])
             ->name('superadmin.dashboard');
@@ -2187,7 +2187,7 @@ Route::prefix('department-admin')->group(function () {
     // PROTECTED DEPARTMENT ADMIN ROUTES (RBAC: Department Admin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\DepartmentAdminAuth::class, 'log.admin.location'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [DepartmentAdminDashboardController::class, 'index'])
             ->name('department-admin.dashboard');
@@ -2306,7 +2306,7 @@ Route::prefix('office-admin')->name('office-admin.')->group(function () {
     // PROTECTED OFFICE ADMIN ROUTES (RBAC: Office Admin Role + Permissions)
     // ========================================================================
 
-    Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class])->group(function () {
+    Route::middleware([\App\Http\Middleware\OfficeAdminAuth::class, 'log.admin.location'])->group(function () {
         // Dashboard access
         Route::get('dashboard', [OfficeAdminDashboardController::class, 'index'])
             ->name('dashboard');
