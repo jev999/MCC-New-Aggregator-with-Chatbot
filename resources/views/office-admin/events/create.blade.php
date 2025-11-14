@@ -1243,8 +1243,55 @@
 
         if (selectedDateTime < now) {
             e.preventDefault();
-            alert('Please select a future date and time for the event.');
-            eventDateInput.focus();
+            Swal.fire({
+                title: 'Invalid Event Date!',
+                html: `
+                    <div style="text-align: center; padding: 1rem 0;">
+                        <div style="font-size: 1.1rem; color: #374151; margin-bottom: 1rem;">
+                            <i class="fas fa-clock" style="color: #f59e0b; margin-right: 0.5rem;"></i>
+                            The event date and time must be in the future
+                        </div>
+                        <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                            <div style="color: #92400e; font-size: 0.9rem; font-weight: 500;">
+                                <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                                Current time: <strong>${now.toLocaleString()}</strong>
+                            </div>
+                            <div style="color: #92400e; font-size: 0.9rem; margin-top: 0.5rem;">
+                                Selected time: <strong>${selectedDateTime.toLocaleString()}</strong>
+                            </div>
+                        </div>
+                        <div style="color: #6b7280; font-size: 0.9rem;">
+                            Please choose a date and time that hasn't passed yet
+                        </div>
+                    </div>
+                `,
+                icon: 'warning',
+                confirmButtonText: '<i class="fas fa-calendar-check"></i> Choose New Date',
+                confirmButtonColor: '#f59e0b',
+                showCancelButton: false,
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                customClass: {
+                    popup: 'swal-enhanced-popup',
+                    title: 'swal-enhanced-title',
+                    content: 'swal-enhanced-content',
+                    confirmButton: 'swal-enhanced-button'
+                },
+                didOpen: () => {
+                    // Add some animation
+                    const popup = Swal.getPopup();
+                    popup.style.animation = 'swal2-show 0.3s ease-out';
+                }
+            }).then((result) => {
+                if (result.isConfirmed || result.isDismissed) {
+                    eventDateInput.focus();
+                    // Add a subtle shake animation to the input
+                    eventDateInput.style.animation = 'shake 0.5s ease-in-out';
+                    setTimeout(() => {
+                        eventDateInput.style.animation = '';
+                    }, 500);
+                }
+            });
             return false;
         }
     });
@@ -1314,6 +1361,91 @@
     .swal2-icon.swal2-error {
         border-color: #ef4444 !important;
         color: #ef4444 !important;
+    }
+
+    /* Enhanced SweetAlert Styles */
+    .swal-enhanced-popup {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+        border-radius: 16px !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+        backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .swal-enhanced-title {
+        font-size: 1.5rem !important;
+        font-weight: 700 !important;
+        color: #dc2626 !important;
+        margin-bottom: 1rem !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .swal-enhanced-content {
+        font-size: 1rem !important;
+        color: #374151 !important;
+        line-height: 1.6 !important;
+        padding: 0.5rem !important;
+    }
+
+    .swal-enhanced-button {
+        border-radius: 10px !important;
+        padding: 0.875rem 1.75rem !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+        border: none !important;
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .swal-enhanced-button:hover {
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4) !important;
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+    }
+
+    .swal-enhanced-button:active {
+        transform: translateY(-1px) scale(1.01) !important;
+    }
+
+    /* Shake animation for input field */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+        20%, 40%, 60%, 80% { transform: translateX(3px); }
+    }
+
+    /* Enhanced pulse effect for the warning icon */
+    .swal2-icon.swal2-warning {
+        animation: warningPulse 2s ease-in-out infinite !important;
+    }
+
+    @keyframes warningPulse {
+        0%, 100% { 
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% { 
+            transform: scale(1.05);
+            opacity: 0.8;
+        }
+    }
+
+    /* Enhanced modal backdrop */
+    .swal2-container {
+        backdrop-filter: blur(4px) !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+    }
+
+    /* Information box styling enhancement */
+    .swal-enhanced-info-box {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+        border: 1px solid #f59e0b !important;
+        border-radius: 12px !important;
+        padding: 1rem !important;
+        margin: 1rem 0 !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
     }
 
     /* Visibility Notice */
