@@ -775,10 +775,13 @@
                                             <a href="{{ route('office-admin.announcements.edit', $announcement) }}" class="btn btn-orange btn-sm" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('office-admin.announcements.destroy', $announcement) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this announcement?')">
+                                            <form id="delete-form-{{ $announcement->id }}" action="{{ route('office-admin.announcements.destroy', $announcement) }}" method="POST" style="display: inline;">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                                                <button type="button" class="btn btn-danger btn-sm delete-announcement" 
+                                                        title="Delete" 
+                                                        data-id="{{ $announcement->id }}"
+                                                        data-title="{{ $announcement->title }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -795,7 +798,53 @@
         </div>
     </div>
 
+    <!-- SweetAlert2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.5/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.5/dist/sweetalert2.all.min.js"></script>
     <script>
+        // Handle delete button click
+        document.querySelectorAll('.delete-announcement').forEach(button => {
+            button.addEventListener('click', function() {
+                const announcementId = this.getAttribute('data-id');
+                const announcementTitle = this.getAttribute('data-title');
+                
+                Swal.fire({
+                    title: 'Delete Announcement',
+                    html: `Are you sure you want to delete <strong>${announcementTitle}</strong>?<br><br>
+                           <div class="text-left">
+                               <div class="flex items-center text-red-500 mb-2">
+                                   <i class="fas fa-exclamation-circle mr-2"></i>
+                                   <span>This action cannot be undone.</span>
+                               </div>
+                           </div>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true,
+                    customClass: {
+                        confirmButton: 'px-4 py-2 rounded-md font-medium',
+                        cancelButton: 'px-4 py-2 rounded-md font-medium mr-2',
+                        popup: 'rounded-lg',
+                        title: 'text-xl font-semibold',
+                        htmlContainer: 'text-left',
+                        icon: '!text-yellow-500 !text-4xl',
+                    },
+                    buttonsStyling: false,
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return new Promise((resolve) => {
+                            document.getElementById(`delete-form-${announcementId}`).submit();
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                });
+            });
+        });
+
         // Mobile sidebar toggle
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');

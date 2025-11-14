@@ -592,7 +592,7 @@
         });
 
         // Enhanced SweetAlert delete confirmation for Office Admins
-        async function handleAnnouncementDelete(event, announcementTitle) {
+     async function handleAnnouncementDelete(event, announcementTitle) {
     event.preventDefault();
     
     const result = await Swal.fire({
