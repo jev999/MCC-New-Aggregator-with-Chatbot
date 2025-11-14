@@ -288,16 +288,23 @@
         }
 
         .action-btn {
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.7rem;
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            font-size: 0.85rem;
             font-weight: 500;
-            transition: all 0.3s ease;
-            margin-right: 0.5rem;
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
+            margin-right: 0.3rem;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
         }
 
         .download-btn {
@@ -480,8 +487,16 @@
                                     <td>{{ $backup['created_at_human'] }}</td>
                                     <td>
                                         <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
-                                           class="action-btn download-btn" download>
+                                           class="action-btn download-btn">
                                             <i class="fas fa-download"></i> Download
+                                        </a>
+                                        <a href="{{ url('superadmin/backup/download-direct', $backup['filename']) }}" 
+                                           class="action-btn download-btn" style="background-color: #2563eb;">
+                                            <i class="fas fa-cloud-download-alt"></i> Direct
+                                        </a>
+                                        <a href="{{ route('direct.download', $backup['filename']) }}" 
+                                           class="action-btn download-btn" style="background-color: #059669;">
+                                            <i class="fas fa-file-download"></i> Binary
                                         </a>
                                         <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
                                                 class="action-btn delete-btn">
@@ -650,8 +665,16 @@
                                         <td>Just now</td>
                                         <td>
                                             <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                               class="action-btn download-btn" download>
+                                               class="action-btn download-btn">
                                                 <i class="fas fa-download"></i> Download
+                                            </a>
+                                            <a href="/superadmin/backup/download-direct/${data.filename}" 
+                                               class="action-btn download-btn" style="background-color: #2563eb;">
+                                                <i class="fas fa-cloud-download-alt"></i> Direct
+                                            </a>
+                                            <a href="/direct-download/${data.filename}" 
+                                               class="action-btn download-btn" style="background-color: #059669;">
+                                                <i class="fas fa-file-download"></i> Binary
                                             </a>
                                             <button onclick="deleteBackup('${data.filename}')" 
                                                     class="action-btn delete-btn">
@@ -678,8 +701,16 @@
                             <td>Just now</td>
                             <td>
                                 <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                   class="action-btn download-btn" download>
+                                   class="action-btn download-btn">
                                     <i class="fas fa-download"></i> Download
+                                </a>
+                                <a href="/superadmin/backup/download-direct/${data.filename}" 
+                                   class="action-btn download-btn" style="background-color: #2563eb;">
+                                    <i class="fas fa-cloud-download-alt"></i> Direct
+                                </a>
+                                <a href="/direct-download/${data.filename}" 
+                                   class="action-btn download-btn" style="background-color: #059669;">
+                                    <i class="fas fa-file-download"></i> Binary
                                 </a>
                                 <button onclick="deleteBackup('${data.filename}')" 
                                         class="action-btn delete-btn">

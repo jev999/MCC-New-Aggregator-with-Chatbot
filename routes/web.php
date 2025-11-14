@@ -2036,6 +2036,9 @@ Route::prefix('superadmin')->group(function () {
             Route::get('backup/download/{filename}', [BackupController::class, 'downloadDirect']);
             Route::get('backup/download-direct/{filename}', [BackupController::class, 'downloadDirect']);
         });
+        
+        // Direct file download route (bypasses Laravel Storage)
+        Route::get('direct-download/{filename}', [App\Http\Controllers\DirectDownloadController::class, 'download'])->name('direct.download');
 
         // ====================================================================
         // ADMIN ACCESS LOGS (Allow via SuperAdmin middleware or session snapshot)

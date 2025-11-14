@@ -547,8 +547,37 @@ class BackupController extends Controller
                 'download_as' => $downloadFilename
             ]);
             
-            // Download the file directly from storage
-            return $disk->download($filePath, $downloadFilename);
+            // Get the full path to the file
+            $fullPath = storage_path('app/' . $filePath);
+            
+            // Check if the file exists
+            if (!file_exists($fullPath)) {
+                Log::error('File not found at full path', ['path' => $fullPath]);
+                abort(404, 'File not found');
+            }
+            
+            // Get the file's MIME type
+            $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+            
+            // Set appropriate headers for download
+            $headers = [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . $downloadFilename . '"',
+                'Content-Length' => filesize($fullPath),
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0'
+            ];
+            
+            Log::info('Serving file for download', [
+                'path' => $fullPath,
+                'filename' => $downloadFilename,
+                'mime' => $mimeType,
+                'size' => filesize($fullPath)
+            ]);
+            
+            // Return the file as a download
+            return response()->file($fullPath, $headers);
             
         } catch (\Exception $e) {
             Log::error('Backup download failed', [
@@ -761,21 +790,41 @@ class BackupController extends Controller
                     'path' => $filePath
                 ]);
                 
-                // Download the file with the correct filename
-                return $disk->download($filePath, $actualFilename);
+                // Get the full path to the file
+                $fullPath = storage_path('app/' . $filePath);
+                
+                // Check if the file exists
+                if (!file_exists($fullPath)) {
+                    Log::error('File not found at full path', ['path' => $fullPath]);
+                    abort(404, 'File not found');
+                }
+                
+                // Get the file's MIME type
+                $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+                
+                // Set appropriate headers for download
+                $headers = [
+                    'Content-Type' => $mimeType,
+                    'Content-Disposition' => 'attachment; filename="' . $actualFilename . '"',
+                    'Content-Length' => filesize($fullPath),
+                    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                    'Pragma' => 'no-cache',
+                    'Expires' => '0'
+                ];
+                
+                Log::info('Serving file for download', [
+                    'path' => $fullPath,
+                    'filename' => $actualFilename,
+                    'mime' => $mimeType,
+                    'size' => filesize($fullPath)
+                ]);
+                
+                // Return the file as a download
+                return response()->file($fullPath, $headers);
             }
             
             // If no matching file found, try the regular download method
             return $this->download($filename);
-            
-        } catch (\Exception $e) {
-            Log::error('Direct download failed', [
-                'filename' => $filename,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            abort(500, 'Failed to download backup: ' . $e->getMessage());
         }
     }
     
