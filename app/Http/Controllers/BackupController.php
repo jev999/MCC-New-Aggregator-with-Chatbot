@@ -589,7 +589,7 @@ class BackupController extends Controller
             ]);
             
             // Return the file as a download
-            return response()->file($fullPath, $headers);
+            return response()->download($fullPath, $downloadFilename, $headers);
             
         } catch (\Exception $e) {
             Log::error('Backup download failed', [
