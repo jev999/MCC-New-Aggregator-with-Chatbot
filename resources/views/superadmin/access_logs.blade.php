@@ -660,35 +660,62 @@
                             <tbody>
                                 @foreach($logs as $log)
                                     <tr>
-                                        <td><input type="checkbox" class="log-checkbox" value="{{ $log->id }}" onchange="updateSelectAll()"></td>
+                                        <td style="text-align: center;"><input type="checkbox" class="log-checkbox" value="{{ $log->id }}" onchange="updateSelectAll()"></td>
                                         <td>
-                                            <strong>{{ $log->admin->username ?? 'Unknown' }}</strong><br>
-                                            <small style="color: #999;">{{ $log->admin->email ?? '' }}</small>
+                                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">
+                                                    {{ strtoupper(substr($log->admin->username ?? 'U', 0, 1)) }}
+                                                </div>
+                                                <div>
+                                                    <strong style="color: #333;">{{ $log->admin->username ?? 'Unknown' }}</strong><br>
+                                                    <small style="color: #999;">{{ $log->admin->email ?? '' }}</small>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
-                                            <span class="badge badge-info">{{ ucfirst(str_replace('_', ' ', $log->role)) }}</span>
+                                            <span class="badge badge-info">
+                                                <i class="fas fa-user-tie" style="margin-right: 0.4rem;"></i>
+                                                {{ ucfirst(str_replace('_', ' ', $log->role)) }}
+                                            </span>
                                         </td>
                                         <td>
                                             @if($log->status === 'success')
-                                                <span class="badge badge-success">Success</span>
+                                                <span class="badge badge-success">
+                                                    <i class="fas fa-check-circle" style="margin-right: 0.4rem;"></i>
+                                                    Success
+                                                </span>
                                             @else
-                                                <span class="badge badge-danger">Failed</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $log->time_in ? $log->time_in->format('M d, Y H:i:s') : '-' }}</td>
-                                        <td>{{ $log->time_out ? $log->time_out->format('M d, Y H:i:s') : 'Active' }}</td>
-                                        <td>
-                                            @if($log->time_in && $log->time_out)
-                                                {{ $log->time_in->diff($log->time_out)->format('%h:%i:%s') }}
-                                            @else
-                                                -
+                                                <span class="badge badge-danger">
+                                                    <i class="fas fa-times-circle" style="margin-right: 0.4rem;"></i>
+                                                    Failed
+                                                </span>
                                             @endif
                                         </td>
                                         <td>
-                                            <small>{{ $log->location_details ?? 'N/A' }}</small>
+                                            <i class="fas fa-clock" style="color: #2563eb; margin-right: 0.5rem;"></i>
+                                            {{ $log->time_in ? $log->time_in->format('M d, Y H:i:s') : '-' }}
                                         </td>
                                         <td>
-                                            <button class="btn btn-danger" onclick="deleteLog({{ $log->id }})">
+                                            <i class="fas fa-sign-out-alt" style="color: #ef4444; margin-right: 0.5rem;"></i>
+                                            {{ $log->time_out ? $log->time_out->format('M d, Y H:i:s') : '<span style="color: #16a34a; font-weight: 700;">Active</span>' }}
+                                        </td>
+                                        <td>
+                                            <span style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); padding: 0.5rem 0.75rem; border-radius: 6px; font-weight: 600; color: #334155;">
+                                                @if($log->time_in && $log->time_out)
+                                                    {{ $log->time_in->diff($log->time_out)->format('%h:%i:%s') }}
+                                                @else
+                                                    -
+                                                @endif
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small style="color: #666;">
+                                                <i class="fas fa-map-marker-alt" style="color: #ef4444; margin-right: 0.4rem;"></i>
+                                                {{ $log->location_details ?? 'N/A' }}
+                                            </small>
+                                        </td>
+                                        <td style="text-align: center;">
+                                            <button class="btn btn-danger" onclick="deleteLog({{ $log->id }})" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
