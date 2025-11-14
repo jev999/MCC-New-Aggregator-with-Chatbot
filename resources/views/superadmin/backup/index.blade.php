@@ -498,6 +498,10 @@
                                            class="action-btn download-btn" style="background-color: #059669;">
                                             <i class="fas fa-file-download"></i> Binary
                                         </a>
+                                        <a href="{{ url('direct-download.php') }}?file={{ $backup['filename'] }}" 
+                                           class="action-btn download-btn" style="background-color: #9333ea;">
+                                            <i class="fas fa-bolt"></i> Raw
+                                        </a>
                                         <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
                                                 class="action-btn delete-btn">
                                             <i class="fas fa-trash"></i> Delete
@@ -676,6 +680,10 @@
                                                class="action-btn download-btn" style="background-color: #059669;">
                                                 <i class="fas fa-file-download"></i> Binary
                                             </a>
+                                            <a href="/direct-download.php?file=${data.filename}" 
+                                               class="action-btn download-btn" style="background-color: #9333ea;">
+                                                <i class="fas fa-bolt"></i> Raw
+                                            </a>
                                             <button onclick="deleteBackup('${data.filename}')" 
                                                     class="action-btn delete-btn">
                                                 <i class="fas fa-trash"></i> Delete
@@ -711,6 +719,10 @@
                                 <a href="/direct-download/${data.filename}" 
                                    class="action-btn download-btn" style="background-color: #059669;">
                                     <i class="fas fa-file-download"></i> Binary
+                                </a>
+                                <a href="/direct-download.php?file=${data.filename}" 
+                                   class="action-btn download-btn" style="background-color: #9333ea;">
+                                    <i class="fas fa-bolt"></i> Raw
                                 </a>
                                 <button onclick="deleteBackup('${data.filename}')" 
                                         class="action-btn delete-btn">

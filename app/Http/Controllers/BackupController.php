@@ -793,14 +793,37 @@ class BackupController extends Controller
                 // Get the full path to the file
                 $fullPath = storage_path('app/' . $filePath);
                 
+                // Log detailed information about the file
+                Log::info('File details before download', [
+                    'filePath' => $filePath,
+                    'fullPath' => $fullPath,
+                    'exists' => file_exists($fullPath),
+                    'readable' => is_readable($fullPath),
+                    'size' => file_exists($fullPath) ? filesize($fullPath) : 0,
+                    'permissions' => file_exists($fullPath) ? substr(sprintf('%o', fileperms($fullPath)), -4) : 'N/A'
+                ]);
+                
                 // Check if the file exists
                 if (!file_exists($fullPath)) {
                     Log::error('File not found at full path', ['path' => $fullPath]);
-                    abort(404, 'File not found');
+                    
+                    // Try a direct approach to find the file
+                    $alternativePath = $this->findBackupFileByName($decodedFilename);
+                    if ($alternativePath && file_exists($alternativePath)) {
+                        Log::info('Found alternative path for file', ['path' => $alternativePath]);
+                        $fullPath = $alternativePath;
+                    } else {
+                        abort(404, 'File not found: ' . $decodedFilename);
+                    }
                 }
                 
                 // Get the file's MIME type
-                $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+                try {
+                    $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+                } catch (\Exception $mimeEx) {
+                    Log::warning('Could not determine MIME type', ['error' => $mimeEx->getMessage()]);
+                    $mimeType = 'application/octet-stream';
+                }
                 
                 // Set appropriate headers for download
                 $headers = [
@@ -820,7 +843,29 @@ class BackupController extends Controller
                 ]);
                 
                 // Return the file as a download
-                return response()->file($fullPath, $headers);
+                try {
+                    // Make sure the file is readable
+                    if (!is_readable($fullPath)) {
+                        Log::error('File is not readable', ['path' => $fullPath]);
+                        throw new \Exception('File is not readable: ' . $actualFilename);
+                    }
+                    
+                    // Try to read the file content
+                    $fileContent = file_get_contents($fullPath);
+                    if ($fileContent === false) {
+                        Log::error('Failed to read file content', ['path' => $fullPath]);
+                        throw new \Exception('Failed to read file content: ' . $actualFilename);
+                    }
+                    
+                    // Return as a download using a direct response
+                    return response($fileContent, 200, $headers);
+                } catch (\Exception $fileEx) {
+                    Log::error('File download error', [
+                        'error' => $fileEx->getMessage(),
+                        'path' => $fullPath
+                    ]);
+                    throw $fileEx;
+                }
             }
             
             // If no matching file found, try the regular download method
@@ -926,6 +971,75 @@ class BackupController extends Controller
         }
     }
 
+    /**
+     * Find a backup file by name using direct file system access
+     */
+    protected function findBackupFileByName($filename)
+    {
+        // Clean up the filename
+        $cleanFilename = basename(trim($filename));
+        
+        // Get the storage path
+        $storagePath = storage_path('app');
+        
+        // Possible locations to search
+        $possibleDirs = [
+            $storagePath . '/' . $this->backupPath,
+            $storagePath . '/' . config('backup.backup.name', 'Laravel'),
+            $storagePath . '/' . config('app.name', 'Laravel'),
+            $storagePath . '/backups',
+            $storagePath . '/Laravel',
+            $storagePath, // Root directory
+        ];
+        
+        // Try to find the exact file
+        foreach ($possibleDirs as $dir) {
+            $path = $dir . '/' . $cleanFilename;
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        
+        // Try with alternative extension
+        $altFilename = preg_match('/\.zip$/i', $cleanFilename) 
+            ? preg_replace('/\.zip$/i', '.sql', $cleanFilename)
+            : preg_replace('/\.sql$/i', '.zip', $cleanFilename);
+        
+        foreach ($possibleDirs as $dir) {
+            $path = $dir . '/' . $altFilename;
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        
+        // Try to find any file with similar name pattern
+        $fileBaseName = pathinfo($cleanFilename, PATHINFO_FILENAME);
+        $fileBaseParts = explode('_', $fileBaseName);
+        
+        // If we have a database name and date pattern
+        if (count($fileBaseParts) >= 3) {
+            $dbName = $fileBaseParts[0];
+            $datePattern = isset($fileBaseParts[1]) ? $fileBaseParts[1] : '';
+            
+            foreach ($possibleDirs as $dir) {
+                if (is_dir($dir)) {
+                    $files = scandir($dir);
+                    foreach ($files as $file) {
+                        if ($file === '.' || $file === '..') continue;
+                        
+                        if (strpos($file, $dbName) !== false && 
+                            (empty($datePattern) || strpos($file, $datePattern) !== false)) {
+                            return $dir . '/' . $file;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Not found
+        return null;
+    }
+    
     /**
      * Format bytes to human readable
      */
