@@ -113,6 +113,31 @@
             color: #333;
             font-size: 1.8rem;
         }
+        
+        .refresh-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+        }
+        
+        .refresh-btn i {
+            font-size: 0.9rem;
+        }
 
 
         .alert {
@@ -353,6 +378,9 @@
         <div class="main-content">
             <div class="header">
                 <h1><i class="fas fa-database"></i> Database Backup Management</h1>
+                <button onclick="window.location.reload()" class="refresh-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
             </div>
 
             @if(session('success'))
@@ -442,6 +470,51 @@
     </div>
 
     <script>
+        // Check for backup files in root directory when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only run if no backups are shown
+            if (document.querySelector('.empty-state')) {
+                checkForBackupsInRoot();
+            }
+        });
+        
+        // Function to check for backup files in root directory
+        function checkForBackupsInRoot() {
+            fetch('{{ route('superadmin.backup.check') }}', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.found && data.count > 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Backup Files Found!',
+                        html: `
+                            <div style="text-align: left; padding: 10px;">
+                                <p>Found ${data.count} backup file(s) that are not being displayed.</p>
+                                <p>Would you like to fix this issue?</p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Fix Now',
+                        cancelButtonText: 'Later',
+                        confirmButtonColor: '#3b82f6'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '{{ url('/fix-backup-display.php') }}';
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error checking for backup files:', error);
+            });
+        }
+        
         function createBackup() {
             const btn = document.getElementById('createBackupBtn');
             btn.disabled = true;

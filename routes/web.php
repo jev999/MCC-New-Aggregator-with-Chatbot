@@ -2024,6 +2024,7 @@ Route::prefix('superadmin')->group(function () {
         // ====================================================================
         Route::get('backup', [BackupController::class, 'index'])->name('superadmin.backup');
         Route::post('backup/create', [BackupController::class, 'create'])->name('superadmin.backup.create');
+        Route::get('backup/check', [BackupController::class, 'checkBackupsInRoot'])->name('superadmin.backup.check');
         Route::get('backup/download/{filename}', [BackupController::class, 'download'])->name('superadmin.backup.download');
         Route::delete('backup/delete/{filename}', [BackupController::class, 'delete'])->name('superadmin.backup.delete');
 

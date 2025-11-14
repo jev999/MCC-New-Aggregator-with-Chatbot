@@ -108,22 +108,85 @@ class DatabaseBackupService
                 'size' => $bytesWritten
             ]);
             
-            // Create ZIP archive
-            $backupPath = config('backup.backup.name', 'Laravel');
-            $zipPath = storage_path('app/' . $backupPath . '/' . $zipFilename);
+            // Create ZIP archive - try multiple backup paths for better compatibility
+            $backupPaths = [
+                config('backup.backup.name', 'Laravel'),
+                'backups',
+                'Laravel',
+                '' // Root directory as fallback
+            ];
             
-            // Create zip (or copy .sql if ZipArchive is unavailable)
-            if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
-                // Determine actual saved file (zip or sql fallback)
-                $actualPath = file_exists($zipPath) ? $zipPath : str_replace('.zip', '.sql', $zipPath);
-                $actualFilename = basename($actualPath);
-                $actualSize = file_exists($actualPath) ? filesize($actualPath) : 0;
-
-                // Clean up temporary SQL file
-                if (file_exists($sqlFilePath)) {
-                    @unlink($sqlFilePath);
+            // Try each backup path until one works
+            $success = false;
+            $actualPath = null;
+            $actualFilename = null;
+            $actualSize = 0;
+            
+            foreach ($backupPaths as $backupPath) {
+                try {
+                    // Create the directory path for this attempt
+                    $backupDir = storage_path('app/' . $backupPath);
+                    if (!empty($backupPath) && !file_exists($backupDir)) {
+                        if (!@mkdir($backupDir, 0775, true)) {
+                            Log::warning("Could not create directory: {$backupDir}");
+                            continue; // Try next path
+                        }
+                    }
+                    
+                    // Set the zip path for this attempt
+                    $zipPath = empty($backupPath) 
+                        ? storage_path('app/' . $zipFilename) 
+                        : storage_path('app/' . $backupPath . '/' . $zipFilename);
+                    
+                    // Try to create zip archive
+                    if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
+                        // Check if file was actually created
+                        $actualPath = file_exists($zipPath) ? $zipPath : str_replace('.zip', '.sql', $zipPath);
+                        if (file_exists($actualPath)) {
+                            $actualFilename = basename($actualPath);
+                            $actualSize = filesize($actualPath);
+                            $success = true;
+                            
+                            Log::info('Backup created successfully', [
+                                'path' => $actualPath,
+                                'directory' => $backupPath ?: 'root',
+                                'size' => $this->formatBytes($actualSize)
+                            ]);
+                            break; // Success - exit the loop
+                        }
+                    }
+                    
+                    // If zip failed, try direct SQL file
+                    $sqlBackupPath = empty($backupPath)
+                        ? storage_path('app/' . $filename)
+                        : storage_path('app/' . $backupPath . '/' . $filename);
+                    
+                    if (copy($sqlFilePath, $sqlBackupPath) || file_put_contents($sqlBackupPath, $sqlDump) !== false) {
+                        $actualPath = $sqlBackupPath;
+                        $actualFilename = $filename;
+                        $actualSize = filesize($sqlBackupPath);
+                        $success = true;
+                        
+                        Log::info('Backup saved as SQL file', [
+                            'path' => $actualPath,
+                            'directory' => $backupPath ?: 'root',
+                            'size' => $this->formatBytes($actualSize)
+                        ]);
+                        break; // Success - exit the loop
+                    }
+                    
+                } catch (Exception $e) {
+                    Log::warning("Failed to save backup to {$backupPath}", ['error' => $e->getMessage()]);
+                    // Continue to next path
                 }
-                
+            }
+            
+            // Clean up temporary SQL file
+            if (file_exists($sqlFilePath)) {
+                @unlink($sqlFilePath);
+            }
+            
+            if ($success) {
                 Log::info('Backup completed successfully', [
                     'file' => $actualFilename,
                     'path' => $actualPath,
@@ -138,32 +201,7 @@ class DatabaseBackupService
                     'size' => $actualSize
                 ];
             } else {
-                // Last resort: Try to save SQL file directly to backup directory
-                $sqlBackupPath = storage_path('app/' . $backupPath . '/' . $filename);
-                if (copy($sqlFilePath, $sqlBackupPath) || file_put_contents($sqlBackupPath, $sqlDump) !== false) {
-                    $actualFilename = $filename;
-                    $actualSize = filesize($sqlBackupPath);
-                    
-                    // Clean up temporary SQL file
-                    if (file_exists($sqlFilePath)) {
-                        @unlink($sqlFilePath);
-                    }
-                    
-                    Log::info('Backup saved as SQL (ZIP failed)', [
-                        'file' => $actualFilename,
-                        'path' => $sqlBackupPath,
-                        'size' => $actualSize
-                    ]);
-                    
-                    return [
-                        'success' => true,
-                        'filename' => $actualFilename,
-                        'path' => $sqlBackupPath,
-                        'size' => $actualSize
-                    ];
-                }
-                
-                throw new Exception('Failed to create backup file. Please check directory permissions.');
+                throw new Exception('Failed to create backup file in any location. Please check directory permissions.');
             }
             
         } catch (Exception $e) {

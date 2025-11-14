@@ -58,21 +58,50 @@ class BackupController extends Controller
                 config('app.name', 'Laravel'),
                 'backups',
                 'Laravel',
+                '', // Also scan root directory
             ]));
 
-            $seen = [];
+            // Log the directories we're scanning
+            Log::info('Scanning backup directories', ['dirs' => $candidateDirs]);
+
+            // Get all files from storage disk
+            $allFiles = [];
             foreach ($candidateDirs as $dir) {
                 try {
-                    $files = $disk->allFiles($dir);
+                    // Get files in this directory
+                    $dirFiles = $disk->files($dir);
+                    Log::info("Found {$dir} files", ['count' => count($dirFiles)]);
+                    $allFiles = array_merge($allFiles, $dirFiles);
+                    
+                    // Also check subdirectories one level deep
+                    $subdirs = $disk->directories($dir);
+                    foreach ($subdirs as $subdir) {
+                        try {
+                            $subdirFiles = $disk->files($subdir);
+                            Log::info("Found {$subdir} files", ['count' => count($subdirFiles)]);
+                            $allFiles = array_merge($allFiles, $subdirFiles);
+                        } catch (\Exception $e) {
+                            Log::warning("Error scanning subdir {$subdir}", ['error' => $e->getMessage()]);
+                        }
+                    }
                 } catch (\Exception $e) {
-                    $files = [];
+                    Log::warning("Error scanning dir {$dir}", ['error' => $e->getMessage()]);
                 }
+            }
+            
+            // Deduplicate files
+            $allFiles = array_unique($allFiles);
+            Log::info('Total files found', ['count' => count($allFiles)]);
 
-                foreach ($files as $file) {
-                    if (preg_match('/\.(zip|sql)$/i', $file)) {
+            $seen = [];
+            foreach ($allFiles as $file) {
+                // Check if file is a backup (SQL or ZIP)
+                if (preg_match('/\.(zip|sql)$/i', $file)) {
+                    try {
                         $basename = basename($file);
                         $sizeBytes = $disk->size($file);
                         $lastMod = $disk->lastModified($file);
+                        
                         // Deduplicate by filename, keep the latest
                         if (!isset($seen[$basename]) || $lastMod > $seen[$basename]['last_modified']) {
                             $seen[$basename] = [
@@ -85,16 +114,20 @@ class BackupController extends Controller
                                 'created_at' => Carbon::createFromTimestamp($lastMod),
                                 'created_at_human' => Carbon::createFromTimestamp($lastMod)->diffForHumans(),
                             ];
+                            Log::info("Found backup file: {$basename}", [
+                                'path' => $file,
+                                'size' => $this->formatBytes($sizeBytes),
+                                'date' => date('Y-m-d H:i:s', $lastMod)
+                            ]);
                         }
+                    } catch (\Exception $e) {
+                        Log::warning("Error processing file {$file}", ['error' => $e->getMessage()]);
                     }
                 }
             }
 
             $backups = collect(array_values($seen))->sortByDesc('last_modified')->values();
             
-            // Sort by latest modified date
-            $backups = $backups->sortByDesc('last_modified')->values();
-
             // Get database statistics
             $dbStats = [
                 'database_name' => config('database.connections.mysql.database', 'N/A'),
@@ -102,6 +135,9 @@ class BackupController extends Controller
                 'backup_path' => $this->backupPath,
                 'backup_schedule' => 'Every 5 hours',
             ];
+
+            // Log the number of backups found
+            Log::info('Backups found', ['count' => $backups->count()]);
 
             return view('superadmin.backup.index', compact('backups', 'dbStats'));
             
@@ -347,37 +383,18 @@ class BackupController extends Controller
     {
         try {
             $disk = Storage::disk($this->backupDisk);
-            $filePath = $this->backupPath . '/' . $filename;
-
-            // Fallback: alternate extension and directories
-            if (!$disk->exists($filePath)) {
-                $candidates = [];
-                $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
-                $candidateDirs = array_values(array_unique([
-                    $this->backupPath,
-                    config('backup.backup.name', 'Laravel'),
-                    config('app.name', 'Laravel'),
-                    'backups',
-                    'Laravel',
-                ]));
-                foreach ($candidateDirs as $dir) {
-                    $candidates[] = $dir . '/' . $filename;
-                    if ($alt) $candidates[] = $dir . '/' . $alt;
-                }
-                $resolved = null;
-                foreach ($candidates as $cand) {
-                    if ($disk->exists($cand)) { $resolved = $cand; break; }
-                }
-                if ($resolved) {
-                    $filePath = $resolved;
-                    $filename = basename($resolved);
-                } else {
-                    abort(404, 'Backup file not found');
-                }
+            
+            // Find the file in any possible location
+            $filePath = $this->findBackupFile($disk, $filename);
+            
+            if (!$filePath) {
+                Log::warning('Backup file not found for download', ['filename' => $filename]);
+                abort(404, 'Backup file not found');
             }
 
             Log::info('Backup download initiated', [
                 'filename' => $filename,
+                'path' => $filePath,
                 'user' => auth('admin')->check() ? auth('admin')->user()->username : 'unknown'
             ]);
 
@@ -393,6 +410,88 @@ class BackupController extends Controller
             abort(500, 'Failed to download backup: ' . $e->getMessage());
         }
     }
+    
+    /**
+     * Find a backup file in any possible location
+     */
+    protected function findBackupFile($disk, $filename)
+    {
+        // Check if file exists directly
+        if ($disk->exists($filename)) {
+            return $filename;
+        }
+        
+        // Try with the direct path first
+        $filePath = $this->backupPath . '/' . $filename;
+        if ($disk->exists($filePath)) {
+            return $filePath;
+        }
+        
+        // Prepare candidates with all possible locations and extensions
+        $candidates = [];
+        $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
+        
+        $candidateDirs = array_values(array_unique([
+            $this->backupPath,
+            config('backup.backup.name', 'Laravel'),
+            config('app.name', 'Laravel'),
+            'backups',
+            'Laravel',
+            '', // Root directory
+        ]));
+        
+        // Build all possible paths
+        foreach ($candidateDirs as $dir) {
+            // Skip empty directory for direct filename check (already done above)
+            if (!empty($dir)) {
+                $candidates[] = $dir . '/' . $filename;
+                if ($alt) $candidates[] = $dir . '/' . $alt;
+            }
+        }
+        
+        // Check all candidates
+        foreach ($candidates as $candidate) {
+            if ($disk->exists($candidate)) {
+                return $candidate;
+            }
+        }
+        
+        // If still not found, try a more exhaustive search
+        $allFiles = [];
+        foreach ($candidateDirs as $dir) {
+            try {
+                // Get files in this directory
+                if (!empty($dir)) {
+                    $dirFiles = $disk->files($dir);
+                    $allFiles = array_merge($allFiles, $dirFiles);
+                    
+                    // Also check subdirectories one level deep
+                    $subdirs = $disk->directories($dir);
+                    foreach ($subdirs as $subdir) {
+                        try {
+                            $subdirFiles = $disk->files($subdir);
+                            $allFiles = array_merge($allFiles, $subdirFiles);
+                        } catch (\Exception $e) {
+                            // Ignore errors for individual subdirectories
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Ignore errors for individual directories
+            }
+        }
+        
+        // Look for exact filename match or alternate extension
+        foreach ($allFiles as $file) {
+            $baseFilename = basename($file);
+            if ($baseFilename === $filename || $baseFilename === $alt) {
+                return $file;
+            }
+        }
+        
+        // Not found anywhere
+        return null;
+    }
 
     /**
      * Delete backup file
@@ -401,42 +500,24 @@ class BackupController extends Controller
     {
         try {
             $disk = Storage::disk($this->backupDisk);
-            $filePath = $this->backupPath . '/' . $filename;
-
-            // Fallback: alternate extension and directories
-            if (!$disk->exists($filePath)) {
-                $candidates = [];
-                $alt = preg_match('/\.zip$/i', $filename) ? preg_replace('/\.zip$/i', '.sql', $filename) : preg_replace('/\.sql$/i', '.zip', $filename);
-                $candidateDirs = array_values(array_unique([
-                    $this->backupPath,
-                    config('backup.backup.name', 'Laravel'),
-                    config('app.name', 'Laravel'),
-                    'backups',
-                    'Laravel',
-                ]));
-                foreach ($candidateDirs as $dir) {
-                    $candidates[] = $dir . '/' . $filename;
-                    if ($alt) $candidates[] = $dir . '/' . $alt;
-                }
-                $resolved = null;
-                foreach ($candidates as $cand) {
-                    if ($disk->exists($cand)) { $resolved = $cand; break; }
-                }
-                if ($resolved) {
-                    $filePath = $resolved;
-                    $filename = basename($resolved);
-                } else {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Backup file not found'
-                    ], 404);
-                }
+            
+            // Find the file in any possible location
+            $filePath = $this->findBackupFile($disk, $filename);
+            
+            if (!$filePath) {
+                Log::warning('Backup file not found for deletion', ['filename' => $filename]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Backup file not found'
+                ], 404);
             }
 
+            // Delete the file
             $disk->delete($filePath);
 
             Log::info('Backup deleted', [
                 'filename' => $filename,
+                'path' => $filePath,
                 'user' => auth('admin')->check() ? auth('admin')->user()->username : 'unknown'
             ]);
 
@@ -454,6 +535,51 @@ class BackupController extends Controller
                 'success' => false,
                 'message' => 'Failed to delete backup: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Check for backup files in root directory
+     */
+    public function checkBackupsInRoot()
+    {
+        try {
+            $disk = Storage::disk($this->backupDisk);
+            $count = 0;
+            
+            // Check root directory for backup files
+            $rootFiles = $disk->files();
+            foreach ($rootFiles as $file) {
+                if (preg_match('/\.(zip|sql)$/i', $file)) {
+                    $count++;
+                }
+            }
+            
+            // Check other potential directories
+            $otherDirs = ['backups', 'Laravel', config('app.name', 'Laravel')];
+            foreach ($otherDirs as $dir) {
+                if ($dir !== $this->backupPath && $disk->exists($dir)) {
+                    $dirFiles = $disk->files($dir);
+                    foreach ($dirFiles as $file) {
+                        if (preg_match('/\.(zip|sql)$/i', $file)) {
+                            $count++;
+                        }
+                    }
+                }
+            }
+            
+            return response()->json([
+                'found' => $count > 0,
+                'count' => $count
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error checking for backup files', ['error' => $e->getMessage()]);
+            return response()->json([
+                'found' => false,
+                'count' => 0,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
