@@ -99,7 +99,7 @@
             top: 0;
             height: 100%;
             width: 4px;
-            background: #2563eb;
+            background: rgba(255, 255, 255, 0.5);
             transform: scaleY(0);
             transition: transform 0.3s ease;
         }
@@ -113,6 +113,7 @@
 
         .sidebar-menu a.active::before {
             transform: scaleY(1);
+            background: rgba(255, 255, 255, 0.8);
         }
 
         .sidebar-menu a i {
@@ -705,7 +706,7 @@
                                         </td>
                                         <td>
                                             <i class="fas fa-sign-out-alt" style="color: #ef4444; margin-right: 0.5rem;"></i>
-                                            {{ $log->time_out ? $log->time_out->format('M d, Y H:i:s') : '<span style="color: #16a34a; font-weight: 700;">Active</span>' }}
+                                            {!! $log->time_out ? $log->time_out->format('M d, Y H:i:s') : '<span style="color: #16a34a; font-weight: 700;">Active</span>' !!}
                                         </td>
                                         <td>
                                             <span style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); padding: 0.5rem 0.75rem; border-radius: 6px; font-weight: 600; color: #334155;">
