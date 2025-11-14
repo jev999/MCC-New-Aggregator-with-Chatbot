@@ -1350,10 +1350,16 @@
 
                     
 
+                    <!-- reCAPTCHA Token -->
+                    <input type="hidden" name="recaptcha_token" id="recaptcha-token">
+                    
                     <!-- Submit Button -->
-                    <button type="submit" class="btn" id="submit-btn">
+                    <button type="button" class="btn" id="submit-btn" onclick="handleLogin()">
                         <i class="fas fa-sign-in-alt"></i>
-                        Login with MS365
+                        <span id="login-text">Login with MS365</span>
+                        <span id="login-spinner" style="display:none;">
+                            <i class="fas fa-spinner fa-spin"></i> Verifying...
+                        </span>
                     </button>
                 </form>
 
@@ -1369,6 +1375,64 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- reCAPTCHA v3 -->
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}"></script>
+    
+    <script>
+        // Handle login with reCAPTCHA
+        function handleLogin() {
+            const btn = document.getElementById('submit-btn');
+            const loginText = document.getElementById('login-text');
+            const loginSpinner = document.getElementById('login-spinner');
+            
+            // Disable button and show spinner
+            btn.disabled = true;
+            loginText.style.display = 'none';
+            loginSpinner.style.display = 'inline';
+            
+            // Execute reCAPTCHA
+            grecaptcha.ready(function() {
+                grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'})
+                .then(function(token) {
+                    // Add token to form
+                    document.getElementById('recaptcha-token').value = token;
+                    // Submit the form
+                    document.getElementById('unified-form').submit();
+                })
+                .catch(function(error) {
+                    console.error('reCAPTCHA error:', error);
+                    // Re-enable button on error
+                    btn.disabled = false;
+                    loginText.style.display = 'inline';
+                    loginSpinner.style.display = 'none';
+                    
+                    // Show error to user
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Error',
+                        text: 'Unable to verify you\'re not a robot. Please try again.',
+                        confirmButtonColor: '#2563eb',
+                    });
+                });
+            });
+        }
+        
+        // Add click handler to the form to prevent default submission
+        document.getElementById('unified-form').addEventListener('submit', function(e) {
+            // Only prevent default if this is not a reCAPTCHA submission
+            if (!e.detail || e.detail !== 'recaptcha') {
+                e.preventDefault();
+            }
+        });
+        
+        // Also handle form submission on Enter key in password field
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleLogin();
+            }
+        });
+    </script>
     
     <!-- Dynamic OTP Modal for All Login Types -->
     <div id="otp-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; align-items: center; justify-content: center;">
