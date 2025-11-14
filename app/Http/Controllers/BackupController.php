@@ -556,8 +556,8 @@ class BackupController extends Controller
                 abort(404, 'File not found');
             }
             
-            // Get the file's MIME type
-            $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
+            // Get the file's MIME type (safe detection with fallbacks)
+            $mimeType = $this->getMimeType($fullPath, 'application/octet-stream');
             
             // Set appropriate headers for download
             $headers = [
@@ -680,10 +680,9 @@ class BackupController extends Controller
         // Try fuzzy matching as a last resort
         foreach ($allFiles as $file) {
             $baseFilename = basename($file);
-            // Check if the filename contains the date part of the requested filename
-            // This helps with cases where timestamps might be slightly different
-            if (strpos($cleanFilename, $this->database) !== false && 
-                strpos($baseFilename, $this->database) !== false) {
+            // Try to match by database name + date part of the filename (avoid undefined properties)
+            $dbName = config('database.connections.mysql.database', '');
+            if (!empty($dbName) && strpos($cleanFilename, $dbName) !== false && strpos($baseFilename, $dbName) !== false) {
                 // Extract date parts for comparison
                 $datePattern = '/\d{4}-\d{2}-\d{2}/'; // matches YYYY-MM-DD
                 preg_match($datePattern, $cleanFilename, $requestedDateMatch);
@@ -704,6 +703,29 @@ class BackupController extends Controller
         // Not found anywhere
         Log::warning('File not found anywhere', ['filename' => $cleanFilename]);
         return null;
+    }
+
+    /**
+     * Safely determine a file's MIME type with fallbacks to extension mapping.
+     */
+    protected function getMimeType(string $fullPath, string $default = 'application/octet-stream'): string
+    {
+        try {
+            if (function_exists('mime_content_type')) {
+                $mime = @mime_content_type($fullPath);
+                if ($mime) return $mime;
+            }
+        } catch (\Throwable $e) {
+            // ignore and fallback
+        }
+        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+        $map = [
+            'zip' => 'application/zip',
+            'sql' => 'application/sql',
+            'json' => 'application/json',
+            'txt' => 'text/plain',
+        ];
+        return $map[$ext] ?? $default;
     }
 
     /**
@@ -817,13 +839,8 @@ class BackupController extends Controller
                     }
                 }
                 
-                // Get the file's MIME type
-                try {
-                    $mimeType = mime_content_type($fullPath) ?: 'application/octet-stream';
-                } catch (\Exception $mimeEx) {
-                    Log::warning('Could not determine MIME type', ['error' => $mimeEx->getMessage()]);
-                    $mimeType = 'application/octet-stream';
-                }
+                // Get the file's MIME type using safe helper
+                $mimeType = $this->getMimeType($fullPath, 'application/octet-stream');
                 
                 // Set appropriate headers for download
                 $headers = [
@@ -842,30 +859,8 @@ class BackupController extends Controller
                     'size' => filesize($fullPath)
                 ]);
                 
-                // Return the file as a download
-                try {
-                    // Make sure the file is readable
-                    if (!is_readable($fullPath)) {
-                        Log::error('File is not readable', ['path' => $fullPath]);
-                        throw new \Exception('File is not readable: ' . $actualFilename);
-                    }
-                    
-                    // Try to read the file content
-                    $fileContent = file_get_contents($fullPath);
-                    if ($fileContent === false) {
-                        Log::error('Failed to read file content', ['path' => $fullPath]);
-                        throw new \Exception('Failed to read file content: ' . $actualFilename);
-                    }
-                    
-                    // Return as a download using a direct response
-                    return response($fileContent, 200, $headers);
-                } catch (\Exception $fileEx) {
-                    Log::error('File download error', [
-                        'error' => $fileEx->getMessage(),
-                        'path' => $fullPath
-                    ]);
-                    throw $fileEx;
-                }
+                // Return the file as a download (streamed, memory-safe)
+                return response()->download($fullPath, $actualFilename, $headers);
             }
             
             // If no matching file found, try the regular download method
