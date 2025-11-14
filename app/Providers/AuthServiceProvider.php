@@ -77,7 +77,8 @@ class AuthServiceProvider extends ServiceProvider
 
         // Content Management - Announcements
         Gate::define('view-announcements', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -85,7 +86,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('create-announcements', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -93,7 +95,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('edit-announcements', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -101,7 +104,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('delete-announcements', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -110,7 +114,8 @@ class AuthServiceProvider extends ServiceProvider
 
         // Content Management - Events
         Gate::define('view-events', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -118,7 +123,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('create-events', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -126,7 +132,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('edit-events', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -134,7 +141,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('delete-events', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -143,7 +151,8 @@ class AuthServiceProvider extends ServiceProvider
 
         // Content Management - News
         Gate::define('view-news', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -151,7 +160,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('create-news', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -159,7 +169,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('edit-news', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -167,7 +178,8 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         Gate::define('delete-news', function ($user = null) use ($getAdmin) {
-            $admin = $user ?? $getAdmin();
+            // Always use admin guard for these permissions
+            $admin = $getAdmin();
             if ($admin && method_exists($admin, 'isSuperAdmin')) {
                 return $admin->isSuperAdmin() || $admin->isDepartmentAdmin() || $admin->isOfficeAdmin();
             }
@@ -187,6 +199,47 @@ class AuthServiceProvider extends ServiceProvider
                 return $user->isSuperAdmin() || $user->isDepartmentAdmin() || $user->isOfficeAdmin();
             }
             return false;
+        });
+
+        // User Dashboard and Notifications
+        Gate::define('view-user-dashboard', function ($user) {
+            // For regular users, check if they are authenticated and have a valid role
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('view-user-notifications', function ($user) {
+            // Users can view their own notifications
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('mark-notifications-read', function ($user) {
+            // Users can mark their own notifications as read
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('create-comments', function ($user) {
+            // Users can create comments
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('update-own-comments', function ($user) {
+            // Users can update their own comments
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('delete-own-comments', function ($user) {
+            // Users can delete their own comments
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('update-user-profile', function ($user) {
+            // Users can update their own profile
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
+        });
+
+        Gate::define('upload-user-profile-picture', function ($user) {
+            // Users can upload their own profile picture
+            return $user && ($user->role === 'student' || $user->role === 'faculty');
         });
     }
 }
