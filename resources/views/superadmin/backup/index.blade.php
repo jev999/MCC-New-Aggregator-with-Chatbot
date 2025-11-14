@@ -424,22 +424,72 @@
             box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
         }
 
+        .action-btn.loading {
+            pointer-events: none;
+            opacity: 0.85;
+        }
+
         .download-btn {
-            background: #3b82f6;
-            color: white;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            border: 1px solid #2563eb;
         }
 
         .download-btn:hover {
-            background: #2563eb;
+            filter: brightness(1.05);
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
         }
 
         .delete-btn {
-            background: #ef4444;
-            color: white;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: 1px solid #dc2626;
         }
 
         .delete-btn:hover {
-            background: #dc2626;
+            filter: brightness(1.05);
+            box-shadow: 0 6px 14px rgba(239, 68, 68, 0.35);
+        }
+
+        .copy-link-btn {
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+        }
+
+        .copy-link-btn:hover {
+            background: #f8fafc;
+            box-shadow: 0 4px 10px rgba(31, 41, 55, 0.12);
+        }
+
+        /* Tooltips using data-tooltip */
+        .action-btn[data-tooltip] {
+            position: relative;
+        }
+        .action-btn[data-tooltip]:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 6px);
+            transform: translateX(-50%);
+            background: rgba(17, 24, 39, 0.92);
+            color: #fff;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+        }
+        .action-btn[data-tooltip]:hover::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 100%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(17, 24, 39, 0.92);
         }
 
         .empty-state {
@@ -633,13 +683,19 @@
                                     <td><span class="date-badge" title="{{ isset($backup['created_at']) ? $backup['created_at']->format('Y-m-d H:i:s') : '' }}">{{ $backup['created_at_human'] }}</span></td>
                                     <td>
                                         <div class="action-group">
-                                            <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
-                                               class="action-btn download-btn" title="Download backup">
-                                                <i class="fas fa-download"></i> Download
+                                            <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}"
+                                               class="action-btn download-btn" data-tooltip="Direct download"
+                                               onclick="return handleDownload(this);" aria-label="Download backup {{ $backup['filename'] }}">
+                                                <i class="fas fa-download"></i> <span class="btn-text">Download</span>
                                             </a>
+                                            <button type="button" class="action-btn copy-link-btn" data-tooltip="Copy direct link"
+                                                    onclick="copyBackupLink('{{ $backup['filename'] }}', this)" aria-label="Copy download link {{ $backup['filename'] }}">
+                                                <i class="fas fa-link"></i> <span class="btn-text">Copy Link</span>
+                                            </button>
                                             <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
-                                                    class="action-btn delete-btn" title="Delete backup">
-                                                <i class="fas fa-trash"></i> Delete
+                                                    class="action-btn delete-btn" data-tooltip="Delete backup"
+                                                    aria-label="Delete backup {{ $backup['filename'] }}">
+                                                <i class="fas fa-trash"></i> <span class="btn-text">Delete</span>
                                             </button>
                                         </div>
                                     </td>
@@ -667,6 +723,86 @@
                 checkForBackupsInRoot();
             }
         });
+        
+        // Base URL for direct downloads
+        const DOWNLOAD_BASE = "{{ url('superadmin/backup/download-direct') }}";
+
+        // Show a lightweight loading state on the download button and let the navigation proceed
+        function handleDownload(anchor) {
+            try {
+                // Avoid double-activation
+                if (anchor.classList.contains('loading')) return true;
+
+                anchor.classList.add('loading');
+                anchor.setAttribute('aria-busy', 'true');
+                if (!anchor.dataset.original) anchor.dataset.original = anchor.innerHTML;
+                anchor.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span class="btn-text">Preparing…</span>';
+
+                // Reset state after a short delay (download will continue regardless)
+                setTimeout(() => {
+                    anchor.classList.remove('loading');
+                    anchor.setAttribute('aria-busy', 'false');
+                    if (anchor.dataset.original) anchor.innerHTML = anchor.dataset.original;
+                }, 4000);
+            } catch (e) {
+                // No-op; allow default navigation on error
+            }
+            return true;
+        }
+
+        // Copy direct download link to clipboard with visual feedback
+        function copyBackupLink(filename, btn) {
+            const url = DOWNLOAD_BASE + '/' + encodeURIComponent(filename);
+            const toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000,
+                timerProgressBar: true
+            });
+            
+            // Button micro-feedback
+            let original = btn.innerHTML;
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fas fa-clipboard-check"></i> <span class="btn-text">Copied</span>';
+
+            const revert = () => {
+                btn.classList.remove('loading');
+                btn.innerHTML = original;
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url)
+                    .then(() => {
+                        toast.fire({ icon: 'success', title: 'Link copied to clipboard' });
+                        setTimeout(revert, 1200);
+                    })
+                    .catch(() => {
+                        fallbackCopy(url);
+                        toast.fire({ icon: 'success', title: 'Link copied' });
+                        setTimeout(revert, 1200);
+                    });
+            } else {
+                fallbackCopy(url);
+                toast.fire({ icon: 'success', title: 'Link copied' });
+                setTimeout(revert, 1200);
+            }
+        }
+
+        function fallbackCopy(text) {
+            try {
+                const temp = document.createElement('input');
+                temp.style.position = 'fixed';
+                temp.style.opacity = '0';
+                temp.value = text;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+            } catch (e) {
+                // ignore
+            }
+        }
         
         // Function to check for backup files in root directory
         function checkForBackupsInRoot() {
@@ -816,13 +952,18 @@
                                             <td><span class="date-badge" title="${new Date().toLocaleString()}">Just now</span></td>
                                             <td>
                                                 <div class="action-group">
-                                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                                       class="action-btn download-btn" title="Download backup">
-                                                        <i class="fas fa-download"></i> Download
+                                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}"
+                                                       class="action-btn download-btn" data-tooltip="Direct download"
+                                                       onclick="return handleDownload(this);">
+                                                        <i class="fas fa-download"></i> <span class="btn-text">Download</span>
                                                     </a>
+                                                    <button type="button" class="action-btn copy-link-btn" data-tooltip="Copy direct link"
+                                                            onclick="copyBackupLink('${data.filename}', this)">
+                                                        <i class="fas fa-link"></i> <span class="btn-text">Copy Link</span>
+                                                    </button>
                                                     <button onclick="deleteBackup('${data.filename}')" 
-                                                            class="action-btn delete-btn" title="Delete backup">
-                                                        <i class="fas fa-trash"></i> Delete
+                                                            class="action-btn delete-btn" data-tooltip="Delete backup">
+                                                        <i class="fas fa-trash"></i> <span class="btn-text">Delete</span>
                                                     </button>
                                                 </div>
                                             </td>
@@ -855,13 +996,18 @@
                             <td><span class="date-badge" title="${new Date().toLocaleString()}">Just now</span></td>
                             <td>
                                 <div class="action-group">
-                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                       class="action-btn download-btn" title="Download backup">
-                                        <i class="fas fa-download"></i> Download
+                                    <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}"
+                                       class="action-btn download-btn" data-tooltip="Direct download"
+                                       onclick="return handleDownload(this);">
+                                        <i class="fas fa-download"></i> <span class="btn-text">Download</span>
                                     </a>
+                                    <button type="button" class="action-btn copy-link-btn" data-tooltip="Copy direct link"
+                                            onclick="copyBackupLink('${data.filename}', this)">
+                                        <i class="fas fa-link"></i> <span class="btn-text">Copy Link</span>
+                                    </button>
                                     <button onclick="deleteBackup('${data.filename}')" 
-                                            class="action-btn delete-btn" title="Delete backup">
-                                        <i class="fas fa-trash"></i> Delete
+                                            class="action-btn delete-btn" data-tooltip="Delete backup">
+                                        <i class="fas fa-trash"></i> <span class="btn-text">Delete</span>
                                     </button>
                                 </div>
                             </td>
