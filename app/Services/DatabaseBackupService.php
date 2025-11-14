@@ -26,6 +26,10 @@ class DatabaseBackupService
     public function createBackup()
     {
         try {
+            // Increase memory and time limits for large databases
+            ini_set('memory_limit', '512M');
+            set_time_limit(300); // 5 minutes timeout
+            
             // Get database connection info
             $host = config("database.connections.{$this->connection}.host");
             $username = config("database.connections.{$this->connection}.username");
@@ -59,6 +63,18 @@ class DatabaseBackupService
                 'tables' => implode(', ', array_slice($tables, 0, 5)) . (count($tables) > 5 ? '...' : '')
             ]);
             
+            // Check disk space before proceeding
+            $freeSpace = disk_free_space(storage_path());
+            $freeSpaceMB = round($freeSpace / 1024 / 1024, 2);
+            
+            if ($freeSpaceMB < 100) { // Less than 100MB free
+                Log::warning('Low disk space detected', [
+                    'free_space_mb' => $freeSpaceMB,
+                    'storage_path' => storage_path()
+                ]);
+                // Continue anyway but log the warning
+            }
+            
             // Generate SQL dump
             $sqlDump = $this->generateSqlDump($tables);
             
@@ -68,11 +84,27 @@ class DatabaseBackupService
             ]);
             
             // Create filename with timestamp
-            $filename = $this->database . '_' . date('Y-m-d_His') . '.sql';
-            $zipFilename = $this->database . '_' . date('Y-m-d_His') . '.zip';
+            $timestamp = date('Y-m-d_His');
+            $filename = $this->database . '_' . $timestamp . '.sql';
+            $zipFilename = $this->database . '_' . $timestamp . '.zip';
             
             // Save SQL file temporarily
             $tempPath = storage_path('app/backup-temp');
+            
+            // Ensure temp directory exists and is writable
+            if (!file_exists($tempPath)) {
+                if (!mkdir($tempPath, 0775, true)) {
+                    throw new Exception("Failed to create temporary directory: {$tempPath}");
+                }
+            }
+            
+            if (!is_writable($tempPath)) {
+                @chmod($tempPath, 0775);
+                if (!is_writable($tempPath)) {
+                    throw new Exception("Temporary directory is not writable: {$tempPath}");
+                }
+            }
+            
             $sqlFilePath = $tempPath . '/' . $filename;
             
             // Write the SQL dump to file
@@ -82,6 +114,9 @@ class DatabaseBackupService
             // Method 1: file_put_contents
             try {
                 $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
+                if ($bytesWritten === false) {
+                    Log::warning('file_put_contents returned false');
+                }
             } catch (Exception $e) {
                 Log::warning('file_put_contents failed: ' . $e->getMessage());
             }
@@ -93,19 +128,35 @@ class DatabaseBackupService
                     if ($handle) {
                         $bytesWritten = fwrite($handle, $sqlDump);
                         fclose($handle);
+                    } else {
+                        Log::warning('fopen returned false');
                     }
                 } catch (Exception $e) {
                     Log::warning('fopen/fwrite failed: ' . $e->getMessage());
                 }
             }
             
+            // Method 3: Try with different permissions
             if ($bytesWritten === false) {
-                throw new Exception('Failed to write SQL dump to file. Check disk space and permissions.');
+                try {
+                    // Try to fix permissions on parent directory
+                    @chmod(dirname($sqlFilePath), 0777);
+                    $bytesWritten = file_put_contents($sqlFilePath, $sqlDump);
+                } catch (Exception $e) {
+                    Log::warning('Permission fix attempt failed: ' . $e->getMessage());
+                }
+            }
+            
+            if ($bytesWritten === false) {
+                throw new Exception('Failed to write SQL dump to file. Check disk space and permissions. Path: ' . $sqlFilePath);
             }
             
             Log::info('SQL dump saved to temp file', [
                 'file' => $sqlFilePath,
-                'size' => $bytesWritten
+                'size' => $bytesWritten,
+                'exists' => file_exists($sqlFilePath),
+                'readable' => is_readable($sqlFilePath),
+                'writable' => is_writable($sqlFilePath)
             ]);
             
             // Always save to the primary backup directory for consistency
@@ -131,6 +182,15 @@ class DatabaseBackupService
                     if (!empty($backupPath) && !file_exists($backupDir)) {
                         if (!@mkdir($backupDir, 0775, true)) {
                             Log::warning("Could not create directory: {$backupDir}");
+                            continue; // Try next path
+                        }
+                    }
+                    
+                    // Make sure directory is writable
+                    if (!empty($backupPath) && !is_writable($backupDir)) {
+                        @chmod($backupDir, 0775);
+                        if (!is_writable($backupDir)) {
+                            Log::warning("Directory not writable: {$backupDir}");
                             continue; // Try next path
                         }
                     }
@@ -183,7 +243,42 @@ class DatabaseBackupService
                         ? $filename
                         : $backupPath . '/' . $filename;
                     
-                    if (copy($sqlFilePath, $sqlBackupPath) || file_put_contents($sqlBackupPath, $sqlDump) !== false) {
+                    // Try multiple methods to copy the file
+                    $copySuccess = false;
+                    
+                    // Method 1: copy function
+                    try {
+                        if (copy($sqlFilePath, $sqlBackupPath)) {
+                            $copySuccess = true;
+                        }
+                    } catch (Exception $e) {
+                        Log::warning('copy() failed: ' . $e->getMessage());
+                    }
+                    
+                    // Method 2: file_get_contents + file_put_contents
+                    if (!$copySuccess) {
+                        try {
+                            $content = file_get_contents($sqlFilePath);
+                            if ($content !== false && file_put_contents($sqlBackupPath, $content) !== false) {
+                                $copySuccess = true;
+                            }
+                        } catch (Exception $e) {
+                            Log::warning('file_get_contents/file_put_contents failed: ' . $e->getMessage());
+                        }
+                    }
+                    
+                    // Method 3: Direct SQL dump write
+                    if (!$copySuccess) {
+                        try {
+                            if (file_put_contents($sqlBackupPath, $sqlDump) !== false) {
+                                $copySuccess = true;
+                            }
+                        } catch (Exception $e) {
+                            Log::warning('Direct SQL dump write failed: ' . $e->getMessage());
+                        }
+                    }
+                    
+                    if ($copySuccess) {
                         $actualPath = $sqlBackupPath;
                         $actualFilename = $filename;
                         $actualSize = filesize($sqlBackupPath);
@@ -200,7 +295,10 @@ class DatabaseBackupService
                     }
                     
                 } catch (Exception $e) {
-                    Log::warning("Failed to save backup to {$backupPath}", ['error' => $e->getMessage()]);
+                    Log::warning("Failed to save backup to {$backupPath}", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                     // Continue to next path
                 }
             }
@@ -226,7 +324,7 @@ class DatabaseBackupService
                     'size' => $actualSize
                 ];
             } else {
-                throw new Exception('Failed to create backup file in any location. Please check directory permissions.');
+                throw new Exception('Failed to create backup file in any location. Please check directory permissions and disk space.');
             }
             
         } catch (Exception $e) {

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Backup Fix Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        h1 {
+            color: #4338ca;
+            margin-top: 0;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 1rem;
+        }
+        
+        .step {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            border-radius: 10px;
+            background: #f9fafb;
+            border-left: 5px solid #4338ca;
+        }
+        
+        .step h2 {
+            margin-top: 0;
+            font-size: 1.3rem;
+            color: #1f2937;
+        }
+        
+        .step p {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: #4338ca;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background: #3730a3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 56, 202, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+            box-shadow: 0 5px 15px rgba(107, 114, 128, 0.4);
+        }
+        
+        .btn-success {
+            background: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+        
+        .alert-info {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-left: 5px solid #0ea5e9;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 5px solid #f59e0b;
+        }
+        
+        code {
+            background: #e5e7eb;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .log-output {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            display: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Database Backup Fix Tool</h1>
+        
+        <div class="alert alert-info">
+            This tool will help you fix issues with the database backup system. Follow the steps below to resolve the "Error Creating Backup" problem.
+        </div>
+        
+        <div class="step">
+            <h2>Step 1: Check Database Connection</h2>
+            <p>First, let's verify that your database connection is working properly.</p>
+            <button class="btn" onclick="runScript('test-db-connection.php', 'db-connection-output')">Check Database Connection</button>
+            <div id="db-connection-output" class="log-output"></div>
+        </div>
+        
+        <div class="step">
+            <h2>Step 2: Fix Backup System</h2>
+            <p>This will check and fix common issues with the backup system, including directory permissions, disk space, and PHP settings.</p>
+            <button class="btn" onclick="runScript('fix-backup-system.php', 'fix-output')">Run Backup System Fix</button>
+            <div id="fix-output" class="log-output"></div>
+        </div>
+        
+        <div class="step">
+            <h2>Step 3: Test Manual Backup</h2>
+            <p>Let's try creating a test backup to verify that the fix worked.</p>
+            <button class="btn" onclick="runScript('test-backup-manual.php', 'test-output')">Test Manual Backup</button>
+            <div id="test-output" class="log-output"></div>
+        </div>
+        
+        <div class="step">
+            <h2>Step 4: Return to Backup Page</h2>
+            <p>Once all issues are fixed, you can return to the backup page and create a backup normally.</p>
+            <a href="/superadmin/backup" class="btn btn-success">Go to Backup Page</a>
+        </div>
+    </div>
+    
+    <script>
+        function runScript(scriptPath, outputId) {
+            const outputElement = document.getElementById(outputId);
+            outputElement.style.display = 'block';
+            outputElement.innerHTML = '<div class="spinner"></div> Running script, please wait...';
+            
+            fetch(scriptPath)
+                .then(response => response.text())
+                .then(data => {
+                    // Format the output for display
+                    const formattedOutput = data
+                        .replace(/\n/g, '<br>')
+                        .replace(/✓/g, '<span style="color: #10b981;">✓</span>')
+                        .replace(/✗/g, '<span style="color: #ef4444;">✗</span>');
+                    
+                    outputElement.innerHTML = formattedOutput;
+                })
+                .catch(error => {
+                    outputElement.innerHTML = `<span style="color: #ef4444;">Error running script: ${error.message}</span>`;
+                });
+        }
+    </script>
+</body>
+</html>
