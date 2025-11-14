@@ -108,6 +108,96 @@ class UnifiedAuthController extends Controller
      */
     public function login(Request $request)
     {
+        // Verify reCAPTCHA v3 token
+        $recaptchaToken = $request->input('recaptcha_token');
+        
+        if (!$recaptchaToken) {
+            \Log::warning('reCAPTCHA token missing', [
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            return back()->withErrors([
+                'recaptcha' => 'Security verification failed. Please try again.'
+            ])->withInput($request->except('password'));
+        }
+        
+        // Verify token with Google reCAPTCHA API
+        try {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => config('services.recaptcha.secret_key'),
+                'response' => $recaptchaToken,
+                'remoteip' => $request->ip()
+            ]);
+            
+            $recaptchaResult = $response->json();
+            
+            \Log::info('reCAPTCHA verification result', [
+                'success' => $recaptchaResult['success'] ?? false,
+                'score' => $recaptchaResult['score'] ?? 0,
+                'action' => $recaptchaResult['action'] ?? 'unknown',
+                'hostname' => $recaptchaResult['hostname'] ?? 'unknown',
+                'ip' => $request->ip()
+            ]);
+            
+            // Check if verification was successful
+            if (!isset($recaptchaResult['success']) || !$recaptchaResult['success']) {
+                \Log::warning('reCAPTCHA verification failed', [
+                    'error_codes' => $recaptchaResult['error-codes'] ?? [],
+                    'ip' => $request->ip()
+                ]);
+                return back()->withErrors([
+                    'recaptcha' => 'Security verification failed. Please refresh the page and try again.'
+                ])->withInput($request->except('password'));
+            }
+            
+            // Verify the action matches what we expect
+            if (isset($recaptchaResult['action']) && $recaptchaResult['action'] !== 'login') {
+                \Log::warning('reCAPTCHA action mismatch', [
+                    'expected' => 'login',
+                    'received' => $recaptchaResult['action'],
+                    'ip' => $request->ip()
+                ]);
+                return back()->withErrors([
+                    'recaptcha' => 'Security verification failed. Invalid action.'
+                ])->withInput($request->except('password'));
+            }
+            
+            // Check the score against threshold
+            $score = $recaptchaResult['score'] ?? 0;
+            $threshold = config('services.recaptcha.threshold', 0.5);
+            
+            if ($score < $threshold) {
+                \Log::warning('reCAPTCHA score below threshold', [
+                    'score' => $score,
+                    'threshold' => $threshold,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+                
+                // For low scores, you can:
+                // 1. Block the login attempt
+                // 2. Require additional verification (like email OTP)
+                // 3. Add to a review queue
+                
+                // Option 1: Block with informative message
+                return back()->withErrors([
+                    'recaptcha' => 'We detected unusual activity. Please try again later or contact support if this continues.'
+                ])->withInput($request->except('password'));
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('reCAPTCHA verification exception', [
+                'error' => $e->getMessage(),
+                'ip' => $request->ip()
+            ]);
+            
+            // In production, you might want to allow login if reCAPTCHA service is down
+            // For security, we'll block it here
+            return back()->withErrors([
+                'recaptcha' => 'Security verification service is temporarily unavailable. Please try again later.'
+            ])->withInput($request->except('password'));
+        }
+        
         // Check rate limiting
         if ($this->securityService) {
             $rateLimitCheck = $this->securityService->checkRateLimit($request, 'login');
