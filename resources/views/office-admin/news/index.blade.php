@@ -6,6 +6,7 @@
     <title>News - {{ auth('admin')->user()->office }} Office</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --sidebar-width: 260px;
@@ -765,7 +766,7 @@
                                             <a href="{{ route('office-admin.news.edit', $newsItem) }}" class="btn btn-warning btn-sm" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('office-admin.news.destroy', $newsItem) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this news?')">
+                                            <form action="{{ route('office-admin.news.destroy', $newsItem) }}" method="POST" style="display: inline;" onsubmit="return handleNewsDelete(event, '{{ $newsItem->title }}')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-danger btn-sm" title="Delete">
@@ -837,6 +838,40 @@
             if (mobileBtn) {
                 mobileBtn.setAttribute('aria-expanded', isOpening);
             }
+        }
+
+        // SweetAlert delete confirmation
+        async function handleNewsDelete(event, newsTitle) {
+            event.preventDefault();
+            
+            const result = await Swal.fire({
+                title: 'Delete News?',
+                text: `Are you sure you want to delete "${newsTitle}"? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            });
+            
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Deleting News...',
+                    text: 'Please wait while we delete the news.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                event.target.submit();
+            }
+            
+            return false;
         }
     </script>
 </body>
