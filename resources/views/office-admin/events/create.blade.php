@@ -1260,8 +1260,12 @@
                                 Selected time: <strong>${selectedDateTime.toLocaleString()}</strong>
                             </div>
                         </div>
-                        <div style="color: #6b7280; font-size: 0.9rem;">
+                        <div style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">
                             Please choose a date and time that hasn't passed yet
+                        </div>
+                        <div style="background: #e0f2fe; border: 1px solid #0288d1; border-radius: 8px; padding: 0.75rem; color: #01579b; font-size: 0.85rem;">
+                            <i class="fas fa-lightbulb" style="margin-right: 0.5rem; color: #ffa000;"></i>
+                            <strong>Tip:</strong> After clicking "Choose New Date", the date field will be highlighted and focused for easy editing.
                         </div>
                     </div>
                 `,
@@ -1281,16 +1285,85 @@
                     // Add some animation
                     const popup = Swal.getPopup();
                     popup.style.animation = 'swal2-show 0.3s ease-out';
+                    
+                    // Ensure the confirm button works properly
+                    const confirmButton = Swal.getConfirmButton();
+                    if (confirmButton) {
+                        confirmButton.addEventListener('click', () => {
+                            // This will be handled by the .then() callback
+                            console.log('Choose New Date button clicked');
+                        });
+                    }
                 }
             }).then((result) => {
-                if (result.isConfirmed || result.isDismissed) {
-                    eventDateInput.focus();
-                    // Add a subtle shake animation to the input
-                    eventDateInput.style.animation = 'shake 0.5s ease-in-out';
-                    setTimeout(() => {
-                        eventDateInput.style.animation = '';
-                    }, 500);
-                }
+                console.log('SweetAlert result:', result);
+                
+                // Always focus and animate when the modal is closed, regardless of how it was closed
+                setTimeout(() => {
+                    try {
+                        // Double-check the input element exists
+                        const inputElement = document.getElementById('event_date');
+                        if (!inputElement) {
+                            console.error('Event date input not found!');
+                            return;
+                        }
+                        
+                        console.log('Focusing on input element');
+                        
+                        // Ensure the input is visible and focusable
+                        inputElement.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                        
+                        // Force focus with multiple attempts
+                        inputElement.focus();
+                        setTimeout(() => inputElement.focus(), 50);
+                        setTimeout(() => inputElement.focus(), 100);
+                        
+                        // Add a more visible shake animation to the input
+                        inputElement.style.border = '2px solid #f59e0b';
+                        inputElement.style.animation = 'shake 0.6s ease-in-out';
+                        inputElement.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.3)';
+                        inputElement.style.backgroundColor = '#fef3c7';
+                        
+                        // Reset styles after animation
+                        setTimeout(() => {
+                            inputElement.style.animation = '';
+                            inputElement.style.border = '';
+                            inputElement.style.boxShadow = '';
+                            inputElement.style.backgroundColor = '';
+                        }, 600);
+                        
+                        // Show a subtle notification
+                        const notification = document.createElement('div');
+                        notification.innerHTML = '<i class="fas fa-arrow-down" style="margin-right: 0.5rem;"></i>Please select a future date and time';
+                        notification.style.cssText = `
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            background: #f59e0b;
+                            color: white;
+                            padding: 0.75rem 1rem;
+                            border-radius: 8px;
+                            font-size: 0.9rem;
+                            font-weight: 500;
+                            z-index: 10000;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                            animation: slideInRight 0.3s ease-out;
+                        `;
+                        document.body.appendChild(notification);
+                        
+                        setTimeout(() => {
+                            notification.style.animation = 'slideOutRight 0.3s ease-in';
+                            setTimeout(() => notification.remove(), 300);
+                        }, 3000);
+                        
+                    } catch (error) {
+                        console.error('Error in focus handling:', error);
+                    }
+                }, 150); // Increased delay to ensure modal is fully closed
             });
             return false;
         }
@@ -1409,11 +1482,25 @@
         transform: translateY(-1px) scale(1.01) !important;
     }
 
-    /* Shake animation for input field */
+    /* Enhanced shake animation for input field */
     @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-        20%, 40%, 60%, 80% { transform: translateX(3px); }
+        0%, 100% { 
+            transform: translateX(0) scale(1); 
+        }
+        10%, 30%, 50%, 70%, 90% { 
+            transform: translateX(-8px) scale(1.02); 
+        }
+        20%, 40%, 60%, 80% { 
+            transform: translateX(8px) scale(1.02); 
+        }
+    }
+
+    /* Input focus enhancement */
+    input[type="datetime-local"]:focus {
+        outline: none !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        transition: all 0.2s ease !important;
     }
 
     /* Enhanced pulse effect for the warning icon */
@@ -1446,6 +1533,29 @@
         padding: 1rem !important;
         margin: 1rem 0 !important;
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* Notification slide animations */
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
     }
 
     /* Visibility Notice */
