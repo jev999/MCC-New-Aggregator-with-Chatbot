@@ -278,8 +278,14 @@ class UnifiedAuthController extends Controller
         // Add conditional validation based on login type
         if ($loginType === 'superadmin') {
             $validationRules['ms365_account'] = array_merge(['required'], $secureRules['ms365_account']);
+            // Require admin consent checkbox
+            $validationRules['location_permission'] = 'accepted';
         } elseif (in_array($loginType, ['ms365', 'department-admin', 'office-admin'])) {
             $validationRules['ms365_account'] = array_merge(['required'], $secureRules['ms365_account']);
+            // Require admin consent checkbox for department and office admins
+            if (in_array($loginType, ['department-admin', 'office-admin'])) {
+                $validationRules['location_permission'] = 'accepted';
+            }
         } elseif ($loginType === 'user') {
             $validationRules['gmail_account'] = array_merge(['required'], $secureRules['gmail_account']);
         }
@@ -2619,6 +2625,7 @@ class UnifiedAuthController extends Controller
             'gmail_account.regex' => 'Gmail format is invalid.',
             'username.regex' => 'Username can only contain letters, numbers, dots, underscores, and hyphens.',
             'password.required' => 'Password is required.',
+            'location_permission.accepted' => 'You must allow location tracking to continue with admin login.',
         ];
     }
 

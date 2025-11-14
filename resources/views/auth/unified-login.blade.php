@@ -1354,13 +1354,16 @@
                             <input type="checkbox" 
                                    id="location_permission" 
                                    name="location_permission" 
-                                   value="1"
+                                   value="1" {{ old('location_permission') ? 'checked' : '' }}
                                    style="margin-top: 0.25rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--secondary); flex-shrink: 0;">
                             <label for="location_permission" style="margin: 0; font-size: 0.875rem; color: var(--gray-700); cursor: pointer; line-height: 1.5; flex: 1;">
                                 <i class="fas fa-map-marker-alt" style="color: var(--secondary); margin-right: 0.5rem;"></i>
-                                <strong>Allow location tracking</strong> for security monitoring. Your exact location and IP address will be tracked through your WiFi internet provider. (Optional - you can proceed without checking this)
+                                <strong>Allow location tracking</strong> for security monitoring. This is required for admin login. Your IP and approximate location may be recorded for security and auditing purposes.
                             </label>
                         </div>
+                        @error('location_permission')
+                            <div class="error-message" style="margin-top: 8px;">{{ $message }}</div>
+                        @enderror
                     </div>
 
             <!-- reCAPTCHA removed -->
@@ -1659,6 +1662,26 @@
                     return false;
                 }
 
+                // Enforce location permission for admin login types before proceeding
+                const selectedLoginType = document.getElementById('login_type').value;
+                if (["superadmin", "department-admin", "office-admin"].includes(selectedLoginType)) {
+                    const locCheckbox = document.getElementById('location_permission');
+                    if (!locCheckbox || !locCheckbox.checked) {
+                        showSecurityError('You must allow location tracking to continue with admin login.');
+                        if (locCheckbox) {
+                            locCheckbox.classList.add('error');
+                            try { locCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+                            try { locCheckbox.focus(); } catch (err) {}
+                        }
+                        return false;
+                    }
+                }
+
+                // If browser supports constraint validation API, ensure form is valid
+                if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                    return false;
+                }
+
                 // Execute reCAPTCHA v3 before submitting
                 grecaptcha.ready(function() {
                     grecaptcha.execute('{{ config('services.recaptcha.site_key') }}', {action: 'login'}).then(function(token) {
@@ -1726,6 +1749,11 @@
                     
                     // Hide location permission checkbox for students/faculty
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
+                    // Ensure not required for non-admin
+                    setRequired('location_permission', false);
+                    // Uncheck if previously checked
+                    const locCb1 = document.getElementById('location_permission');
+                    if (locCb1) { locCb1.checked = false; }
                     
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
@@ -1749,6 +1777,7 @@
                     
                     // Show location permission checkbox for superadmin
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
+                    setRequired('location_permission', true);
                     
                     // Show MS365 fields for superadmin
                     ms365Field.style.display = 'block';
@@ -1768,6 +1797,7 @@
                     
                     // Show location permission checkbox for department and office admins
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
+                    setRequired('location_permission', true);
                     
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
@@ -1785,6 +1815,7 @@
                 } else {
                     // Hide location permission checkbox for other types
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
+                    setRequired('location_permission', false);
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Select Login Type';
                     submitBtn.disabled = true;
                 }
