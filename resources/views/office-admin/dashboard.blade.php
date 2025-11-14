@@ -330,6 +330,38 @@
             font-weight: 500;
         }
 
+        .performance-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .performance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--primary-gradient);
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+        }
+
+        .performance-card:nth-child(1)::before {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .performance-card:nth-child(2)::before {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .performance-card:nth-child(3)::before {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .performance-card:nth-child(4)::before {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+        }
+
         /* NSTP Notice Styling */
         .nstp-notice {
             display: flex;
@@ -1214,17 +1246,16 @@
                 </div>
             @endif
 
+            <!-- Enhanced Statistics Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon announcements">
                         <i class="fas fa-bullhorn"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>{{ $counts['announcements'] }}</h3>
-                        <p>Published Announcements</p>
-                        @if($office === 'NSTP')
-                            <small class="stat-note">For 1st Year Students Only</small>
-                        @endif
+                        <h3>{{ $counts['total_announcements'] }}</h3>
+                        <p>Total Announcements</p>
+                        <small class="stat-note">{{ $counts['announcements'] }} Published • {{ $counts['draft_announcements'] }} Drafts</small>
                     </div>
                 </div>
 
@@ -1233,11 +1264,9 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>{{ $counts['events'] }}</h3>
-                        <p>Upcoming Events</p>
-                        @if($office === 'NSTP')
-                            <small class="stat-note">For 1st Year Students Only</small>
-                        @endif
+                        <h3>{{ $counts['total_events'] }}</h3>
+                        <p>Total Events</p>
+                        <small class="stat-note">{{ $counts['events'] }} Published • {{ $counts['draft_events'] }} Drafts</small>
                     </div>
                 </div>
 
@@ -1246,11 +1275,9 @@
                         <i class="fas fa-newspaper"></i>
                     </div>
                     <div class="stat-content">
-                        <h3>{{ $counts['news'] }}</h3>
-                        <p>News Articles</p>
-                        @if($office === 'NSTP')
-                            <small class="stat-note">For 1st Year Students Only</small>
-                        @endif
+                        <h3>{{ $counts['total_news'] }}</h3>
+                        <p>Total News</p>
+                        <small class="stat-note">{{ $counts['news'] }} Published • {{ $counts['draft_news'] }} Drafts</small>
                     </div>
                 </div>
 
@@ -1272,10 +1299,58 @@
                         </div>
                         <div class="stat-content">
                             <h3>{{ $officeStats['total_content'] }}</h3>
-                            <p>Total Content</p>
+                            <p>Total Content Created</p>
+                            <small class="stat-note">{{ $officeStats['published_content'] }} Published • {{ $officeStats['draft_content'] }} Drafts</small>
                         </div>
                     </div>
                 @endif
+            </div>
+
+            <!-- Monthly Performance Stats -->
+            <div class="stats-grid" style="margin-top: 1.5rem;">
+                <div class="stat-card performance-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ $officeStats['content_this_month'] }}</h3>
+                        <p>Content This Month</p>
+                        <small class="stat-note">{{ $officeStats['published_this_month'] }} Published</small>
+                    </div>
+                </div>
+
+                <div class="stat-card performance-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ round(($officeStats['published_content'] / max($officeStats['total_content'], 1)) * 100) }}%</h3>
+                        <p>Publication Rate</p>
+                        <small class="stat-note">{{ $officeStats['published_content'] }}/{{ $officeStats['total_content'] }} Published</small>
+                    </div>
+                </div>
+
+                <div class="stat-card performance-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ $officeStats['draft_content'] }}</h3>
+                        <p>Pending Drafts</p>
+                        <small class="stat-note">Ready for Review</small>
+                    </div>
+                </div>
+
+                <div class="stat-card performance-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ number_format($officeStats['total_users']) }}</h3>
+                        <p>Total Users</p>
+                        <small class="stat-note">{{ number_format($counts['total_students']) }} Students • {{ number_format($counts['total_faculty']) }} Faculty</small>
+                    </div>
+                </div>
             </div>
 
             <!-- Charts Section -->

@@ -20,17 +20,26 @@ class OfficeAdminDashboardController extends Controller
         // Get counts for content created by this office admin only
         $counts = [
             'announcements' => Announcement::where('is_published', true)
-                                         ->where('target_office', $office)
+                                         ->where('admin_id', $admin->id)
                                          ->count(),
             'events' => Event::where('is_published', true)
-                            ->where('target_office', $office)
+                            ->where('admin_id', $admin->id)
                             ->count(),
             'news' => News::where('is_published', true)
-                         ->where('target_office', $office)
+                         ->where('admin_id', $admin->id)
                          ->count(),
-            'my_announcements' => Announcement::where('target_office', $office)->count(),
-            'my_events' => Event::where('target_office', $office)->count(),
-            'my_news' => News::where('target_office', $office)->count(),
+            'draft_announcements' => Announcement::where('is_published', false)
+                                                ->where('admin_id', $admin->id)
+                                                ->count(),
+            'draft_events' => Event::where('is_published', false)
+                                   ->where('admin_id', $admin->id)
+                                   ->count(),
+            'draft_news' => News::where('is_published', false)
+                               ->where('admin_id', $admin->id)
+                               ->count(),
+            'total_announcements' => Announcement::where('admin_id', $admin->id)->count(),
+            'total_events' => Event::where('admin_id', $admin->id)->count(),
+            'total_news' => News::where('admin_id', $admin->id)->count(),
             'total_students' => User::where('role', 'student')->count(),
             'total_faculty' => User::where('role', 'faculty')->count(),
         ];
@@ -52,21 +61,21 @@ class OfficeAdminDashboardController extends Controller
             'labels' => $dates->map(function($date) {
                 return $date->format('M d');
             })->toArray(),
-            'announcements' => $dates->map(function($date) use ($office) {
+            'announcements' => $dates->map(function($date) use ($admin) {
                 return Announcement::where('is_published', true)
-                                  ->where('target_office', $office)
+                                  ->where('admin_id', $admin->id)
                                   ->whereDate('created_at', $date)
                                   ->count();
             })->toArray(),
-            'events' => $dates->map(function($date) use ($office) {
+            'events' => $dates->map(function($date) use ($admin) {
                 return Event::where('is_published', true)
-                           ->where('target_office', $office)
+                           ->where('admin_id', $admin->id)
                            ->whereDate('created_at', $date)
                            ->count();
             })->toArray(),
-            'news' => $dates->map(function($date) use ($office) {
+            'news' => $dates->map(function($date) use ($admin) {
                 return News::where('is_published', true)
-                          ->where('target_office', $office)
+                          ->where('admin_id', $admin->id)
                           ->whereDate('created_at', $date)
                           ->count();
             })->toArray(),
@@ -74,20 +83,17 @@ class OfficeAdminDashboardController extends Controller
 
         // Recent activities created by this office admin only
         $recentActivities = [
-            'announcements' => Announcement::where('is_published', true)
-                                         ->where('target_office', $office)
+            'announcements' => Announcement::where('admin_id', $admin->id)
                                          ->with('admin')
                                          ->latest()
                                          ->take(5)
                                          ->get(),
-            'events' => Event::where('is_published', true)
-                            ->where('target_office', $office)
+            'events' => Event::where('admin_id', $admin->id)
                             ->with('admin')
                             ->latest()
                             ->take(5)
                             ->get(),
-            'news' => News::where('is_published', true)
-                          ->where('target_office', $office)
+            'news' => News::where('admin_id', $admin->id)
                           ->with('admin')
                           ->latest()
                           ->take(5)
@@ -96,29 +102,30 @@ class OfficeAdminDashboardController extends Controller
 
         // Office statistics
         $officeStats = [
-            'total_content' => $counts['announcements'] + $counts['events'] + $counts['news'],
-            'my_content' => $counts['my_announcements'] + $counts['my_events'] + $counts['my_news'],
-            'content_this_month' => Announcement::where('is_published', true)
-                                                ->where('admin_id', $admin->id)
+            'total_content' => $counts['total_announcements'] + $counts['total_events'] + $counts['total_news'],
+            'published_content' => $counts['announcements'] + $counts['events'] + $counts['news'],
+            'draft_content' => $counts['draft_announcements'] + $counts['draft_events'] + $counts['draft_news'],
+            'content_this_month' => Announcement::where('admin_id', $admin->id)
                                                 ->whereMonth('created_at', Carbon::now()->month)
                                                 ->count() +
-                                   Event::where('is_published', true)
-                                        ->where('admin_id', $admin->id)
+                                   Event::where('admin_id', $admin->id)
                                         ->whereMonth('created_at', Carbon::now()->month)
                                         ->count() +
-                                   News::where('is_published', true)
-                                        ->where('admin_id', $admin->id)
+                                   News::where('admin_id', $admin->id)
                                         ->whereMonth('created_at', Carbon::now()->month)
                                         ->count(),
-            'my_content_this_month' => Announcement::where('admin_id', $admin->id)
+            'published_this_month' => Announcement::where('is_published', true)
+                                                   ->where('admin_id', $admin->id)
                                                    ->whereMonth('created_at', Carbon::now()->month)
                                                    ->count() +
-                                      Event::where('admin_id', $admin->id)
-                                           ->whereMonth('created_at', Carbon::now()->month)
-                                           ->count() +
-                                      News::where('admin_id', $admin->id)
-                                           ->whereMonth('created_at', Carbon::now()->month)
-                                           ->count(),
+                                     Event::where('is_published', true)
+                                          ->where('admin_id', $admin->id)
+                                          ->whereMonth('created_at', Carbon::now()->month)
+                                          ->count() +
+                                     News::where('is_published', true)
+                                          ->where('admin_id', $admin->id)
+                                          ->whereMonth('created_at', Carbon::now()->month)
+                                          ->count(),
             'total_users' => $counts['total_students'] + $counts['total_faculty'],
         ];
 
