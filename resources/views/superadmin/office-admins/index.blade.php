@@ -592,50 +592,34 @@
         });
 
         // Enhanced SweetAlert delete confirmation for Office Admins
-        async function handleOfficeAdminDelete(event, adminUsername) {
-            event.preventDefault();
-            
-            const result = await Swal.fire({
-                title: 'Delete Office Admin?',
-                text: `Are you sure you want to delete office admin "${adminUsername}"? This action cannot be undone.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, delete it!',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                customClass: {
-                    popup: 'swal2-popup-custom',
-                    title: 'swal2-title-custom',
-                    content: 'swal2-content-custom',
-                    confirmButton: 'swal2-confirm-custom',
-                    cancelButton: 'swal2-cancel-custom'
-                }
-            });
-            
-            if (result.isConfirmed) {
-                // Show loading state
-                Swal.fire({
-                    title: 'Deleting Office Admin...',
-                    text: 'Please wait while we delete the office admin.',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false,
-                    customClass: {
-                        popup: 'swal2-popup-custom'
-                    },
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Submit the form
-                event.target.submit();
-            }
-            
-            return false;
-        }
+        async function handleAnnouncementDelete(event, announcementTitle) {
+    event.preventDefault();
+    
+    const result = await Swal.fire({
+        title: 'Delete Announcement?',
+        text: `Are you sure you want to delete "${announcementTitle}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    });
+    
+    if (result.isConfirmed) {
+        Swal.fire({
+            title: 'Deleting Announcement...',
+            text: 'Please wait while we delete the announcement.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        event.target.closest('form').submit();
+    }
+    return false;
+}
     </script>
 
 <style>
