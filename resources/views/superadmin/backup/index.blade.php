@@ -480,7 +480,7 @@
                                     <td>{{ $backup['created_at_human'] }}</td>
                                     <td>
                                         <a href="{{ route('superadmin.backup.download.direct', $backup['filename']) }}" 
-                                           class="action-btn download-btn">
+                                           class="action-btn download-btn" download>
                                             <i class="fas fa-download"></i> Download
                                         </a>
                                         <button onclick="deleteBackup('{{ $backup['filename'] }}')" 
@@ -650,7 +650,7 @@
                                         <td>Just now</td>
                                         <td>
                                             <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                               class="action-btn download-btn">
+                                               class="action-btn download-btn" download>
                                                 <i class="fas fa-download"></i> Download
                                             </a>
                                             <button onclick="deleteBackup('${data.filename}')" 
@@ -678,7 +678,7 @@
                             <td>Just now</td>
                             <td>
                                 <a href="{{ url('superadmin/backup/download-direct') }}/${data.filename}" 
-                                   class="action-btn download-btn">
+                                   class="action-btn download-btn" download>
                                     <i class="fas fa-download"></i> Download
                                 </a>
                                 <button onclick="deleteBackup('${data.filename}')" 

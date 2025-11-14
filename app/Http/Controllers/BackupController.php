@@ -526,8 +526,29 @@ class BackupController extends Controller
                 'user' => auth('admin')->check() ? auth('admin')->user()->username : 'unknown'
             ]);
 
+            // Get the actual filename from the path
+            $actualFilename = basename($filePath);
+            
+            // Ensure we preserve the requested extension if possible
+            $requestedExtension = pathinfo($filename, PATHINFO_EXTENSION);
+            $actualExtension = pathinfo($actualFilename, PATHINFO_EXTENSION);
+            
+            // Use the requested filename but ensure it has the correct extension
+            $downloadFilename = $filename;
+            if (!empty($requestedExtension) && strtolower($requestedExtension) !== strtolower($actualExtension)) {
+                // Replace the extension in the requested filename
+                $downloadFilename = pathinfo($filename, PATHINFO_FILENAME) . '.' . $actualExtension;
+            }
+            
+            Log::info('Downloading file', [
+                'requested' => $filename,
+                'actual_path' => $filePath,
+                'actual_file' => $actualFilename,
+                'download_as' => $downloadFilename
+            ]);
+            
             // Download the file directly from storage
-            return $disk->download($filePath, $filename);
+            return $disk->download($filePath, $downloadFilename);
             
         } catch (\Exception $e) {
             Log::error('Backup download failed', [
@@ -713,15 +734,34 @@ class BackupController extends Controller
             // Use the most recent matching file
             if (!empty($matchingFiles)) {
                 $filePath = $matchingFiles[0];
+                
+                // Ensure we preserve the requested extension
+                $requestedExtension = pathinfo($filename, PATHINFO_EXTENSION);
                 $actualFilename = basename($filePath);
+                $actualExtension = pathinfo($actualFilename, PATHINFO_EXTENSION);
+                
+                // If the requested file has a specific extension (zip/sql), try to find a file with that extension
+                if (!empty($requestedExtension) && strtolower($requestedExtension) !== strtolower($actualExtension)) {
+                    // Look for a file with the same name but different extension
+                    foreach ($matchingFiles as $file) {
+                        $fileExt = pathinfo($file, PATHINFO_EXTENSION);
+                        if (strtolower($fileExt) === strtolower($requestedExtension)) {
+                            $filePath = $file;
+                            $actualFilename = basename($file);
+                            break;
+                        }
+                    }
+                }
                 
                 Log::info('Found matching backup file', [
                     'requested' => $filename,
+                    'requested_extension' => $requestedExtension,
                     'found' => $actualFilename,
+                    'found_extension' => pathinfo($actualFilename, PATHINFO_EXTENSION),
                     'path' => $filePath
                 ]);
                 
-                // Download the file
+                // Download the file with the correct filename
                 return $disk->download($filePath, $actualFilename);
             }
             

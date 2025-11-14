@@ -147,9 +147,16 @@ class DatabaseBackupService
                     
                     // Try to create zip archive
                     if ($this->createZipArchive($sqlFilePath, $zipPath, $filename)) {
-                        // Check if file was actually created
-                        $actualPath = file_exists($zipPath) ? $zipPath : str_replace('.zip', '.sql', $zipPath);
-                        if (file_exists($actualPath)) {
+                        // Check if zip file was actually created
+                        if (file_exists($zipPath)) {
+                            $actualPath = $zipPath;
+                        } else {
+                            // Fall back to SQL file if ZIP creation failed
+                            $sqlPath = str_replace('.zip', '.sql', $zipPath);
+                            $actualPath = file_exists($sqlPath) ? $sqlPath : null;
+                        }
+                        
+                        if ($actualPath && file_exists($actualPath)) {
                             $actualFilename = basename($actualPath);
                             $actualSize = filesize($actualPath);
                             $success = true;
@@ -476,9 +483,24 @@ class DatabaseBackupService
                 // Read file content and add it to zip
                 $content = file_get_contents($sqlFilePath);
                 if ($content !== false) {
-                    $zip->addFromString($filename, $content);
+                    // Make sure the filename has .sql extension
+                    $sqlFilename = preg_match('/\.sql$/i', $filename) ? $filename : $filename . '.sql';
+                    $zip->addFromString($sqlFilename, $content);
                     $zip->close();
-                    return true;
+                    
+                    // Verify the zip file was created
+                    if (file_exists($zipPath) && filesize($zipPath) > 0) {
+                        Log::info('ZIP archive created successfully', [
+                            'path' => $zipPath,
+                            'size' => filesize($zipPath)
+                        ]);
+                        return true;
+                    } else {
+                        Log::warning('ZIP file creation failed or file is empty', [
+                            'path' => $zipPath
+                        ]);
+                        return false;
+                    }
                 } else {
                     $zip->close();
                     throw new Exception("Failed to read SQL file content");
