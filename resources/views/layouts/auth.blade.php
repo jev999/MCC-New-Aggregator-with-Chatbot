@@ -82,27 +82,26 @@
             transition: var(--transition);
         }
 
-        .logo-container {
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 2rem 0 1.5rem;
             background: white;
-            position: relative;
-            cursor: pointer;
-            transition: var(--transition);
+            .logo-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container:hover {
+            transform: scale(1.05);
         }
 
         .logo {
-            height: 100px;
+            height: 90px;
             width: auto;
-            max-width: 110px;
-            object-fit: contain;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-            position: relative;
-            z-index: 2;
-            margin-top: 10px;
-            transition: var(--transition);
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
             -webkit-user-drag: none;
             -khtml-user-drag: none;
             -moz-user-drag: none;
@@ -393,9 +392,10 @@
 <body>
     <div class="auth-container">
         <!-- Logo at the top center -->
-        <div class="logo-container">
+        <a href="{{ url('/') }}" class="logo-container">
             <img src="{{ asset('images/mcclogo.png') }}" alt="MCC Logo" class="logo">
-        </div>
+            <h2 class="text-xl font-bold text-gray-800 mt-2">MCC News Aggregator</h2>
+        </a>
         
         @yield('content')
     </div>

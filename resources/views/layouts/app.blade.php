@@ -77,14 +77,33 @@
             text-align: left;
         }
 
+        .sidebar-header a {
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: transform 0.2s ease;
+        }
+
+        .sidebar-header a:hover {
+            transform: translateX(3px);
+        }
+
         .sidebar-header h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.2rem;
+            font-weight: 700;
             margin: 0;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             color: white;
+            transition: color 0.2s ease;
+        }
+        
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
         }
 
         .sidebar-header h3 i {

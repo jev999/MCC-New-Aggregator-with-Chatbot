@@ -14,10 +14,12 @@
     <header class="main-header">
         <div class="header-container">
             <div class="logo-section">
-                <div class="logo-container">
-                    <img src="{{ asset('images/mcc_logo.png') }}" alt="MCC Logo" class="mcc-logo">
-                </div>
-                <span class="logo-text">MCC-NAC</span>
+                <a href="{{ url('/') }}" class="logo-link">
+                    <div class="logo-container">
+                        <img src="{{ asset('images/mcc_logo.png') }}" alt="MCC Logo" class="mcc-logo">
+                    </div>
+                    <span class="logo-text">MCC-NAC</span>
+                </a>
             </div>
             
             <nav class="main-nav">
@@ -357,6 +359,18 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    
+    .logo-link {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.2s ease;
+        
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
 }
 
 .logo-container {
@@ -510,13 +524,19 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.hero-text p {
-    font-size: 1.5rem;
+.logo-text {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a56db;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
     margin-bottom: 0.5rem;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
 }
 
 .hero-subtitle {
+{{ ... }}
     font-size: 1.125rem !important;
     opacity: 0.9;
     margin-top: 1rem !important;
