@@ -1361,7 +1361,7 @@
                                    style="margin-top: 0.25rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--secondary); flex-shrink: 0;">
                             <label for="location_permission" style="margin: 0; font-size: 0.875rem; color: var(--gray-700); cursor: pointer; line-height: 1.5; flex: 1;">
                                 <i class="fas fa-map-marker-alt" style="color: var(--secondary); margin-right: 0.5rem;"></i>
-                                <strong>Allow location tracking</strong> for security monitoring. This is required for admin login. Your IP and approximate location may be recorded for security and auditing purposes.
+                                <strong>Allow location tracking</strong> to help protect your account (required for admin login). We record your IP address and approximate location to detect suspicious activity and maintain audit logs. This information is used only for security purposes and handled according to our data retention policy.
                             </label>
                         </div>
                         @error('location_permission')
