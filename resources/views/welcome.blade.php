@@ -522,17 +522,6 @@
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.logo-text {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #1a56db;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    margin-bottom: 0.5rem;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-    display: flex;
-    align-items: center;
-}
-
 .hero-subtitle {
     font-size: 1.125rem !important;
     opacity: 0.9;
