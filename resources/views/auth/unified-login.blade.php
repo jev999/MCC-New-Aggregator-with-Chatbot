@@ -1234,6 +1234,42 @@
             opacity: 0.5 !important;
             cursor: not-allowed !important;
         }
+        
+        /* OTP Modal Transition Styles */
+        #otp-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        #otp-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        #otp-modal > div {
+            background: #fff;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            overflow: hidden;
+            position: relative;
+            transform: scale(0.9) translateY(-20px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #otp-modal.show > div {
+            transform: scale(1) translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -1463,8 +1499,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Dynamic OTP Modal for All Login Types -->
-    <div id="otp-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index: 9999; align-items: center; justify-content: center;">
-        <div style="background: #fff; width: 100%; max-width: 420px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.25); overflow: hidden; position: relative;">
+    <div id="otp-modal">
+        <div>
             <!-- Close button - Top Right -->
             <button id="otp-close" type="button" aria-label="Close" style="position: absolute; top: 16px; right: 16px; background: rgba(0, 0, 0, 0.05); border: 0; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; font-weight: 600; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; color: #6b7280; transition: all 0.2s ease; line-height: 1;" onmouseover="this.style.background='rgba(0,0,0,0.1)'; this.style.color='#111827';" onmouseout="this.style.background='rgba(0,0,0,0.05)'; this.style.color='#6b7280';">×</button>
             
@@ -1993,7 +2029,18 @@
             
             if (otpClose) {
                 otpClose.addEventListener('click', function() {
-                    if (otpModal) otpModal.style.display = 'none';
+                    if (otpModal) {
+                        otpModal.classList.remove('show');
+                    }
+                });
+            }
+            
+            // Close modal when clicking outside
+            if (otpModal) {
+                otpModal.addEventListener('click', function(e) {
+                    if (e.target === otpModal) {
+                        otpModal.classList.remove('show');
+                    }
                 });
             }
 
@@ -2027,7 +2074,12 @@
                     toggleFields();
                 }
                 
-                otpModal.style.display = 'flex';
+                // Show modal with transition
+                setTimeout(function() {
+                    if (otpModal) {
+                        otpModal.classList.add('show');
+                    }
+                }, 10);
                 
                 // Focus OTP input
                 const otpInput = document.getElementById('otp');
