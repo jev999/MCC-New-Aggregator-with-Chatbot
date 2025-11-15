@@ -144,9 +144,4 @@ class UserDashboardController extends Controller
             'content' => $news
         ]);
     }
-
-    /**
-     * Generate or get a shareable link for content
-     */
-    
 }
