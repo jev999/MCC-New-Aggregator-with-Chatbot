@@ -645,6 +645,14 @@
                 </div>
             </div>
 
+            <!-- Pie Chart - Content Distribution -->
+            <div class="chart-container">
+                <h2><i class="fas fa-chart-pie"></i> Content Distribution Overview</h2>
+                <div class="chart-wrapper">
+                    <canvas id="contentPieChart"></canvas>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1121,6 +1129,136 @@
                 
                 activityChart.resize();
                 activityChart.update('none'); // Update without animation for better performance
+            }, 250);
+        });
+
+        // =================================================================
+        // CONTENT DISTRIBUTION PIE CHART
+        // =================================================================
+        
+        const pieCtx = document.getElementById('contentPieChart').getContext('2d');
+        
+        const contentPieChart = new Chart(pieCtx, {
+            type: 'pie',
+            data: {
+                labels: ['📢 Announcements', '📅 Events', '📰 News', '👨‍🏫 Faculty', '🎓 Students'],
+                datasets: [{
+                    data: [
+                        {{ $counts['announcements'] }},
+                        {{ $counts['events'] }},
+                        {{ $counts['news'] }},
+                        {{ $counts['faculty'] }},
+                        {{ $counts['students'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',  // Purple - Announcements
+                        'rgba(16, 185, 129, 0.8)',   // Green - Events
+                        'rgba(245, 158, 11, 0.8)',   // Orange - News
+                        'rgba(59, 130, 246, 0.8)',   // Blue - Faculty
+                        'rgba(239, 68, 68, 0.8)'     // Red - Students
+                    ],
+                    borderColor: [
+                        'rgba(102, 126, 234, 1)',
+                        'rgba(16, 185, 129, 1)',
+                        'rgba(245, 158, 11, 1)',
+                        'rgba(59, 130, 246, 1)',
+                        'rgba(239, 68, 68, 1)'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart',
+                    animateRotate: true,
+                    animateScale: true
+                },
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 20,
+                            font: {
+                                size: 13,
+                                weight: '600',
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            },
+                            color: '#6b7280',
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                            text: `${label}: ${value} (${percentage}%)`,
+                                            fillStyle: data.datasets[0].backgroundColor[i],
+                                            strokeStyle: data.datasets[0].borderColor[i],
+                                            lineWidth: 2,
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#f3f4f6',
+                        borderColor: 'rgba(107, 114, 128, 0.3)',
+                        borderWidth: 1,
+                        cornerRadius: 12,
+                        displayColors: true,
+                        usePointStyle: true,
+                        padding: 15,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update resize handler to include pie chart
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                const isMobile = window.innerWidth <= 768;
+                
+                // Update pie chart legend position for mobile
+                if (isMobile) {
+                    contentPieChart.options.plugins.legend.position = 'bottom';
+                    contentPieChart.options.plugins.legend.labels.font.size = 11;
+                } else {
+                    contentPieChart.options.plugins.legend.position = 'right';
+                    contentPieChart.options.plugins.legend.labels.font.size = 13;
+                }
+                
+                contentPieChart.resize();
+                contentPieChart.update('none');
             }, 250);
         });
 
