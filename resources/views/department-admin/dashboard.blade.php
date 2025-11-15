@@ -514,56 +514,7 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
-        /* Mobile Toggle Button */
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: linear-gradient(135deg, #000000, #4a4a4a);
-            color: white;
-            border: none;
-            padding: 0.75rem;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-            min-height: 44px;
-            min-width: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            touch-action: manipulation;
-        }
 
-        .mobile-toggle:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        .mobile-toggle:active {
-            transform: scale(0.98);
-        }
-
-        /* Sidebar Overlay for Mobile */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            backdrop-filter: blur(5px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-        }
 
         /* Enhanced Mobile Responsiveness */
         @media (max-width: 992px) {
@@ -577,28 +528,13 @@
         }
 
         @media (max-width: 768px) {
-            .mobile-toggle {
-                display: flex;
-            }
-
             .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
                 width: 280px;
             }
 
-            .sidebar.active {
-                transform: translateX(0);
-            }
-
-            .sidebar-overlay.active {
-                display: block;
-            }
-
             .main-content {
-                margin-left: 0;
+                margin-left: 280px;
                 padding: 1rem;
-                padding-top: 4rem;
             }
 
             .stats-grid {
@@ -1148,13 +1084,6 @@
     </style>
 </head>
 <body>
-    <!-- Mobile Toggle Button -->
-    <button class="mobile-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="dashboard-container">
         <div class="sidebar" id="sidebar">
@@ -1489,47 +1418,6 @@
             }, 250);
         });
 
-        // Enhanced Mobile sidebar functionality with scroll prevention
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            const body = document.body;
-            
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
-            
-            // Prevent background scrolling when sidebar is open
-            if (sidebar.classList.contains('active')) {
-                body.style.overflow = 'hidden';
-                body.style.position = 'fixed';
-                body.style.width = '100%';
-            } else {
-                body.style.overflow = '';
-                body.style.position = '';
-                body.style.width = '';
-            }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            const body = document.body;
-            
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-            
-            // Restore scrolling
-            body.style.overflow = '';
-            body.style.position = '';
-            body.style.width = '';
-        }
-
-        // Auto-close sidebar on window resize
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) {
-                closeSidebar();
-            }
-        });
 
         // Active menu item highlighting
         document.addEventListener('DOMContentLoaded', function() {
