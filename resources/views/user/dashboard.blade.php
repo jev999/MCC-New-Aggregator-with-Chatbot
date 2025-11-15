@@ -4249,99 +4249,99 @@
                 }).catch(error => {
                     console.warn('Heartbeat failed:', error);
                 });
-            }
+            },
             
-                handleTimeout() {
-                    Swal.fire({
-                        title: 'Session Expired',
-                        text: 'Your session has expired due to inactivity. You will be redirected to the login page.',
-                        icon: 'info',
-                        confirmButtonText: 'Login Again',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false
-                    }).then(() => {
-                        // Clear any cached data
-                        this.clearClientData();
-                        
-                        // Redirect to login
-                        window.location.replace('/login');
-                    });
-                },
+            handleTimeout() {
+                Swal.fire({
+                    title: 'Session Expired',
+                    text: 'Your session has expired due to inactivity. You will be redirected to the login page.',
+                    icon: 'info',
+                    confirmButtonText: 'Login Again',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                }).then(() => {
+                    // Clear any cached data
+                    this.clearClientData();
+                    
+                    // Redirect to login
+                    window.location.replace('/login');
+                });
+            },
+            
+            // Share link functionality
+            copyShareLink(contentType, contentId, event) {
+                event.stopPropagation();
                 
-                // Share link functionality
-                copyShareLink(contentType, contentId, event) {
-                    event.stopPropagation();
-                    
-                    const button = event.target.closest('.copy-link-btn');
-                    const originalHtml = button.innerHTML;
-                    
-                    // Show loading state
-                    button.disabled = true;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    
-                    // Generate share link
-                    fetch('/user/content/share-link', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            content_type: contentType,
-                            content_id: contentId
-                        })
+                const button = event.target.closest('.copy-link-btn');
+                const originalHtml = button.innerHTML;
+                
+                // Show loading state
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                // Generate share link
+                fetch('/user/content/share-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        content_type: contentType,
+                        content_id: contentId
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success && data.share_url) {
-                            // Copy to clipboard
-                            navigator.clipboard.writeText(data.share_url).then(() => {
-                                // Show success feedback
-                                button.innerHTML = '<i class="fas fa-check"></i>';
-                                button.style.color = '#10b981';
-                                
-                                // Show toast notification
-                                Swal.fire({
-                                    title: 'Link Copied!',
-                                    text: 'Share link has been copied to clipboard.',
-                                    icon: 'success',
-                                    confirmButtonColor: '#10b981',
-                                    confirmButtonText: 'OK',
-                                    timer: 2000,
-                                    timerProgressBar: true
-                                });
-                                
-                                // Reset button after 2 seconds
-                                setTimeout(() => {
-                                    button.innerHTML = originalHtml;
-                                    button.style.color = '';
-                                    button.disabled = false;
-                                }, 2000);
-                            }).catch(err => {
-                                console.error('Failed to copy:', err);
-                                // Fallback: show URL in alert
-                                alert('Share link: ' + data.share_url);
-                                button.innerHTML = originalHtml;
-                                button.disabled = false;
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.share_url) {
+                        // Copy to clipboard
+                        navigator.clipboard.writeText(data.share_url).then(() => {
+                            // Show success feedback
+                            button.innerHTML = '<i class="fas fa-check"></i>';
+                            button.style.color = '#10b981';
+                            
+                            // Show toast notification
+                            Swal.fire({
+                                title: 'Link Copied!',
+                                text: 'Share link has been copied to clipboard.',
+                                icon: 'success',
+                                confirmButtonColor: '#10b981',
+                                confirmButtonText: 'OK',
+                                timer: 2000,
+                                timerProgressBar: true
                             });
-                        } else {
-                            throw new Error(data.error || 'Failed to generate share link');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error generating share link:', error);
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Failed to generate share link. Please try again.',
-                            icon: 'error',
-                            confirmButtonColor: '#ef4444',
-                            confirmButtonText: 'OK'
+                            
+                            // Reset button after 2 seconds
+                            setTimeout(() => {
+                                button.innerHTML = originalHtml;
+                                button.style.color = '';
+                                button.disabled = false;
+                            }, 2000);
+                        }).catch(err => {
+                            console.error('Failed to copy:', err);
+                            // Fallback: show URL in alert
+                            alert('Share link: ' + data.share_url);
+                            button.innerHTML = originalHtml;
+                            button.disabled = false;
                         });
-                        button.innerHTML = originalHtml;
-                        button.disabled = false;
+                    } else {
+                        throw new Error(data.error || 'Failed to generate share link');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error generating share link:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to generate share link. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'OK'
                     });
-                }
+                    button.innerHTML = originalHtml;
+                    button.disabled = false;
+                });
+            },
             
             handleVisibilityChange() {
                 document.addEventListener('visibilitychange', () => {
