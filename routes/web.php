@@ -23,6 +23,7 @@ use App\Http\Controllers\DepartmentAdminAuthController;
 use App\Http\Controllers\OfficeAdminAuthController;
 use App\Http\Controllers\SuperAdminAuthController;
 use App\Http\Controllers\PublicContentController;
+use App\Http\Controllers\ShareableContentController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\UnifiedAuthController;
 use App\Http\Controllers\CommentController;
@@ -1843,6 +1844,9 @@ Route::get('/events/{event}', [PublicContentController::class, 'showEvent'])->na
 Route::get('/news', [PublicContentController::class, 'news'])->name('public.news.index');
 Route::get('/news/{news}', [PublicContentController::class, 'showNews'])->name('public.news.show');
 
+// Shareable content routes (no authentication required)
+Route::get('/share/{token}', [ShareableContentController::class, 'show'])->name('share.content');
+
 
 
 
@@ -2414,6 +2418,12 @@ Route::prefix('user')->group(function () {
         Route::get('content/announcement/{id}', [UserDashboardController::class, 'getAnnouncement'])->name('user.content.announcement');
         Route::get('content/event/{id}', [UserDashboardController::class, 'getEvent'])->name('user.content.event');
         Route::get('content/news/{id}', [UserDashboardController::class, 'getNews'])->name('user.content.news');
+
+        // ====================================================================
+        // SHAREABLE LINKS (RBAC: view-announcements, view-events, view-news)
+        // ====================================================================
+
+        Route::post('content/share-link', [UserDashboardController::class, 'generateShareLink'])->name('user.content.share-link');
 
         // ====================================================================
         // COMMENT MANAGEMENT (RBAC: create-comments, update-own-comments, delete-own-comments)
