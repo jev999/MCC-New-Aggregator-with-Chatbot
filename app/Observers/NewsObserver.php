@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\News;
 use App\Services\NotificationService;
+use Illuminate\Support\Str;
 
 class NewsObserver
 {
@@ -19,6 +20,11 @@ class NewsObserver
      */
     public function created(News $news): void
     {
+        // Ensure a share token exists for public sharing
+        if (empty($news->share_token)) {
+            $news->share_token = Str::random(48);
+            $news->saveQuietly();
+        }
         // Create notifications when news is published
         if ($news->is_published) {
             $this->notificationService->createNewsNotification($news);

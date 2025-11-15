@@ -1842,6 +1842,11 @@ Route::get('/events/{event}', [PublicContentController::class, 'showEvent'])->na
 Route::get('/news', [PublicContentController::class, 'news'])->name('public.news.index');
 Route::get('/news/{news}', [PublicContentController::class, 'showNews'])->name('public.news.show');
 
+// Shareable token routes (publicly accessible)
+Route::get('/share/announcement/{token}', [PublicContentController::class, 'shareAnnouncement'])->name('public.announcements.share');
+Route::get('/share/event/{token}', [PublicContentController::class, 'shareEvent'])->name('public.events.share');
+Route::get('/share/news/{token}', [PublicContentController::class, 'shareNews'])->name('public.news.share');
+
 
 
 

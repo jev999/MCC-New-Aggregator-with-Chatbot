@@ -1983,7 +1983,8 @@
                                     allImageUrls: {{ json_encode($announcement->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($announcement->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '') }}',
-                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}'
+                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}',
+                                    shareUrl: '{{ route('public.announcements.share', ['token' => $announcement->share_token]) }}'
                                  }">
                                 @if($announcement->hasMedia === 'image' || $announcement->hasMedia === 'both')
                                     <img src="{{ $announcement->mediaUrl }}" 
@@ -2059,7 +2060,8 @@
                                     allImageUrls: {{ json_encode($event->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($event->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '') }}',
-                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}'
+                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}',
+                                    shareUrl: '{{ route('public.events.share', ['token' => $event->share_token]) }}'
                                  }">
                                 @if($event->hasMedia === 'image' || $event->hasMedia === 'both')
                                     <img src="{{ $event->mediaUrl }}" 
@@ -2140,7 +2142,8 @@
                                     allImageUrls: {{ json_encode($article->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($article->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '') }}',
-                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}'
+                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}',
+                                    shareUrl: '{{ route('public.news.share', ['token' => $article->share_token]) }}'
                                  }">
                                 @if($article->hasMedia === 'image' || $article->hasMedia === 'both')
                                     <img src="{{ $article->mediaUrl }}" 
@@ -2234,6 +2237,9 @@
                         <div class="flex-1">
                             <h3 class="text-2xl font-bold text-gray-800 text-center leading-tight" x-text="activeModal?.title"></h3>
                         </div>
+                        <button class="mr-2 w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-110" @click="copyShareLink()" title="Copy share link">
+                            <i class="fas fa-link text-sm"></i>
+                        </button>
                         <button class="ml-4 w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-110" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                             <i class="fas fa-times text-sm"></i>
                         </button>
@@ -3088,6 +3094,60 @@
                     this.replyContent = '';
                 },
                 
+                copyShareLink() {
+                    if (!this.activeModal || !this.activeModal.shareUrl) {
+                        Swal.fire({
+                            title: 'Unavailable',
+                            text: 'Share link is not available for this content.',
+                            icon: 'warning',
+                            confirmButtonColor: '#3085d6',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+                    const url = this.activeModal.shareUrl;
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(url).then(() => {
+                            Swal.fire({
+                                title: 'Link copied! ',
+                                text: 'You can now paste it anywhere to share.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }).catch(() => {
+                            // Fallback
+                            const tmp = document.createElement('input');
+                            tmp.value = url;
+                            document.body.appendChild(tmp);
+                            tmp.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(tmp);
+                            Swal.fire({
+                                title: 'Link copied! ',
+                                text: 'You can now paste it anywhere to share.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        });
+                    } else {
+                        const tmp = document.createElement('input');
+                        tmp.value = url;
+                        document.body.appendChild(tmp);
+                        tmp.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tmp);
+                        Swal.fire({
+                            title: 'Link copied! ',
+                            text: 'You can now paste it anywhere to share.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                },
+                
                 submitReply(parentCommentId) {
                     if (!this.replyContent.trim()) return;
                     
@@ -3221,6 +3281,7 @@
                     .then(data => {
                         if (data.success && data.content) {
                             const content = data.content;
+                            const shareUrl = `${window.location.origin}/share/${contentType}/${content.share_token || ''}`;
                             
                             // Set up the modal data
                             this.activeModal = {
@@ -3244,7 +3305,8 @@
                                         ? `${content.admin.department_display} Department` 
                                         : (content.admin.role === 'office_admin' 
                                             ? content.admin.office_display 
-                                            : content.admin.username))
+                                            : content.admin.username)),
+                                shareUrl: shareUrl
                             };
                         } else {
                             console.error('Error fetching content:', data.error);

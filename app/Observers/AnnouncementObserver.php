@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Announcement;
 use App\Services\NotificationService;
+use Illuminate\Support\Str;
 
 class AnnouncementObserver
 {
@@ -19,6 +20,12 @@ class AnnouncementObserver
      */
     public function created(Announcement $announcement): void
     {
+        // Ensure a share token exists for public sharing
+        if (empty($announcement->share_token)) {
+            $announcement->share_token = Str::random(48);
+            // Save without triggering observer events again
+            $announcement->saveQuietly();
+        }
         // Create notifications when announcement is published
         if ($announcement->is_published) {
             $this->notificationService->createAnnouncementNotification($announcement);
