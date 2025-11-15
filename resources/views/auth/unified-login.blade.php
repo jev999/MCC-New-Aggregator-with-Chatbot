@@ -1152,6 +1152,68 @@
             }
         }
         
+        /* Location consent styling */
+        .security-consent {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.875rem;
+            padding: 0.875rem 1rem;
+            background: linear-gradient(180deg, #f0f9ff 0%, #eaf6ff 100%);
+            border: 1px solid #bae6fd;
+            border-radius: var(--radius-sm);
+            margin-top: 0.75rem;
+            box-shadow: 0 1px 2px rgba(59, 130, 246, 0.08);
+        }
+
+        .security-consent .consent-checkbox {
+            margin-top: 0.2rem;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--secondary);
+            flex-shrink: 0;
+        }
+
+        .security-consent .consent-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            color: var(--gray-700);
+        }
+
+        .security-consent .consent-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .security-consent .consent-title i {
+            color: var(--secondary);
+        }
+
+        .security-consent .badge-required {
+            background: #fee2e2;
+            color: #b91c1c;
+            font-weight: 700;
+            font-size: 0.65rem;
+            border-radius: 9999px;
+            padding: 0.125rem 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .security-consent .consent-desc {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .security-consent { padding: 0.75rem; }
+            .security-consent .consent-desc { font-size: 0.8125rem; }
+        }
+
         /* OTP Resend Button Styling */
         #otp-resend-btn {
             transition: all 0.3s ease;
@@ -1353,15 +1415,19 @@
 
                     <!-- Location Permission Checkbox (Only for Admin Types) -->
                     <div class="form-group" id="location-permission-field" style="display: none;">
-                        <div class="checkbox-container" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-sm); margin-top: 0.5rem;">
-                            <input type="checkbox" 
-                                   id="location_permission" 
-                                   name="location_permission" 
+                        <div class="security-consent">
+                            <input type="checkbox"
+                                   id="location_permission"
+                                   name="location_permission"
                                    value="1" {{ old('location_permission') ? 'checked' : '' }}
-                                   style="margin-top: 0.25rem; width: 18px; height: 18px; cursor: pointer; accent-color: var(--secondary); flex-shrink: 0;">
-                            <label for="location_permission" style="margin: 0; font-size: 0.875rem; color: var(--gray-700); cursor: pointer; line-height: 1.5; flex: 1;">
-                                <i class="fas fa-map-marker-alt" style="color: var(--secondary); margin-right: 0.5rem;"></i>
-                                <strong>Allow location tracking</strong> to help protect your account (required for admin login). We record your IP address and approximate location to detect suspicious activity and maintain audit logs. This information is used only for security purposes and handled according to our data retention policy.
+                                   class="consent-checkbox">
+                            <label for="location_permission" class="consent-text">
+                                <span class="consent-title">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    Allow location tracking
+                                    <span class="badge-required">Required</span>
+                                </span>
+                                <span class="consent-desc">We record your IP address and approximate location to detect suspicious activity and maintain audit logs. This information is used only for security purposes and handled according to our data retention policy.</span>
                             </label>
                         </div>
                         @error('location_permission')
