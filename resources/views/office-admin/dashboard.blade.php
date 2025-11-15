@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>{{ $office }} Office Dashboard - MCC News Aggregator</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/mcc_logo.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/mcc_logo.png') }}">
+    <link rel="shortcut icon" href="{{ asset('images/mcc_logo.png') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
