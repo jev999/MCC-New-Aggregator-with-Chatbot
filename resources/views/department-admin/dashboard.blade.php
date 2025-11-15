@@ -438,6 +438,13 @@
             margin-bottom: 2rem;
         }
 
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
         .quick-action-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -1202,7 +1209,18 @@
                 </div>
             </div>
 
-            <!-- Charts -->
+            <!-- Charts Section -->
+            <div class="content-grid">
+                <!-- Pie Chart -->
+                <div class="chart-container">
+                    <h2><i class="fas fa-chart-pie"></i> Content Distribution</h2>
+                    <div class="chart-wrapper">
+                        <canvas id="contentDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Chart -->
             <div class="chart-container">
                 <h2><i class="fas fa-chart-line"></i> My Content Activity (Last 7 Days)</h2>
                 <div class="chart-wrapper">
@@ -1213,6 +1231,92 @@
     </div>
 
     <script>
+        // Content Distribution Pie Chart
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctxPie = document.getElementById('contentDistributionChart').getContext('2d');
+            
+            // Get data from backend
+            const announcementCount = {{ $counts['announcements'] ?? 0 }} || 1;
+            const eventCount = {{ $counts['events'] ?? 0 }} || 1;
+            const newsCount = {{ $counts['news'] ?? 0 }} || 1;
+            
+            window.contentDistributionChart = new Chart(ctxPie, {
+                type: 'pie',
+                data: {
+                    labels: ['Announcements', 'Events', 'News'],
+                    datasets: [{
+                        data: [
+                            announcementCount, 
+                            eventCount, 
+                            newsCount
+                        ],
+                        backgroundColor: [
+                            '#3b82f6',  // Blue for announcements
+                            '#10b981',  // Green for events
+                            '#f59e0b',  // Orange for news
+                        ],
+                        borderColor: [
+                            '#ffffff',
+                            '#ffffff',
+                            '#ffffff'
+                        ],
+                        borderWidth: 2,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 20,
+                                boxWidth: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                font: {
+                                    family: 'Inter',
+                                    size: 13,
+                                    weight: '500'
+                                },
+                                color: '#4b5563'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                            titleColor: '#f9fafb',
+                            bodyColor: '#f3f4f6',
+                            borderColor: 'rgba(107, 114, 128, 0.3)',
+                            borderWidth: 1,
+                            cornerRadius: 12,
+                            padding: 12,
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
         // Enhanced Activity Chart with Professional Styling - Department Admin Theme
         const ctx = document.getElementById('activityChart').getContext('2d');
 
@@ -1415,6 +1519,11 @@
                 
                 activityChart.resize();
                 activityChart.update('none'); // Update without animation for better performance
+                
+                // Resize pie chart if it exists
+                if (typeof contentDistributionChart !== 'undefined') {
+                    contentDistributionChart.resize();
+                }
             }, 250);
         });
 
