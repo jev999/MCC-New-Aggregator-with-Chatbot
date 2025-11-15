@@ -1536,18 +1536,51 @@ class UnifiedAuthController extends Controller
         // Clear OTP session
         $request->session()->forget('superadmin_otp');
 
+        // Check for location data stored during login
+        $loginLocationData = $request->session()->get('login_location_data');
+        $locationId = null;
+
+        if ($loginLocationData) {
+            // Create location record
+            $location = \App\Models\Location::create($loginLocationData);
+            $locationId = $location->id;
+            
+            // Clear location data from session
+            $request->session()->forget('login_location_data');
+            
+            \Log::info('Location record created during superadmin login', [
+                'admin_id' => $admin->id,
+                'location_id' => $locationId,
+            ]);
+        }
+
         // Log admin access with geolocation
         [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
-        AdminAccessLog::startSession([
+        
+        // If we have location from browser geolocation, use it; otherwise use IP-based
+        $logData = [
             'admin_id' => $admin->id,
             'role' => $admin->role,
             'status' => 'success',
             'ip_address' => $clientIp,
-            'latitude' => $geoData['latitude'] ?? null,
-            'longitude' => $geoData['longitude'] ?? null,
-            'location_details' => $geoData['location_details'] ?? null,
             'time_in' => \Carbon\Carbon::now(),
-        ]);
+        ];
+
+        if ($locationId && $loginLocationData) {
+            // Use browser geolocation data
+            $location = \App\Models\Location::find($locationId);
+            $logData['location_id'] = $locationId;
+            $logData['latitude'] = $loginLocationData['latitude'] ?? null;
+            $logData['longitude'] = $loginLocationData['longitude'] ?? null;
+            $logData['location_details'] = $location->formatted_address ?? 'Browser GPS Location';
+        } else {
+            // Fallback to IP-based geolocation
+            $logData['latitude'] = $geoData['latitude'] ?? null;
+            $logData['longitude'] = $geoData['longitude'] ?? null;
+            $logData['location_details'] = $geoData['location_details'] ?? null;
+        }
+
+        AdminAccessLog::startSession($logData);
 
         return redirect()->route('superadmin.dashboard')->with('login_success', true);
     }
@@ -1824,18 +1857,52 @@ class UnifiedAuthController extends Controller
             // Clear OTP session
             $request->session()->forget($sessionKey);
 
+            // Check for location data stored during login
+            $loginLocationData = $request->session()->get('login_location_data');
+            $locationId = null;
+
+            if ($loginLocationData) {
+                // Create location record
+                $location = \App\Models\Location::create($loginLocationData);
+                $locationId = $location->id;
+                
+                // Clear location data from session
+                $request->session()->forget('login_location_data');
+                
+                \Log::info('Location record created during login', [
+                    'admin_id' => $admin->id,
+                    'location_id' => $locationId,
+                    'has_structured_data' => !empty($loginLocationData['street']) || !empty($loginLocationData['barangay']),
+                ]);
+            }
+
             // Log admin access with geolocation
             [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
-            AdminAccessLog::startSession([
+            
+            // If we have location from browser geolocation, use it; otherwise use IP-based
+            $logData = [
                 'admin_id' => $admin->id,
                 'role' => $admin->role,
                 'status' => 'success',
                 'ip_address' => $clientIp,
-                'latitude' => $geoData['latitude'] ?? null,
-                'longitude' => $geoData['longitude'] ?? null,
-                'location_details' => $geoData['location_details'] ?? null,
                 'time_in' => Carbon::now(),
-            ]);
+            ];
+
+            if ($locationId && $loginLocationData) {
+                // Use browser geolocation data
+                $location = \App\Models\Location::find($locationId);
+                $logData['location_id'] = $locationId;
+                $logData['latitude'] = $loginLocationData['latitude'] ?? null;
+                $logData['longitude'] = $loginLocationData['longitude'] ?? null;
+                $logData['location_details'] = $location->formatted_address ?? 'Browser GPS Location';
+            } else {
+                // Fallback to IP-based geolocation
+                $logData['latitude'] = $geoData['latitude'] ?? null;
+                $logData['longitude'] = $geoData['longitude'] ?? null;
+                $logData['location_details'] = $geoData['location_details'] ?? null;
+            }
+
+            AdminAccessLog::startSession($logData);
 
             \Log::info($loginType . ' login successful with OTP', ['admin_id' => $admin->id]);
             return redirect()->route($dashboardRoute)->with('login_success', true);

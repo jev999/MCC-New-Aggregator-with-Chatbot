@@ -128,6 +128,114 @@ class GeolocationService
     }
 
     /**
+     * Get structured location data from coordinates using reverse geocoding
+     * Returns array with street, barangay, municipality, province, etc.
+     * 
+     * @param float $latitude
+     * @param float $longitude
+     * @return array|null
+     */
+    public function getStructuredLocationFromCoordinates(float $latitude, float $longitude): ?array
+    {
+        try {
+            $response = Http::timeout(5)
+                ->withHeaders([
+                    'Accept' => 'application/json',
+                    'User-Agent' => 'MCC-NAC-Location-Service/1.0'
+                ])
+                ->get('https://nominatim.openstreetmap.org/reverse', [
+                    'format' => 'json',
+                    'lat' => $latitude,
+                    'lon' => $longitude,
+                    'zoom' => 18,
+                    'addressdetails' => 1,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['address'])) {
+                    return $this->parseStructuredLocation($data['address'], $latitude, $longitude);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('Reverse geocoding failed for structured location', [
+                'error' => $e->getMessage(),
+                'coordinates' => "$latitude, $longitude"
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse Nominatim address data into structured location array
+     * 
+     * @param array $address
+     * @param float $latitude
+     * @param float $longitude
+     * @return array
+     */
+    protected function parseStructuredLocation(array $address, float $latitude, float $longitude): array
+    {
+        // Extract barangay (most specific)
+        $barangay = $address['neighbourhood'] 
+            ?? $address['suburb'] 
+            ?? $address['village'] 
+            ?? $address['hamlet'] 
+            ?? null;
+
+        // Extract municipality/city
+        $municipality = $address['municipality'] 
+            ?? $address['city'] 
+            ?? $address['town'] 
+            ?? null;
+
+        // Extract province/state
+        $province = $address['province'] 
+            ?? $address['state'] 
+            ?? null;
+
+        // Extract street
+        $street = $address['road'] 
+            ?? $address['street'] 
+            ?? null;
+
+        // Extract region
+        $region = $address['region'] ?? null;
+
+        // Extract postal code
+        $postalCode = $address['postcode'] ?? null;
+
+        // Extract country
+        $country = $address['country'] ?? null;
+
+        // Build full address
+        $parts = array_filter([
+            $street,
+            $barangay ? 'Brgy. ' . $barangay : null,
+            $municipality,
+            $province,
+            $region,
+            $country,
+        ]);
+        $fullAddress = implode(', ', $parts);
+
+        return [
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'street' => $street,
+            'barangay' => $barangay,
+            'municipality' => $municipality,
+            'province' => $province,
+            'region' => $region,
+            'postal_code' => $postalCode,
+            'country' => $country,
+            'full_address' => $fullAddress ?: null,
+            'location_source' => 'browser_geolocation',
+        ];
+    }
+
+    /**
      * Format exact location details from Nominatim reverse geocoding
      * Prioritizes Philippine administrative divisions: Barangay, Municipality, Province, Region
      * 

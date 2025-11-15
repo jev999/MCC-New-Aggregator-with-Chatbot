@@ -1999,6 +1999,10 @@ Route::post('/admin-login-location/precise', [AdminLocationController::class, 's
     ->middleware('auth:admin')
     ->name('admin-login-location.precise');
 
+// Store location during login (before authentication)
+Route::post('/admin-login-location/store', [AdminLocationController::class, 'storeLoginLocation'])
+    ->name('admin-login-location.store');
+
 // GPS Location Update endpoint for all authenticated admins (Superadmin, Department, Office)
 Route::post('/admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])
     ->middleware('auth:admin')

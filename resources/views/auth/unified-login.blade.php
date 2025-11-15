@@ -1733,8 +1733,10 @@
 
                 // Enforce location permission for admin login types before proceeding
                 const selectedLoginType = document.getElementById('login_type').value;
-                if (["superadmin", "department-admin", "office-admin"].includes(selectedLoginType)) {
-                    const locCheckbox = document.getElementById('location_permission');
+                const locCheckbox = document.getElementById('location_permission');
+                const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedLoginType);
+                
+                if (isAdminLogin) {
                     if (!locCheckbox || !locCheckbox.checked) {
                         showSecurityError('You must allow location tracking to continue with admin login.');
                         if (locCheckbox) {
@@ -1744,11 +1746,95 @@
                         }
                         return false;
                     }
+
+                    // Capture browser geolocation if checkbox is checked
+                    if (locCheckbox && locCheckbox.checked && navigator.geolocation) {
+                        // Disable submit button to prevent double submission
+                        const submitBtn = document.getElementById('submit-btn');
+                        const originalBtnText = submitBtn.innerHTML;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                // Success: Store location via API
+                                const latitude = position.coords.latitude;
+                                const longitude = position.coords.longitude;
+                                const accuracy = position.coords.accuracy;
+
+                                fetch('{{ route('admin-login-location.store') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                    },
+                                    body: JSON.stringify({
+                                        latitude: latitude,
+                                        longitude: longitude,
+                                        accuracy: accuracy
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        console.log('Location stored successfully:', data.location);
+                                        // Continue with form submission
+                                        proceedWithFormSubmission(form, submitBtn, originalBtnText);
+                                    } else {
+                                        throw new Error(data.message || 'Failed to store location');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error storing location:', error);
+                                    submitBtn.disabled = false;
+                                    submitBtn.innerHTML = originalBtnText;
+                                    showSecurityError('Failed to capture location. Please allow location access and try again.');
+                                });
+                            },
+                            function(error) {
+                                // Error: Location permission denied or unavailable
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnText;
+                                
+                                let errorMessage = 'Location access is required for admin login. ';
+                                switch(error.code) {
+                                    case error.PERMISSION_DENIED:
+                                        errorMessage += 'Please allow location access in your browser settings.';
+                                        break;
+                                    case error.POSITION_UNAVAILABLE:
+                                        errorMessage += 'Location information is unavailable. Please check your GPS/Location services.';
+                                        break;
+                                    case error.TIMEOUT:
+                                        errorMessage += 'Location request timed out. Please try again.';
+                                        break;
+                                    default:
+                                        errorMessage += 'Please enable location services and try again.';
+                                }
+                                showSecurityError(errorMessage);
+                            },
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 0
+                            }
+                        );
+                        return false; // Prevent form submission until location is captured
+                    }
                 }
 
                 // If browser supports constraint validation API, ensure form is valid
                 if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
                     return false;
+                }
+
+                // For non-admin logins or if location already captured, proceed normally
+                proceedWithFormSubmission(form);
+            });
+
+            // Helper function to proceed with form submission
+            function proceedWithFormSubmission(form, submitBtn = null, originalBtnText = null) {
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
                 }
 
                 // Execute reCAPTCHA v3 before submitting
@@ -1760,10 +1846,14 @@
                         form.submit();
                     }).catch(function(error) {
                         console.error('reCAPTCHA error:', error);
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnText;
+                        }
                         showSecurityError('Security verification failed. Please try again.');
                     });
                 });
-            });
+            }
 
             function toggleFields() {
                 const selectedType = loginTypeSelect.value;

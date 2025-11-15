@@ -19,6 +19,7 @@ class AdminAccessLog extends Model
         'latitude',
         'longitude',
         'location_details',
+        'location_id',
         'time_in',
         'time_out',
         'duration',
@@ -107,5 +108,13 @@ class AdminAccessLog extends Model
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    /**
+     * Get the location for this access log
+     */
+    public function location()
+    {
+        return $this->belongsTo(Location::class);
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AdminAccessLog;
+use App\Models\Location;
+use App\Services\GeolocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -46,24 +48,51 @@ class AdminLocationController extends Controller
 
             $latitude = (float) $request->input('latitude');
             $longitude = (float) $request->input('longitude');
-
-            // Reverse geocode for exact human-readable location
-            $locationDetails = $this->reverseGeocodeCoordinates($latitude, $longitude);
-
-            // Tag as device GPS precise location with accuracy if provided
-            $sourceTag = 'Device GPS (Precise)';
             $accuracy = $request->input('accuracy');
+
+            // Get structured location data using GeolocationService
+            $geolocationService = new GeolocationService();
+            $structuredLocation = $geolocationService->getStructuredLocationFromCoordinates($latitude, $longitude);
+
+            // Create or update location record
+            $locationData = [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'accuracy' => $accuracy,
+                'location_source' => 'browser_geolocation',
+            ];
+
+            if ($structuredLocation) {
+                $locationData = array_merge($locationData, [
+                    'street' => $structuredLocation['street'] ?? null,
+                    'barangay' => $structuredLocation['barangay'] ?? null,
+                    'municipality' => $structuredLocation['municipality'] ?? null,
+                    'province' => $structuredLocation['province'] ?? null,
+                    'region' => $structuredLocation['region'] ?? null,
+                    'postal_code' => $structuredLocation['postal_code'] ?? null,
+                    'country' => $structuredLocation['country'] ?? null,
+                    'full_address' => $structuredLocation['full_address'] ?? null,
+                ]);
+            }
+
+            // Create location record
+            $location = Location::create($locationData);
+
+            // Build location details string for backward compatibility
+            $locationDetails = $location->formatted_address;
+            $sourceTag = 'Device GPS (Precise)';
             if ($accuracy !== null && $accuracy !== '') {
                 $locationDetails .= ' [' . $sourceTag . ', ±' . (float)$accuracy . 'm]';
             } else {
                 $locationDetails .= ' [' . $sourceTag . ']';
             }
 
-            // Update the access log with GPS coordinates
+            // Update the access log with GPS coordinates and location_id
             $log->update([
                 'latitude' => $latitude,
                 'longitude' => $longitude,
                 'location_details' => $locationDetails,
+                'location_id' => $location->id,
             ]);
 
             Log::info('Precise GPS location stored for admin access log', [
@@ -184,5 +213,74 @@ class AdminLocationController extends Controller
         }
 
         return !empty($parts) ? implode(', ', $parts) : 'Location data available';
+    }
+
+    /**
+     * Store location during login (before authentication)
+     * Stores location in session to be linked to access log after login
+     */
+    public function storeLoginLocation(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
+            'accuracy' => 'nullable|numeric|min:0',
+        ]);
+
+        try {
+            $latitude = (float) $request->input('latitude');
+            $longitude = (float) $request->input('longitude');
+            $accuracy = $request->input('accuracy');
+
+            // Get structured location data using GeolocationService
+            $geolocationService = new GeolocationService();
+            $structuredLocation = $geolocationService->getStructuredLocationFromCoordinates($latitude, $longitude);
+
+            // Prepare location data
+            $locationData = [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'accuracy' => $accuracy,
+                'location_source' => 'browser_geolocation',
+            ];
+
+            if ($structuredLocation) {
+                $locationData = array_merge($locationData, [
+                    'street' => $structuredLocation['street'] ?? null,
+                    'barangay' => $structuredLocation['barangay'] ?? null,
+                    'municipality' => $structuredLocation['municipality'] ?? null,
+                    'province' => $structuredLocation['province'] ?? null,
+                    'region' => $structuredLocation['region'] ?? null,
+                    'postal_code' => $structuredLocation['postal_code'] ?? null,
+                    'country' => $structuredLocation['country'] ?? null,
+                    'full_address' => $structuredLocation['full_address'] ?? null,
+                ]);
+            }
+
+            // Store location data in session to be used after login
+            $request->session()->put('login_location_data', $locationData);
+
+            Log::info('Login location stored in session', [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'has_structured_data' => !empty($structuredLocation),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Location stored successfully.',
+                'location' => $locationData,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error storing login location', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to store location. Please try again.'
+            ], 500);
+        }
     }
 }

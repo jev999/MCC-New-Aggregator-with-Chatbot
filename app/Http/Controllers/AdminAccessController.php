@@ -134,15 +134,45 @@ class AdminAccessController extends Controller
 
             $latitude = $request->latitude;
             $longitude = $request->longitude;
+            $accuracy = $request->input('accuracy');
 
-            // Use reverse geocoding to get exact address from GPS coordinates
-            $locationDetails = $this->reverseGeocodeCoordinates($latitude, $longitude);
+            // Get structured location data using GeolocationService
+            $geolocationService = new \App\Services\GeolocationService();
+            $structuredLocation = $geolocationService->getStructuredLocationFromCoordinates($latitude, $longitude);
 
-            // Update the access log with GPS coordinates
+            // Create or update location record
+            $locationData = [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'accuracy' => $accuracy,
+                'location_source' => 'browser_geolocation',
+            ];
+
+            if ($structuredLocation) {
+                $locationData = array_merge($locationData, [
+                    'street' => $structuredLocation['street'] ?? null,
+                    'barangay' => $structuredLocation['barangay'] ?? null,
+                    'municipality' => $structuredLocation['municipality'] ?? null,
+                    'province' => $structuredLocation['province'] ?? null,
+                    'region' => $structuredLocation['region'] ?? null,
+                    'postal_code' => $structuredLocation['postal_code'] ?? null,
+                    'country' => $structuredLocation['country'] ?? null,
+                    'full_address' => $structuredLocation['full_address'] ?? null,
+                ]);
+            }
+
+            // Create location record
+            $location = \App\Models\Location::create($locationData);
+
+            // Build location details string for backward compatibility
+            $locationDetails = $location->formatted_address . ' [WiFi-Based Real-Time Location]';
+
+            // Update the access log with GPS coordinates and location_id
             $log->update([
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'location_details' => $locationDetails
+                'location_details' => $locationDetails,
+                'location_id' => $location->id,
             ]);
 
             Log::info('WiFi-based location updated for admin access log', [
