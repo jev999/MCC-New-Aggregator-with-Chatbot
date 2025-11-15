@@ -63,24 +63,6 @@ class PublicContentController extends Controller
     }
 
     /**
-     * Public share: view an announcement by share token.
-     * Allows anyone with the token to view the published content, regardless of visibility scope.
-     */
-    public function shareAnnouncement(string $token)
-    {
-        $announcement = Announcement::where('share_token', $token)
-            ->where('is_published', true)
-            ->with(['admin', 'comments.user', 'comments.replies.user'])
-            ->first();
-
-        if (!$announcement) {
-            abort(404);
-        }
-
-        return view('public.announcements.show', compact('announcement'));
-    }
-
-    /**
      * Display a listing of published events
      */
     public function events()
@@ -134,23 +116,6 @@ class PublicContentController extends Controller
     }
 
     /**
-     * Public share: view an event by share token.
-     */
-    public function shareEvent(string $token)
-    {
-        $event = Event::where('share_token', $token)
-            ->where('is_published', true)
-            ->with(['admin', 'comments.user', 'comments.replies.user'])
-            ->first();
-
-        if (!$event) {
-            abort(404);
-        }
-
-        return view('public.events.show', compact('event'));
-    }
-
-    /**
      * Display a listing of published news
      */
     public function news()
@@ -199,23 +164,6 @@ class PublicContentController extends Controller
 
         // Load admin and comments relationships for display
         $news->load(['admin', 'comments.user', 'comments.replies.user']);
-
-        return view('public.news.show', compact('news'));
-    }
-
-    /**
-     * Public share: view a news article by share token.
-     */
-    public function shareNews(string $token)
-    {
-        $news = News::where('share_token', $token)
-            ->where('is_published', true)
-            ->with(['admin', 'comments.user', 'comments.replies.user'])
-            ->first();
-
-        if (!$news) {
-            abort(404);
-        }
 
         return view('public.news.show', compact('news'));
     }

@@ -4,7 +4,6 @@ namespace App\Observers;
 
 use App\Models\Event;
 use App\Services\NotificationService;
-use Illuminate\Support\Str;
 
 class EventObserver
 {
@@ -20,11 +19,6 @@ class EventObserver
      */
     public function created(Event $event): void
     {
-        // Ensure a share token exists for public sharing
-        if (empty($event->share_token)) {
-            $event->share_token = Str::random(48);
-            $event->saveQuietly();
-        }
         // Create notifications when event is published
         if ($event->is_published) {
             $this->notificationService->createEventNotification($event);
