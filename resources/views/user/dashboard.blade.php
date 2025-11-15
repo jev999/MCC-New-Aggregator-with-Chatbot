@@ -2003,19 +2003,19 @@
                     <div class="section-content">
                         @forelse($announcements as $announcement)
                             <div class="announcement-item item-hover announcement-hover p-4 rounded cursor-pointer" 
-                                 @click="activeModal = {
-                                    title: '{{ addslashes($announcement->title) }}', 
-                                    body: '{{ addslashes($announcement->content) }}',
+                                 @click="openModal({
+                                    title: {{ json_encode($announcement->title) }}, 
+                                    body: {{ json_encode($announcement->content) }},
                                     category: 'announcement',
                                     contentId: {{ $announcement->id }},
                                     date: 'Posted: {{ $announcement->created_at->format('M d, Y') }}',
                                     media: '{{ $announcement->hasMedia }}',
-                                    mediaUrl: '{{ $announcement->mediaUrl ?? '' }}',
+                                    mediaUrl: {{ json_encode($announcement->mediaUrl ?? '') }},
                                     allImageUrls: {{ json_encode($announcement->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($announcement->allVideoUrls ?? []) }},
-                                    videoUrl: '{{ $announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '') }}',
-                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}'
-                                 }">
+                                    videoUrl: {{ json_encode($announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '')) }},
+                                    publisher: {{ json_encode($announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username))) }}
+                                 })">
                                 @if($announcement->hasMedia === 'image' || $announcement->hasMedia === 'both')
                                     <img src="{{ $announcement->mediaUrl }}" 
                                          alt="{{ $announcement->title }}" class="item-media">
@@ -2088,20 +2088,20 @@
                     <div class="section-content">
                         @forelse($events as $event)
                             <div class="announcement-item item-hover event-hover p-4 rounded cursor-pointer" 
-                                 @click="activeModal = {
-                                    title: '{{ addslashes($event->title) }}', 
-                                    body: '{{ addslashes($event->description) }}',
+                                 @click="openModal({
+                                    title: {{ json_encode($event->title) }}, 
+                                    body: {{ json_encode($event->description) }},
                                     category: 'event',
                                     contentId: {{ $event->id }},
                                     date: 'Date: {{ $event->event_date ? $event->event_date->format('M d, Y') : 'TBD' }}',
-                                    location: 'Location: {{ $event->location ?? 'No location specified' }}',
+                                    location: {{ json_encode($event->location ?? 'No location specified') }},
                                     media: '{{ $event->hasMedia }}',
-                                    mediaUrl: '{{ $event->mediaUrl ?? '' }}',
+                                    mediaUrl: {{ json_encode($event->mediaUrl ?? '') }},
                                     allImageUrls: {{ json_encode($event->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($event->allVideoUrls ?? []) }},
-                                    videoUrl: '{{ $event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '') }}',
-                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}'
-                                 }">
+                                    videoUrl: {{ json_encode($event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '')) }},
+                                    publisher: {{ json_encode($event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username))) }}
+                                 })">
                                 @if($event->hasMedia === 'image' || $event->hasMedia === 'both')
                                     <img src="{{ $event->mediaUrl }}" 
                                          alt="{{ $event->title }}" class="item-media">
@@ -2180,19 +2180,19 @@
                     <div class="section-content">
                         @forelse($news as $article)
                             <div class="announcement-item item-hover news-hover p-4 rounded cursor-pointer" 
-                                 @click="activeModal = {
-                                    title: '{{ addslashes($article->title) }}', 
-                                    body: '{{ addslashes($article->content) }}',
+                                 @click="openModal({
+                                    title: {{ json_encode($article->title) }}, 
+                                    body: {{ json_encode($article->content) }},
                                     category: 'news',
                                     contentId: {{ $article->id }},
                                     date: 'Published: {{ $article->created_at->format('M d, Y') }}',
                                     media: '{{ $article->hasMedia }}',
-                                    mediaUrl: '{{ $article->mediaUrl ?? '' }}',
+                                    mediaUrl: {{ json_encode($article->mediaUrl ?? '') }},
                                     allImageUrls: {{ json_encode($article->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($article->allVideoUrls ?? []) }},
-                                    videoUrl: '{{ $article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '') }}',
-                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}'
-                                 }">
+                                    videoUrl: {{ json_encode($article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '')) }},
+                                    publisher: {{ json_encode($article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username))) }}
+                                 })">
                                 @if($article->hasMedia === 'image' || $article->hasMedia === 'both')
                                     <img src="{{ $article->mediaUrl }}" 
                                          alt="{{ $article->title }}" class="item-media">
@@ -2256,7 +2256,7 @@
         </main>
 
         <!-- Content Modal -->
-        <div x-show="activeModal" 
+        <div x-show="activeModal !== null" 
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
@@ -2946,6 +2946,26 @@
                 getCsrfToken() {
                     const tokenMeta = document.querySelector('meta[name="csrf-token"]');
                     return tokenMeta ? tokenMeta.getAttribute('content') : '';
+                },
+                
+                // Safely open modal with content data
+                openModal(data) {
+                    try {
+                        this.activeModal = data;
+                        // Load comments when modal opens
+                        if (data.contentId) {
+                            this.loadComments();
+                        }
+                    } catch (error) {
+                        console.error('Error opening modal:', error);
+                        Swal.fire({
+                            title: 'Error!',
+                            text: 'Unable to open content. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#ef4444',
+                            confirmButtonText: 'OK'
+                        });
+                    }
                 },
                 
                 // Comments are now always visible, no toggle needed
