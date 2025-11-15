@@ -118,37 +118,6 @@
             transform: translateY(-2px);
         }
         
-        .copy-link-btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            font-size: 0.875rem;
-        }
-        
-        .copy-link-btn:hover {
-            background: #2563eb;
-            transform: scale(1.1);
-        }
-        
-        .copy-link-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .copy-link-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
         /* Enhanced modal styles - now using Tailwind classes */
         
         .modal-category {
@@ -2042,29 +2011,19 @@
                                         <span>Images & Videos</span>
                                     </div>
                                 @endif
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center text-xs text-gray-600">
-                                        <i class="fas fa-user-shield mr-1"></i>
-                                        <span>
-                                            @if($announcement->admin->role === 'superadmin')
-                                                MCC Administration
-                                            @elseif($announcement->admin->role === 'department_admin')
-                                                {{ $announcement->admin->department_display }} Department
-                                            @elseif($announcement->admin->role === 'office_admin')
-                                                {{ $announcement->admin->office_display }}
-                                            @else
-                                                {{ $announcement->admin->username }}
-                                            @endif
-                                        </span>
-                                    </div>
-                                    <button 
-                                        class="copy-link-btn" 
-                                        data-content-type="announcement" 
-                                        data-content-id="{{ $announcement->id }}"
-                                        @click.stop="copyShareLink('announcement', {{ $announcement->id }}, $event)"
-                                        title="Copy share link">
-                                        <i class="fas fa-link"></i>
-                                    </button>
+                                <div class="flex items-center mt-2 text-xs text-gray-600">
+                                    <i class="fas fa-user-shield mr-1"></i>
+                                    <span>
+                                        @if($announcement->admin->role === 'superadmin')
+                                            MCC Administration
+                                        @elseif($announcement->admin->role === 'department_admin')
+                                            {{ $announcement->admin->department_display }} Department
+                                        @elseif($announcement->admin->role === 'office_admin')
+                                            {{ $announcement->admin->office_display }}
+                                        @else
+                                            {{ $announcement->admin->username }}
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                         @empty
@@ -2134,29 +2093,19 @@
                                         <span>Images & Videos</span>
                                     </div>
                                 @endif
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center text-xs text-gray-600">
-                                        <i class="fas fa-user-shield mr-1"></i>
-                                        <span>
-                                            @if($event->admin->role === 'superadmin')
-                                                MCC Administration
-                                            @elseif($event->admin->role === 'department_admin')
-                                                {{ $event->admin->department_display }} Department
-                                            @elseif($event->admin->role === 'office_admin')
-                                                {{ $event->admin->office_display }}
-                                            @else
-                                                {{ $event->admin->username }}
-                                            @endif
-                                        </span>
-                                    </div>
-                                    <button 
-                                        class="copy-link-btn" 
-                                        data-content-type="event" 
-                                        data-content-id="{{ $event->id }}"
-                                        @click.stop="copyShareLink('event', {{ $event->id }}, $event)"
-                                        title="Copy share link">
-                                        <i class="fas fa-link"></i>
-                                    </button>
+                                <div class="flex items-center mt-2 text-xs text-gray-600">
+                                    <i class="fas fa-user-shield mr-1"></i>
+                                    <span>
+                                        @if($event->admin->role === 'superadmin')
+                                            MCC Administration
+                                        @elseif($event->admin->role === 'department_admin')
+                                            {{ $event->admin->department_display }} Department
+                                        @elseif($event->admin->role === 'office_admin')
+                                            {{ $event->admin->office_display }}
+                                        @else
+                                            {{ $event->admin->username }}
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                         @empty
@@ -2219,29 +2168,19 @@
                                         <span>Images & Videos</span>
                                     </div>
                                 @endif
-                                <div class="flex items-center justify-between mt-2">
-                                    <div class="flex items-center text-xs text-gray-600">
-                                        <i class="fas fa-user-shield mr-1"></i>
-                                        <span>
-                                            @if($article->admin->role === 'superadmin')
-                                                MCC Administration
-                                            @elseif($article->admin->role === 'department_admin')
-                                                {{ $article->admin->department_display }} Department
-                                            @elseif($article->admin->role === 'office_admin')
-                                                {{ $article->admin->office_display }}
-                                            @else
-                                                {{ $article->admin->username }}
-                                            @endif
-                                        </span>
-                                    </div>
-                                    <button 
-                                        class="copy-link-btn" 
-                                        data-content-type="news" 
-                                        data-content-id="{{ $article->id }}"
-                                        @click.stop="copyShareLink('news', {{ $article->id }}, $event)"
-                                        title="Copy share link">
-                                        <i class="fas fa-link"></i>
-                                    </button>
+                                <div class="flex items-center mt-2 text-xs text-gray-600">
+                                    <i class="fas fa-user-shield mr-1"></i>
+                                    <span>
+                                        @if($article->admin->role === 'superadmin')
+                                            MCC Administration
+                                        @elseif($article->admin->role === 'department_admin')
+                                            {{ $article->admin->department_display }} Department
+                                        @elseif($article->admin->role === 'office_admin')
+                                            {{ $article->admin->office_display }}
+                                        @else
+                                            {{ $article->admin->username }}
+                                        @endif
+                                    </span>
                                 </div>
                             </div>
                         @empty
@@ -4285,81 +4224,6 @@
                     
                     // Redirect to login
                     window.location.replace('/login');
-                });
-            },
-            
-            // Share link functionality
-            copyShareLink(contentType, contentId, event) {
-                event.stopPropagation();
-                
-                const button = event.target.closest('.copy-link-btn');
-                const originalHtml = button.innerHTML;
-                
-                // Show loading state
-                button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                
-                // Generate share link
-                fetch('/user/content/share-link', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({
-                        content_type: contentType,
-                        content_id: contentId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.share_url) {
-                        // Copy to clipboard
-                        navigator.clipboard.writeText(data.share_url).then(() => {
-                            // Show success feedback
-                            button.innerHTML = '<i class="fas fa-check"></i>';
-                            button.style.color = '#10b981';
-                            
-                            // Show toast notification
-                            Swal.fire({
-                                title: 'Link Copied!',
-                                text: 'Share link has been copied to clipboard.',
-                                icon: 'success',
-                                confirmButtonColor: '#10b981',
-                                confirmButtonText: 'OK',
-                                timer: 2000,
-                                timerProgressBar: true
-                            });
-                            
-                            // Reset button after 2 seconds
-                            setTimeout(() => {
-                                button.innerHTML = originalHtml;
-                                button.style.color = '';
-                                button.disabled = false;
-                            }, 2000);
-                        }).catch(err => {
-                            console.error('Failed to copy:', err);
-                            // Fallback: show URL in alert
-                            alert('Share link: ' + data.share_url);
-                            button.innerHTML = originalHtml;
-                            button.disabled = false;
-                        });
-                    } else {
-                        throw new Error(data.error || 'Failed to generate share link');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error generating share link:', error);
-                    Swal.fire({
-                        title: 'Error!',
-                        text: 'Failed to generate share link. Please try again.',
-                        icon: 'error',
-                        confirmButtonColor: '#ef4444',
-                        confirmButtonText: 'OK'
-                    });
-                    button.innerHTML = originalHtml;
-                    button.disabled = false;
                 });
             },
             
