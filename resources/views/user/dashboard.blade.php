@@ -1806,7 +1806,7 @@
         }
     </style>
 </head>
-<body class="py-8 px-4" x-data="dashboardData()">
+<body class="py-8 px-4" x-data="dashboardData()" x-init="init()">
     <!-- Toast Notification Popup -->
     <div x-show="toastVisible" 
          x-ref="toast"
@@ -2643,7 +2643,7 @@
                             @endif
                         </div>
                         
-                        <h3 class="font-bold text-2xl text-gray-900 mt-4" x-text="editMode ? 'Edit Profile' : '{{ auth()->user()->first_name }} {{ auth()->user()->surname }}'"></h3>
+                        <h3 class="font-bold text-2xl text-gray-900 mt-4" x-text="editMode ? 'Edit Profile' : {{ json_encode(auth()->user()->first_name . ' ' . auth()->user()->surname) }}"></h3>
                         <p class="text-gray-600 text-sm mt-1" x-show="!editMode">{{ auth()->user()->department }}</p>
                         <div class="mt-2" x-show="!editMode">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
@@ -2843,9 +2843,9 @@
                 profileModal: false,
                 editMode: false,
                 profileForm: {
-                    first_name: '{{ auth()->user()->first_name }}',
-                    middle_name: '{{ auth()->user()->middle_name }}',
-                    surname: '{{ auth()->user()->surname }}',
+                    first_name: @json(auth()->user()->first_name),
+                    middle_name: @json(auth()->user()->middle_name),
+                    surname: @json(auth()->user()->surname),
                     department: '',
                     year_level: ''
                 },
@@ -3667,7 +3667,7 @@
                 // Profile management functions
                 initializeProfileForm() {
                     // Convert short codes to full department names if needed
-                    let department = '{{ auth()->user()->department }}';
+                    let department = @json(auth()->user()->department);
                     const shortToFullDepartmentMap = {
                         'BSIT': 'Bachelor of Science in Information Technology',
                         'BSBA': 'Bachelor of Science in Business Administration',
@@ -3677,7 +3677,7 @@
                     };
                     
                     // Convert year level to proper case
-                    let yearLevel = '{{ auth()->user()->year_level }}';
+                    let yearLevel = @json(auth()->user()->year_level);
                     const yearLevelMap = {
                         '1st year': '1st Year',
                         '2nd year': '2nd Year',
@@ -3686,9 +3686,9 @@
                     };
                     
                     this.profileForm = {
-                        first_name: '{{ auth()->user()->first_name }}',
-                        middle_name: '{{ auth()->user()->middle_name }}',
-                        surname: '{{ auth()->user()->surname }}',
+                        first_name: @json(auth()->user()->first_name),
+                        middle_name: @json(auth()->user()->middle_name),
+                        surname: @json(auth()->user()->surname),
                         department: shortToFullDepartmentMap[department] || department,
                         year_level: yearLevelMap[yearLevel] || yearLevel
                     };
