@@ -272,13 +272,7 @@
                 0 0 0 1px rgba(245, 158, 11, 0.2),
                 inset 0 1px 0 rgba(255, 255, 255, 0.8);
             border: 3px solid #f5a623;
-            transform: scale(0.7);
-            transition: transform 0.4s ease;
             position: relative;
-        }
-
-        .modal-container.active {
-            transform: scale(1);
         }
 
         /* Bulletin Board Header Styling */
@@ -2208,7 +2202,7 @@
              style="z-index: 9999;"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-            <div class="modal-container overflow-hidden flex flex-col mt-6 active"
+            <div class="modal-container overflow-hidden flex flex-col mt-6"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform scale-95"
                  x-transition:enter-end="opacity-100 transform scale-100"
