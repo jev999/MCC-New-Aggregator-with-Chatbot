@@ -523,36 +523,6 @@
 
 
 
-        /* Mobile Sidebar Toggle + Overlay */
-        .mobile-toggle {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: linear-gradient(135deg, #000000, #4a4a4a);
-            color: #ffffff;
-            border: none;
-            padding: 0.75rem;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease;
-        }
-
-        .mobile-toggle:active { transform: scale(0.98); }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-        }
-
-        .sidebar-overlay.active { display: block; }
-
         /* Enhanced Mobile Responsiveness */
         @media (max-width: 992px) {
             .stats-grid {
@@ -567,19 +537,12 @@
         @media (max-width: 768px) {
             .sidebar {
                 width: 280px;
-                transform: translateX(-100%);
             }
-
-            .sidebar.active { transform: translateX(0); }
-            .sidebar-overlay.active { display: block; }
 
             .main-content {
-                margin-left: 0;
+                margin-left: 280px;
                 padding: 1rem;
-                padding-top: 4rem; /* room for toggle button */
             }
-
-            .mobile-toggle { display: block; }
 
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -1128,12 +1091,6 @@
     </style>
 </head>
 <body>
-    <!-- Mobile Toggle Button -->
-    <button class="mobile-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-bars"></i>
-    </button>
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="dashboard-container">
         <div class="sidebar" id="sidebar">
@@ -1274,35 +1231,6 @@
     </div>
 
     <script>
-        // Mobile sidebar toggle handlers
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (sidebar && overlay) {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (sidebar && overlay) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }
-
-        // Close on ESC and when resizing back to desktop
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeSidebar();
-        });
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 768) closeSidebar();
-        });
-
         // Content Distribution Pie Chart
         document.addEventListener('DOMContentLoaded', function() {
             const ctxPie = document.getElementById('contentDistributionChart').getContext('2d');

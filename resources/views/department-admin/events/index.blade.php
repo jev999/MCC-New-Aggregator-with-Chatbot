@@ -9,8 +9,6 @@
         <i class="fas fa-bars"></i>
     </button>
 
-    
-
     <div class="sidebar">
         <div class="sidebar-header">
             <h3><i class="fas fa-user-shield"></i> Department Admin</h3>
@@ -1964,24 +1962,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Mobile menu toggle function with overlay and scroll lock
+    // Mobile menu toggle function
     function toggleSidebar() {
         const sidebar = document.querySelector('.sidebar');
-        const overlay = document.querySelector('.sidebar-overlay');
-        if (!sidebar) return;
-        const willOpen = !sidebar.classList.contains('open');
         sidebar.classList.toggle('open');
-        if (overlay) overlay.classList.toggle('active', willOpen);
-        document.body.style.overflow = willOpen ? 'hidden' : '';
-    }
-
-    function closeSidebar() {
-        const sidebar = document.querySelector('.sidebar');
-        const overlay = document.querySelector('.sidebar-overlay');
-        if (!sidebar) return;
-        sidebar.classList.remove('open');
-        if (overlay) overlay.classList.remove('active');
-        document.body.style.overflow = '';
     }
 
     // Enhanced filter and search functionality for table and cards
@@ -2319,24 +2303,22 @@
     document.addEventListener('click', function(event) {
         const sidebar = document.querySelector('.sidebar');
         const mobileBtn = document.querySelector('.mobile-menu-btn');
-        if (window.innerWidth <= 1024 && sidebar && sidebar.classList.contains('open')) {
-            const insideSidebar = sidebar.contains(event.target);
-            const onMobileBtn = mobileBtn && mobileBtn.contains(event.target);
-            if (!insideSidebar && !onMobileBtn) {
-                closeSidebar();
-            }
+        
+        if (window.innerWidth <= 1024 && 
+            !sidebar.contains(event.target) && 
+            !mobileBtn.contains(event.target) && 
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
         }
     });
 
-    // Handle window resize and ESC key
+    // Handle window resize
     window.addEventListener('resize', function() {
+        const sidebar = document.querySelector('.sidebar');
         if (window.innerWidth > 1024) {
-            closeSidebar();
+            sidebar.classList.remove('open');
         }
-    });
 
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeSidebar();
     });
 
     // Delete event with SweetAlert

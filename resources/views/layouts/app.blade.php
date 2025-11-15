@@ -160,33 +160,6 @@
             box-sizing: border-box;
         }
 
-        /* Mobile Menu Button (shown on narrow screens) */
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: var(--dark-color);
-            color: white;
-            border: none;
-            padding: 0.75rem;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-md);
-            cursor: pointer;
-        }
-        .mobile-menu-btn:active { transform: scale(0.98); }
-
-        /* Sidebar overlay for mobile */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            z-index: 999;
-        }
-
         .header {
             background: white;
             padding: 2rem;
@@ -291,19 +264,12 @@
                 transform: translateX(-100%);
             }
 
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
             .main-content {
-                margin-left: 0 !important;
-                padding: 1rem !important;
-                max-width: 100vw !important;
-                overflow-x: hidden !important;
+                margin-left: 0;
+                padding: 1rem;
+                max-width: 100vw;
+                overflow-x: hidden;
             }
-
-            .mobile-menu-btn { display: block !important; }
-            .sidebar-overlay.active { display: block; }
 
             .header {
                 padding: 1.5rem;
@@ -356,50 +322,25 @@
     @stack('styles')
 </head>
 <body>
-    <!-- Global Sidebar Overlay for Mobile -->
-    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
-
     @yield('content')
 
     <script @nonce>
         function toggleSidebar() {
             const sidebar = document.querySelector('.sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (!sidebar) return;
-            const willOpen = !sidebar.classList.contains('open');
             sidebar.classList.toggle('open');
-            if (overlay) overlay.classList.toggle('active', willOpen);
-            document.body.style.overflow = willOpen ? 'hidden' : '';
-        }
-
-        function closeSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const overlay = document.querySelector('.sidebar-overlay');
-            if (!sidebar) return;
-            sidebar.classList.remove('open');
-            if (overlay) overlay.classList.remove('active');
-            document.body.style.overflow = '';
         }
 
         // Close sidebar when clicking outside on mobile
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
             const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-            if (window.innerWidth <= 1024 && sidebar && sidebar.classList.contains('open')) {
-                const insideSidebar = sidebar.contains(event.target);
-                const onMobileBtn = mobileMenuBtn && mobileMenuBtn.contains(event.target);
-                if (!insideSidebar && !onMobileBtn) {
-                    closeSidebar();
-                }
+            
+            if (window.innerWidth <= 1024 && 
+                !sidebar.contains(event.target) && 
+                !mobileMenuBtn.contains(event.target) &&
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
             }
-        });
-
-        // Close on ESC and when resizing back to desktop
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeSidebar();
-        });
-        window.addEventListener('resize', function() {
-            if (window.innerWidth > 1024) closeSidebar();
         });
     </script>
     @yield('scripts')
