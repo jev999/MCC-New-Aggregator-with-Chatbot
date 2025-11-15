@@ -14,12 +14,10 @@
     <header class="main-header">
         <div class="header-container">
             <div class="logo-section">
-                <a href="{{ url('/') }}" class="logo-link">
-                    <div class="logo-container">
-                        <img src="{{ asset('images/mcc_logo.png') }}" alt="MCC Logo" class="mcc-logo">
-                    </div>
-                    <span class="logo-text">MCC-NAC</span>
-                </a>
+                <div class="logo-container">
+                    <img src="{{ asset('images/mcc_logo.png') }}" alt="MCC Logo" class="mcc-logo">
+                </div>
+                <span class="logo-text">MCC-NAC</span>
             </div>
             
             <nav class="main-nav">
