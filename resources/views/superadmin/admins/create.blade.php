@@ -462,12 +462,7 @@
                     <i class="fas fa-database"></i> Database Backup
                 </a></li>
                 <li>
-                    <form method="POST" action="{{ route('superadmin.logout') }}" style="display: inline; width: 100%;">
-                        @csrf
-                        <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </button>
-                    </form>
+                   
                 </li>
             </ul>
         </div>

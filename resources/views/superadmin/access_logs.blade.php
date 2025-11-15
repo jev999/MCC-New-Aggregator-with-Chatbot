@@ -659,13 +659,23 @@
                                         <td style="text-align: center;"><input type="checkbox" class="log-checkbox" value="{{ $log->id }}" onchange="updateSelectAll()"></td>
                                         <td>
                                             <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">
-                                                    {{ strtoupper(substr($log->admin->username ?? 'U', 0, 1)) }}
-                                                </div>
-                                                <div>
-                                                    <strong style="color: #333;">{{ $log->admin->username ?? 'Unknown' }}</strong><br>
-                                                    <small style="color: #999;">{{ $log->admin->email ?? '' }}</small>
-                                                </div>
+                                                @if($log->status === 'failed' && $log->username_attempted)
+                                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">
+                                                        {{ strtoupper(substr($log->username_attempted, 0, 1)) }}
+                                                    </div>
+                                                    <div>
+                                                        <strong style="color: #ef4444;">{{ $log->username_attempted }}</strong><br>
+                                                        <small style="color: #dc2626; font-weight: 600;">Failed Attempt</small>
+                                                    </div>
+                                                @else
+                                                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">
+                                                        {{ strtoupper(substr($log->admin->username ?? 'U', 0, 1)) }}
+                                                    </div>
+                                                    <div>
+                                                        <strong style="color: #333;">{{ $log->admin->username ?? 'Unknown' }}</strong><br>
+                                                        <small style="color: #999;">{{ $log->admin->email ?? '' }}</small>
+                                                    </div>
+                                                @endif
                                             </div>
                                         </td>
                                         <td>
@@ -692,17 +702,25 @@
                                             {{ $log->time_in ? $log->time_in->format('M d, Y H:i:s') : '-' }}
                                         </td>
                                         <td>
-                                            <i class="fas fa-sign-out-alt" style="color: #ef4444; margin-right: 0.5rem;"></i>
-                                            {!! $log->time_out ? $log->time_out->format('M d, Y H:i:s') : '<span style="color: #16a34a; font-weight: 700;">Active</span>' !!}
+                                            @if($log->status === 'failed')
+                                                <span style="color: #9ca3af; font-style: italic;">N/A</span>
+                                            @else
+                                                <i class="fas fa-sign-out-alt" style="color: #ef4444; margin-right: 0.5rem;"></i>
+                                                {!! $log->time_out ? $log->time_out->format('M d, Y H:i:s') : '<span style="color: #16a34a; font-weight: 700;">Active</span>' !!}
+                                            @endif
                                         </td>
                                         <td>
-                                            <span style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); padding: 0.5rem 0.75rem; border-radius: 6px; font-weight: 600; color: #334155;">
-                                                @if($log->time_in && $log->time_out)
-                                                    {{ $log->time_in->diff($log->time_out)->format('%h:%i:%s') }}
-                                                @else
-                                                    -
-                                                @endif
-                                            </span>
+                                            @if($log->status === 'failed')
+                                                <span style="color: #9ca3af; font-style: italic;">N/A</span>
+                                            @else
+                                                <span style="background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); padding: 0.5rem 0.75rem; border-radius: 6px; font-weight: 600; color: #334155;">
+                                                    @if($log->time_in && $log->time_out)
+                                                        {{ $log->time_in->diff($log->time_out)->format('%h:%i:%s') }}
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </span>
+                                            @endif
                                         </td>
                                         <td>
                                             <small style="color: #666;">

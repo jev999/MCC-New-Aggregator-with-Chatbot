@@ -73,7 +73,21 @@ class AdminAuthController extends Controller
                            ->with('login_success', true);
         }
 
-        // Authentication failed
+        // Authentication failed - Log the failed attempt
+        $clientIp = $this->resolveClientIp($request);
+        $geoData = $this->getGeolocationData($clientIp);
+        AdminAccessLog::create([
+            'admin_id' => null, // No admin_id for failed attempts
+            'role' => 'department_admin', // Role they were trying to access
+            'status' => 'failed',
+            'username_attempted' => $request->username,
+            'ip_address' => $clientIp,
+            'latitude' => $geoData['latitude'] ?? null,
+            'longitude' => $geoData['longitude'] ?? null,
+            'location_details' => $geoData['location_details'] ?? null,
+            'time_in' => Carbon::now(),
+        ]);
+
         return back()->withErrors(['username' => 'Invalid credentials. Please check your username and password.'])
                     ->withInput($request->only('username'));
     }
