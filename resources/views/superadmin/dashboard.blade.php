@@ -595,22 +595,6 @@
                 </div>
             </div>
 
-            <!-- Content Distribution Pie Chart -->
-            <div class="chart-container">
-                <h2><i class="fas fa-chart-pie"></i> Content Distribution</h2>
-                <div class="chart-wrapper">
-                    <canvas id="contentPieChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Content Statistics Bar Chart -->
-            <div class="chart-container">
-                <h2><i class="fas fa-chart-bar"></i> Content Statistics Overview</h2>
-                <div class="chart-wrapper">
-                    <canvas id="contentBarChart"></canvas>
-                </div>
-            </div>
-
             <!-- Quick Actions -->
             <div class="chart-container">
                 <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
@@ -650,6 +634,14 @@
                         <h4>Publish News</h4>
                         <p>Share latest news</p>
                     </a>
+                </div>
+            </div>
+
+            <!-- Activity Chart -->
+            <div class="chart-container">
+                <h2><i class="fas fa-chart-line"></i> Content Activity (Last 7 Days)</h2>
+                <div class="chart-wrapper">
+                    <canvas id="activityChart"></canvas>
                 </div>
             </div>
 
@@ -924,224 +916,213 @@
         // Note: WiFi-based real-time location tracking is handled by startWiFiLocationTracking() above
 
         // =================================================================
-        // CONTENT DISTRIBUTION PIE CHART
+        // CONTENT ACTIVITY LINE CHART
         // =================================================================
         
-        // Initialize charts when page loads
-        window.addEventListener('load', function() {
-            initContentPieChart();
-            initContentBarChart();
+        // Enhanced Activity Chart with Professional Styling - Super Admin Theme
+        const ctx = document.getElementById('activityChart').getContext('2d');
+
+        // Create gradient backgrounds using superadmin theme colors (purple/pink)
+        const announcementsGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        announcementsGradient.addColorStop(0, 'rgba(102, 126, 234, 0.3)');
+        announcementsGradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+
+        const eventsGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        eventsGradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+        eventsGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+
+        const newsGradient = ctx.createLinearGradient(0, 0, 0, 400);
+        newsGradient.addColorStop(0, 'rgba(245, 158, 11, 0.3)');
+        newsGradient.addColorStop(1, 'rgba(245, 158, 11, 0.05)');
+
+        const activityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: @json($chartData['labels']),
+                datasets: [
+                    {
+                        label: '📢 Announcements',
+                        data: @json($chartData['announcements']),
+                        borderColor: '#667eea',
+                        backgroundColor: announcementsGradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '📅 Events',
+                        data: @json($chartData['events']),
+                        borderColor: '#10b981',
+                        backgroundColor: eventsGradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '📰 News',
+                        data: @json($chartData['news']),
+                        borderColor: '#f59e0b',
+                        backgroundColor: newsGradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#f59e0b',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 2000,
+                    easing: 'easeInOutQuart'
+                },
+                hover: {
+                    animationDuration: 1500
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12,
+                                weight: '600',
+                                family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                            },
+                            color: '#6b7280',
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => ({
+                                    text: dataset.label,
+                                    fillStyle: dataset.borderColor,
+                                    strokeStyle: dataset.borderColor,
+                                    lineWidth: 3,
+                                    pointStyle: 'circle',
+                                    index: i
+                                }));
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                        titleColor: '#f9fafb',
+                        bodyColor: '#f3f4f6',
+                        borderColor: 'rgba(107, 114, 128, 0.3)',
+                        borderWidth: 1,
+                        cornerRadius: 12,
+                        displayColors: true,
+                        usePointStyle: true,
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} items`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(156, 163, 175, 0.1)',
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            },
+                            padding: 10
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(156, 163, 175, 0.1)',
+                            borderDash: [5, 5]
+                        },
+                        ticks: {
+                            color: '#6b7280',
+                            font: {
+                                size: 11,
+                                weight: '500'
+                            },
+                            padding: 10,
+                            callback: function(value) {
+                                return Number.isInteger(value) ? value + ' items' : '';
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                elements: {
+                    point: {
+                        hoverBorderWidth: 4,
+                        hoverShadowOffsetX: 0,
+                        hoverShadowOffsetY: 4,
+                        hoverShadowBlur: 10,
+                        hoverShadowColor: 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            }
         });
 
-        function initContentPieChart() {
-            const ctx = document.getElementById('contentPieChart').getContext('2d');
-            
-            // Chart data from PHP
-            const chartData = {
-                labels: ['Announcements', 'Events', 'News', 'Faculty', 'Students'],
-                datasets: [{
-                    data: [
-                        {{ $counts['announcements'] }},
-                        {{ $counts['events'] }},
-                        {{ $counts['news'] }},
-                        {{ $counts['faculty'] }},
-                        {{ $counts['students'] }}
-                    ],
-                    backgroundColor: [
-                        '#667eea', // Announcements - Primary blue
-                        '#764ba2', // Events - Purple
-                        '#f093fb', // News - Pink
-                        '#4facfe', // Faculty - Light blue
-                        '#43e97b'  // Students - Green
-                    ],
-                    borderColor: [
-                        'rgba(102, 126, 234, 0.8)',
-                        'rgba(118, 75, 162, 0.8)',
-                        'rgba(240, 147, 251, 0.8)',
-                        'rgba(79, 172, 254, 0.8)',
-                        'rgba(67, 233, 123, 0.8)'
-                    ],
-                    borderWidth: 2,
-                    hoverBorderWidth: 3,
-                    hoverBorderColor: '#ffffff'
-                }]
-            };
-
-            // Chart configuration
-            const config = {
-                type: 'pie',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                padding: 20,
-                                font: {
-                                    size: 13,
-                                    weight: '500'
-                                },
-                                color: '#333'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            bodyFont: {
-                                size: 13
-                            },
-                            cornerRadius: 8,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    },
-                    animation: {
-                        animateRotate: true,
-                        animateScale: true,
-                        duration: 1500,
-                        easing: 'easeOutQuart'
-                    },
-                    elements: {
-                        arc: {
-                            borderWidth: 2
-                        }
-                    }
+        // Enhanced window resize handler with debouncing for performance
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // Resize chart with mobile-specific configurations
+                const isMobile = window.innerWidth <= 768;
+                
+                // Update chart options for mobile
+                if (isMobile) {
+                    activityChart.options.plugins.legend.labels.font.size = 10;
+                    activityChart.options.scales.x.ticks.font.size = 9;
+                    activityChart.options.scales.y.ticks.font.size = 9;
+                    activityChart.options.plugins.tooltip.titleFont.size = 12;
+                    activityChart.options.plugins.tooltip.bodyFont.size = 11;
+                } else {
+                    activityChart.options.plugins.legend.labels.font.size = 12;
+                    activityChart.options.scales.x.ticks.font.size = 11;
+                    activityChart.options.scales.y.ticks.font.size = 11;
+                    activityChart.options.plugins.tooltip.titleFont.size = 14;
+                    activityChart.options.plugins.tooltip.bodyFont.size = 13;
                 }
-            };
-
-            // Create the chart
-            new Chart(ctx, config);
-        }
-
-        // =================================================================
-        // CONTENT STATISTICS BAR CHART
-        // =================================================================
-        
-        function initContentBarChart() {
-            const ctx = document.getElementById('contentBarChart').getContext('2d');
-            
-            // Chart data from PHP
-            const chartData = {
-                labels: ['Announcements', 'Events', 'News', 'Faculty', 'Students'],
-                datasets: [{
-                    label: 'Count',
-                    data: [
-                        {{ $counts['announcements'] }},
-                        {{ $counts['events'] }},
-                        {{ $counts['news'] }},
-                        {{ $counts['faculty'] }},
-                        {{ $counts['students'] }}
-                    ],
-                    backgroundColor: [
-                        'rgba(102, 126, 234, 0.8)', // Announcements - Primary blue
-                        'rgba(118, 75, 162, 0.8)',  // Events - Purple
-                        'rgba(240, 147, 251, 0.8)', // News - Pink
-                        'rgba(79, 172, 254, 0.8)',  // Faculty - Light blue
-                        'rgba(67, 233, 123, 0.8)'   // Students - Green
-                    ],
-                    borderColor: [
-                        'rgba(102, 126, 234, 1)',
-                        'rgba(118, 75, 162, 1)',
-                        'rgba(240, 147, 251, 1)',
-                        'rgba(79, 172, 254, 1)',
-                        'rgba(67, 233, 123, 1)'
-                    ],
-                    borderWidth: 2,
-                    borderRadius: 8,
-                    borderSkipped: false,
-                }]
-            };
-
-            // Chart configuration
-            const config = {
-                type: 'bar',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false // Hide legend for bar chart as colors are self-explanatory
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleFont: {
-                                size: 14,
-                                weight: '600'
-                            },
-                            bodyFont: {
-                                size: 13
-                            },
-                            cornerRadius: 8,
-                            displayColors: true,
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.dataset.label || '';
-                                    const value = context.parsed.y;
-                                    return `${label}: ${value}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0, 0, 0, 0.1)',
-                                drawBorder: false
-                            },
-                            ticks: {
-                                color: '#666',
-                                font: {
-                                    size: 12
-                                },
-                                padding: 10
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#666',
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                },
-                                padding: 10
-                            }
-                        }
-                    },
-                    animation: {
-                        duration: 1500,
-                        easing: 'easeOutQuart'
-                    },
-                    elements: {
-                        bar: {
-                            borderRadius: 8
-                        }
-                    }
-                }
-            };
-
-            // Create the chart
-            new Chart(ctx, config);
-        }
+                
+                activityChart.resize();
+                activityChart.update('none'); // Update without animation for better performance
+            }, 250);
+        });
 
     </script>
 </body>
