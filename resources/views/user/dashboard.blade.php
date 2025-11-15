@@ -15,6 +15,8 @@
     <style @nonce>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         
+        [x-cloak] { display: none !important; }
+        
         body {
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -2196,13 +2198,15 @@
 
         <!-- Content Modal -->
         <div x-show="activeModal !== null" 
+             x-cloak
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0"
              x-transition:enter-end="opacity-100"
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4"
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4"
+             style="z-index: 9999;"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
             <div class="modal-container overflow-hidden flex flex-col mt-6 active"
@@ -2890,11 +2894,17 @@
                 // Safely open modal with content data
                 openModal(data) {
                     try {
+                        console.log('Opening modal with data:', data);
                         this.activeModal = data;
+                        console.log('Active modal set to:', this.activeModal);
                         // Load comments when modal opens
                         if (data.contentId) {
                             this.loadComments();
                         }
+                        // Force a re-render to ensure modal displays
+                        this.$nextTick(() => {
+                            console.log('Modal should be visible now');
+                        });
                     } catch (error) {
                         console.error('Error opening modal:', error);
                         Swal.fire({
