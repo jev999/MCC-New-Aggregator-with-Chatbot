@@ -1710,6 +1710,78 @@
 
     // Initialize on page load
     updateVisibilityScope();
+
+    // CSRF Token Refresh System to prevent 419 errors
+    let idleTimer;
+    let isIdle = false;
+
+    // Function to refresh CSRF token
+    function refreshCSRFToken() {
+        fetch('/csrf-token')
+            .then(response => response.json())
+            .then(data => {
+                // Update all CSRF token inputs in the form
+                document.querySelectorAll('input[name="_token"]').forEach(input => {
+                    input.value = data.csrf_token;
+                });
+                console.log('CSRF token refreshed successfully');
+            })
+            .catch(error => {
+                console.error('Failed to refresh CSRF token:', error);
+            });
+    }
+
+    // Refresh CSRF token every 25 minutes (before 30-minute session expiry)
+    setInterval(refreshCSRFToken, 25 * 60 * 1000);
+
+    // Reset idle timer on user activity
+    function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        
+        // If user was idle and becomes active, refresh the token
+        if (isIdle) {
+            refreshCSRFToken();
+            isIdle = false;
+        }
+        
+        // Set idle state after 15 minutes of inactivity
+        idleTimer = setTimeout(() => {
+            isIdle = true;
+        }, 15 * 60 * 1000);
+    }
+
+    // Listen for user activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+        document.addEventListener(event, resetIdleTimer, true);
+    });
+
+    // Initialize idle timer
+    resetIdleTimer();
+
+    // Validate CSRF token before form submission
+    document.querySelector('.announcement-form').addEventListener('submit', function(e) {
+        const csrfToken = document.querySelector('input[name="_token"]').value;
+        
+        // Check if token exists and has proper length
+        if (!csrfToken || csrfToken.length < 40) {
+            e.preventDefault();
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Session Expired',
+                text: 'Your session has expired. The page will refresh to get a new session.',
+                confirmButtonText: 'Refresh Page',
+                confirmButtonColor: '#ef4444',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+            
+            return false;
+        }
+    });
 </script>
 
 <!-- SweetAlert2 CDN -->
