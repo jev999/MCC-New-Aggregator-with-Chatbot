@@ -5,9 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Announcement;
 use App\Models\Event;
 use App\Models\News;
-use App\Models\ShareableLink;
 use App\Services\NotificationService;
-use Illuminate\Http\Request;
 
 class UserDashboardController extends Controller
 {
@@ -150,49 +148,5 @@ class UserDashboardController extends Controller
     /**
      * Generate or get a shareable link for content
      */
-    public function generateShareLink(Request $request)
-    {
-        $request->validate([
-            'content_type' => 'required|in:announcement,event,news',
-            'content_id' => 'required|integer',
-        ]);
-
-        $user = auth()->user();
-        $contentType = $request->content_type;
-        $contentId = $request->content_id;
-
-        // Verify content exists and is visible to user
-        $content = match($contentType) {
-            'announcement' => Announcement::where('id', $contentId)
-                ->where('is_published', true)
-                ->visibleToUser($user)
-                ->first(),
-            'event' => Event::where('id', $contentId)
-                ->where('is_published', true)
-                ->visibleToUser($user)
-                ->first(),
-            'news' => News::where('id', $contentId)
-                ->where('is_published', true)
-                ->visibleToUser($user)
-                ->first(),
-            default => null,
-        };
-
-        if (!$content) {
-            return response()->json([
-                'success' => false,
-                'error' => 'Content not found or not accessible'
-            ], 404);
-        }
-
-        // Create or get shareable link
-        $shareableLink = ShareableLink::createOrGetLink($contentType, $contentId);
-        $shareUrl = url('/share/' . $shareableLink->token);
-
-        return response()->json([
-            'success' => true,
-            'share_url' => $shareUrl,
-            'token' => $shareableLink->token,
-        ]);
-    }
+    
 }
