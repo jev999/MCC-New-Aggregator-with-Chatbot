@@ -359,18 +359,18 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    
-    .logo-link {
-        display: flex;
-        align-items: center;
-        text-decoration: none;
-        color: inherit;
-        transition: transform 0.2s ease;
-        
-        &:hover {
-            transform: scale(1.05);
-        }
-    }
+}
+
+.logo-section .logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease;
+}
+
+.logo-section .logo-link:hover {
+    transform: scale(1.05);
 }
 
 .logo-container {
@@ -536,7 +536,6 @@
 }
 
 .hero-subtitle {
-{{ ... }}
     font-size: 1.125rem !important;
     opacity: 0.9;
     margin-top: 1rem !important;
