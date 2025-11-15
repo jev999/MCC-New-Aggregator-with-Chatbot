@@ -14,6 +14,7 @@ use App\Http\Controllers\UserAuthController;
 use App\Http\Controllers\UserDashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\AdminLocationController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\NewsController;
@@ -1998,6 +1999,11 @@ Route::post('/admin-login-location/precise', [AdminLocationController::class, 's
     ->middleware('auth:admin')
     ->name('admin-login-location.precise');
 
+// GPS Location Update endpoint for all authenticated admins (Superadmin, Department, Office)
+Route::post('/admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])
+    ->middleware('auth:admin')
+    ->name('admin.update-gps-location');
+
 // ============================================================================
 // SUPERADMIN ROUTES (RBAC: SuperAdmin Role Required)
 // ============================================================================
@@ -2052,8 +2058,7 @@ Route::prefix('superadmin')->group(function () {
         Route::delete('admin-access/{id}', [App\Http\Controllers\AdminAccessController::class, 'destroy'])->name('superadmin.admin-access.delete');
         Route::post('admin-access/bulk-delete', [App\Http\Controllers\AdminAccessController::class, 'bulkDestroy'])->name('superadmin.admin-access.bulk-delete');
         
-        // GPS Location Update (Available to all authenticated admins)
-        Route::post('admin-access/update-gps', [App\Http\Controllers\AdminAccessController::class, 'updateGpsLocation'])->name('admin.update-gps-location');
+        // GPS Location Update route moved globally (see above) to allow all admin roles
 
         // ====================================================================
         // ADMIN MANAGEMENT (Superadmin Only)
