@@ -2890,6 +2890,7 @@
                 isSwiping: false,
                 toastSeenKey: null,
                 seenToastIds: new Set(),
+                currentCsrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 
                 // Comments are now always visible, no toggle needed
                 
@@ -2929,6 +2930,30 @@
                         if (!document.hidden) {
                             this.loadNotifications();
                         }
+                    });
+                },
+
+                refreshCsrfToken() {
+                    return fetch('/csrf-token', {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.csrf_token) {
+                            this.currentCsrfToken = data.csrf_token;
+                            const meta = document.querySelector('meta[name="csrf-token"]');
+                            if (meta) {
+                                meta.setAttribute('content', data.csrf_token);
+                            }
+                        }
+                        return this.currentCsrfToken;
+                    })
+                    .catch(error => {
+                        console.error('Error refreshing CSRF token:', error);
+                        return this.currentCsrfToken;
                     });
                 },
                 
@@ -2987,18 +3012,21 @@
                         return;
                     }
 
-                    fetch('/user/comments', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            content: this.commentContent,
-                            content_type: contentType,
-                            content_id: contentId
-                        })
+                    this.refreshCsrfToken()
+                    .then((csrfToken) => {
+                        return fetch('/user/comments', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': csrfToken || document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                content: this.commentContent,
+                                content_type: contentType,
+                                content_id: contentId
+                            })
+                        });
                     })
                     .then(response => response.json())
                     .then(data => {
@@ -3112,19 +3140,22 @@
                         return;
                     }
 
-                    fetch('/user/comments', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            content: this.replyContent,
-                            content_type: contentType,
-                            content_id: contentId,
-                            parent_id: parentCommentId
-                        })
+                    this.refreshCsrfToken()
+                    .then((csrfToken) => {
+                        return fetch('/user/comments', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRF-TOKEN': csrfToken || document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                content: this.replyContent,
+                                content_type: contentType,
+                                content_id: contentId,
+                                parent_id: parentCommentId
+                            })
+                        });
                     })
                     .then(response => response.json())
                     .then(data => {
