@@ -117,27 +117,34 @@
         /* Enhanced modal styles - now using Tailwind classes */
         
         .modal-category {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.3rem 1rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
         }
         
         .category-announcement {
-            background-color: #dbeafe;
-            color: #1e40af;
+            background: linear-gradient(135deg, #dbeafe 0%, #60a5fa 100%);
+            color: #1e3a8a;
         }
         
         .category-event {
-            background-color: #d1fae5;
-            color: #065f46;
+            background: linear-gradient(135deg, #bbf7d0 0%, #34d399 100%);
+            color: #064e3b;
         }
         
         .category-news {
-            background-color: #fee2e2;
-            color: #b91c1c;
+            background: linear-gradient(135deg, #fecaca 0%, #f87171 100%);
+            color: #7f1d1d;
         }
         
         }
@@ -175,9 +182,9 @@
             padding: 1rem 1.25rem;
             line-height: 1.8;
             color: #111827;
-            background: #fdf7ed;
+            background: #fffbeb;
             border-radius: 0.75rem;
-            border: 1px dashed #e5b98a;
+            border: 1px dashed #fbbf24;
             font-size: 0.95rem;
             white-space: pre-line;
             box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
@@ -208,8 +215,8 @@
             gap: 0.5rem;
             padding: 0.35rem 0.9rem;
             border-radius: 9999px;
-            background: #fef6e7;
-            border: 1px solid #f5d6a4;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
             font-size: 0.8rem;
             color: #92400e;
             font-weight: 500;
@@ -318,9 +325,9 @@
         }
 
         .content-modal-bulletin {
-            background: #e6cfb3;
+            background: #fef3c7;
             border-radius: 18px;
-            border: 2px solid #c59a6c;
+            border: 2px solid #fbbf24;
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.4);
             position: relative;
         }
@@ -332,7 +339,7 @@
             top: 12px;
             width: 70px;
             height: 16px;
-            background: #f5ebe0;
+            background: #f9fafb;
             border-radius: 9999px;
             box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
             pointer-events: none;
@@ -349,7 +356,7 @@
         }
 
         .content-modal-header {
-            background: linear-gradient(135deg, #c59a6c 0%, #9a6b45 100%);
+            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
             position: relative;
             display: flex;
             align-items: center;
@@ -2187,14 +2194,7 @@
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
                 <div class="p-6 border-b border-gray-200 modal-header content-modal-header">
-                    <div class="flex flex-col items-center justify-center w-full gap-1">
-                        <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
-                        <span class="modal-category" :class="{
-                                'category-announcement': activeModal.category === 'announcement',
-                                'category-event': activeModal.category === 'event',
-                                'category-news': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
-                    </div>
+                    <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
                     <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn content-modal-close" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -2202,6 +2202,12 @@
                 <div class="p-6 modal-content-area pb-28">
                     <template x-if="activeModal">
                         <div>
+                            <span class="modal-category" :class="{
+                                'category-announcement': activeModal.category === 'announcement',
+                                'category-event': activeModal.category === 'event',
+                                'category-news': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
+                            
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
                                 <div>
