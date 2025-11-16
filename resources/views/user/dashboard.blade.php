@@ -2086,7 +2086,32 @@
                                     </div>
                                 @endif
                                 <span class="font-medium block">{{ $event->title }}</span>
-                                <p class="text-sm text-gray-500 mt-1">Date: {{ $event->event_date ? $event->event_date->format('M d, Y') : 'TBD' }}</p>
+                                <div class="mt-1 flex items-center flex-wrap gap-2">
+                                    <p class="text-sm text-gray-500">
+                                        Date: {{ $event->event_date ? $event->event_date->format('M d, Y') : 'TBD' }}
+                                    </p>
+                                    @if($event->eventStatus === 'ongoing')
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                                            <i class="fas fa-circle-play mr-1"></i>
+                                            {{ $event->eventStatusText }}
+                                        </span>
+                                    @elseif($event->eventStatus === 'upcoming')
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                            <i class="fas fa-calendar-plus mr-1"></i>
+                                            {{ $event->eventStatusText }}
+                                        </span>
+                                    @elseif($event->eventStatus === 'past')
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                                            <i class="fas fa-calendar-check mr-1"></i>
+                                            {{ $event->eventStatusText }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                                            <i class="fas fa-calendar-alt mr-1"></i>
+                                            {{ $event->eventStatusText }}
+                                        </span>
+                                    @endif
+                                </div>
                                 @if($event->location)
                                     <p class="text-sm text-green-600 mt-1 flex items-center">
                                         <i class="fas fa-map-marker-alt mr-1 text-xs"></i>
