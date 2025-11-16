@@ -2141,6 +2141,10 @@
                         locationBtnText.textContent = 'Allow Location Access';
                     }
                     if (locationStatus) locationStatus.style.display = 'none';
+                    // Close location modal if open (for non-admin types)
+                    if (locationModal) {
+                        locationModal.classList.remove('show');
+                    }
                     
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
@@ -2185,6 +2189,22 @@
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login as Super Admin';
                     submitBtn.disabled = false;
                     
+                    // Automatically show location permission modal for admin types
+                    setTimeout(function() {
+                        if (!locationPermissionGranted && locationModal) {
+                            locationModal.classList.add('show');
+                            locationError.style.display = 'none';
+                            locationLoading.style.display = 'none';
+                            const locationHelp = document.getElementById('location-help');
+                            if (locationHelp) {
+                                locationHelp.style.display = 'none';
+                            }
+                            if (locationModalAllow) {
+                                locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                            }
+                        }
+                    }, 300); // Small delay to ensure UI is updated
+                    
                 } else if (selectedType === 'department-admin' || selectedType === 'office-admin') {
                     // Clear other fields
                     clearGroup(['username-field', 'gmail-field']);
@@ -2213,12 +2233,32 @@
                     submitBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> Login as ${adminType}`;
                     submitBtn.disabled = false;
                     
+                    // Automatically show location permission modal for admin types
+                    setTimeout(function() {
+                        if (!locationPermissionGranted && locationModal) {
+                            locationModal.classList.add('show');
+                            locationError.style.display = 'none';
+                            locationLoading.style.display = 'none';
+                            const locationHelp = document.getElementById('location-help');
+                            if (locationHelp) {
+                                locationHelp.style.display = 'none';
+                            }
+                            if (locationModalAllow) {
+                                locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                            }
+                        }
+                    }, 300); // Small delay to ensure UI is updated
+                    
                 } else {
                     // Hide location permission button for other types
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
                     // Reset location permission state
                     locationPermissionGranted = false;
                     locationData = null;
+                    // Close location modal if open
+                    if (locationModal) {
+                        locationModal.classList.remove('show');
+                    }
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Select Login Type';
                     submitBtn.disabled = true;
                 }
@@ -2228,6 +2268,24 @@
             console.log('Initializing form fields...'); // Debug log
             // Respect current selected value (from old input or server), do not override
             toggleFields();
+            
+            // Check if admin login type is selected on page load and show modal automatically
+            setTimeout(function() {
+                const selectedType = loginTypeSelect.value;
+                const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedType);
+                if (isAdminLogin && !locationPermissionGranted && locationModal) {
+                    locationModal.classList.add('show');
+                    locationError.style.display = 'none';
+                    locationLoading.style.display = 'none';
+                    const locationHelp = document.getElementById('location-help');
+                    if (locationHelp) {
+                        locationHelp.style.display = 'none';
+                    }
+                    if (locationModalAllow) {
+                        locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                    }
+                }
+            }, 500); // Delay to ensure all elements are initialized
 
             // OTP modal behavior
             const otpModal = document.getElementById('otp-modal');
