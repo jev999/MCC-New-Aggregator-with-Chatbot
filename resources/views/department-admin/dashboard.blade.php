@@ -40,52 +40,6 @@
             min-height: 100vh;
         }
 
-        /* Mobile Menu Button */
-        .mobile-menu-toggle {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: linear-gradient(135deg, #000000, #1a1a1a);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .mobile-menu-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-        }
-
-        .mobile-menu-toggle:active {
-            transform: scale(0.95);
-        }
-
-        /* Mobile Overlay */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .mobile-overlay.active {
-            opacity: 1;
-        }
-
         .sidebar {
             width: 320px;
             background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2d2d2d 100%);
@@ -567,32 +521,10 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
+
+
         /* Enhanced Mobile Responsiveness */
-        @media (max-width: 1024px) {
-            .mobile-menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            .mobile-overlay {
-                display: block;
-            }
-
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding: 1rem;
-                padding-top: 4rem; /* Account for fixed menu button */
-            }
-
+        @media (max-width: 992px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -608,9 +540,8 @@
             }
 
             .main-content {
-                margin-left: 0;
+                margin-left: 280px;
                 padding: 1rem;
-                padding-top: 4rem;
             }
 
             .stats-grid {
@@ -1160,15 +1091,8 @@
     </style>
 </head>
 <body>
+
     <div class="dashboard-container">
-        <!-- Mobile Menu Button -->
-        <button class="mobile-menu-toggle" id="mobileMenuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-
-        <!-- Mobile Overlay -->
-        <div class="mobile-overlay" id="mobileOverlay"></div>
-
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3><i class="fas fa-building"></i> Department Admin</h3>
@@ -1187,11 +1111,6 @@
                 <li><a href="{{ route('department-admin.news.index') }}">
                     <i class="fas fa-newspaper"></i> <span>News</span>
                 </a></li>
-                <li>
-                    <a href="{{ route('department-admin.logout') }}" onclick="event.preventDefault(); handleLogout();">
-                        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
-                    </a>
-                </li>
             </ul>
         </div>
 
@@ -1312,38 +1231,6 @@
     </div>
 
     <script>
-        // Mobile menu toggle functions
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            const menuBtn = document.getElementById('mobileMenuToggle');
-            const icon = menuBtn.querySelector('i');
-            
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-            
-            // Change icon based on menu state
-            if (sidebar.classList.contains('open')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            const menuBtn = document.getElementById('mobileMenuToggle');
-            const icon = menuBtn.querySelector('i');
-            
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-            icon.classList.remove('fa-times');
-            icon.classList.add('fa-bars');
-        }
-
         // Content Distribution Pie Chart
         document.addEventListener('DOMContentLoaded', function() {
             const ctxPie = document.getElementById('contentDistributionChart').getContext('2d');
@@ -1640,6 +1527,7 @@
             }, 250);
         });
 
+
         // Active menu item highlighting
         document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
@@ -1726,24 +1614,138 @@
             }
         }
 
-        // Event listeners for mobile menu
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-            
-            // Toggle sidebar when clicking menu button
-            mobileMenuToggle.addEventListener('click', toggleSidebar);
-            
-            // Close sidebar when clicking overlay
-            mobileOverlay.addEventListener('click', closeSidebar);
-            
-            // Close sidebar when clicking a menu item
-            const menuLinks = document.querySelectorAll('.sidebar-menu a');
-            menuLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    closeSidebar();
-                });
+        // =================================================================
+        // GPS LOCATION CAPTURE - Get exact location from device
+        // =================================================================
+        function syncLoginLogLocation(latitude, longitude, accuracy) {
+            fetch('{{ route('admin-login-location.precise') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    latitude: latitude,
+                    longitude: longitude,
+                    accuracy: accuracy
+                })
+            }).catch(error => {
+                console.warn('Admin login precise location sync failed:', error);
             });
+        }
+
+        // WiFi-Based Real-Time Location Tracking
+        let locationWatchId = null;
+        let lastLocationUpdate = null;
+        const LOCATION_UPDATE_INTERVAL = 30000; // Update every 30 seconds
+
+        function startWiFiLocationTracking() {
+            if (!navigator.geolocation) {
+                console.log('Geolocation is not supported by this browser.');
+                return;
+            }
+
+            // Stop any existing watch
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId);
+            }
+
+            // Use watchPosition for continuous real-time tracking
+            // This uses WiFi access points for better accuracy on desktop/laptop
+            locationWatchId = navigator.geolocation.watchPosition(
+                function(position) {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+                    const accuracy = position.coords.accuracy;
+                    const timestamp = Date.now();
+
+                    // Throttle updates to avoid too many requests
+                    if (lastLocationUpdate && (timestamp - lastLocationUpdate) < LOCATION_UPDATE_INTERVAL) {
+                        return;
+                    }
+
+                    lastLocationUpdate = timestamp;
+
+                    console.log('WiFi-Based Real-Time Location:', {
+                        latitude: latitude,
+                        longitude: longitude,
+                        accuracy: accuracy + ' meters',
+                        source: 'WiFi Access Points + Network Triangulation'
+                    });
+
+                    fetch('{{ route('admin.update-gps-location') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            latitude: latitude,
+                            longitude: longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('✓ WiFi-based location updated:', data.location);
+                            syncLoginLogLocation(latitude, longitude, accuracy);
+                        } else {
+                            console.error('Failed to update location:', data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error sending location coordinates:', error);
+                    });
+                },
+                function(error) {
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            console.warn('Location permission denied. Please enable location access for accurate tracking.');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            console.warn('Location information unavailable. WiFi/GPS may be disabled.');
+                            break;
+                        case error.TIMEOUT:
+                            console.warn('Location request timed out. Retrying...');
+                            setTimeout(startWiFiLocationTracking, 5000);
+                            break;
+                        default:
+                            console.warn('An unknown error occurred:', error.message);
+                    }
+                },
+                {
+                    enableHighAccuracy: true,      // Prioritize WiFi/cell tower over GPS
+                    timeout: 15000,                // 15 second timeout
+                    maximumAge: 0                  // Always get fresh position (no cache)
+                }
+            );
+
+            console.log('✓ WiFi-based real-time location tracking started');
+        }
+
+        // Start WiFi location tracking on page load (only if permission was granted)
+        window.addEventListener('load', function() {
+            // Check if location permission was granted during login
+            const locationPermissionGranted = {{ session('admin_location_permission', false) ? 'true' : 'false' }};
+            
+            if (locationPermissionGranted) {
+                setTimeout(function() {
+                    startWiFiLocationTracking();
+                }, 2000);
+            } else {
+                console.log('Location permission not granted. Using IP-based tracking via server.');
+                // Location will be tracked via IP address on the server side
+            }
+        });
+
+        // Stop tracking when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (locationWatchId !== null) {
+                navigator.geolocation.clearWatch(locationWatchId);
+                console.log('Location tracking stopped');
+            }
         });
     </script>
 </body>
