@@ -1024,18 +1024,22 @@
 
     // Toggle target options based on visibility scope
     function toggleTargetOptions() {
-        const visibilityScope = document.querySelector('input[name="visibility_scope"]:checked').value;
+        const scopeInput = document.querySelector('input[name="visibility_scope"]:checked') || document.querySelector('input[name="visibility_scope"]');
+        if (!scopeInput) {
+            return;
+        }
+        const visibilityScope = scopeInput.value;
         const departmentGroup = document.getElementById('target-department-group');
         const officeGroup = document.getElementById('target-office-group');
-
-        // Hide all target groups first
-        departmentGroup.style.display = 'none';
-        officeGroup.style.display = 'none';
-
-        // Show appropriate target group
-        if (visibilityScope === 'department') {
+        if (departmentGroup) {
+            departmentGroup.style.display = 'none';
+        }
+        if (officeGroup) {
+            officeGroup.style.display = 'none';
+        }
+        if (visibilityScope === 'department' && departmentGroup) {
             departmentGroup.style.display = 'block';
-        } else if (visibilityScope === 'office') {
+        } else if (visibilityScope === 'office' && officeGroup) {
             officeGroup.style.display = 'block';
         }
     }
@@ -1043,6 +1047,60 @@
     // Initialize target options on page load
     document.addEventListener('DOMContentLoaded', function() {
         toggleTargetOptions();
+    });
+
+    let superadminEventIdleTimer;
+    let superadminEventIsIdle = false;
+
+    function refreshSuperadminEventCsrfToken() {
+        fetch('/csrf-token')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                document.querySelectorAll('input[name="_token"]').forEach(function(input) {
+                    input.value = data.csrf_token;
+                });
+            })
+            .catch(function() {});
+    }
+
+    function resetSuperadminEventIdleTimer() {
+        clearTimeout(superadminEventIdleTimer);
+        if (superadminEventIsIdle) {
+            refreshSuperadminEventCsrfToken();
+            superadminEventIsIdle = false;
+        }
+        superadminEventIdleTimer = setTimeout(function() {
+            superadminEventIsIdle = true;
+        }, 15 * 60 * 1000);
+    }
+
+    setInterval(refreshSuperadminEventCsrfToken, 25 * 60 * 1000);
+
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(function(eventName) {
+        document.addEventListener(eventName, resetSuperadminEventIdleTimer, true);
+    });
+
+    resetSuperadminEventIdleTimer();
+
+    document.querySelector('.event-form').addEventListener('submit', function(e) {
+        const csrfToken = document.querySelector('input[name="_token"]').value;
+        if (!csrfToken || csrfToken.length < 40) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Session Expired',
+                text: 'Your session has expired. The page will refresh to get a new session.',
+                confirmButtonText: 'Refresh Page',
+                confirmButtonColor: '#ef4444',
+                allowOutsideClick: false
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+        }
     });
 </script>
 @endsection
