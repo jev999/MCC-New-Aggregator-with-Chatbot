@@ -2189,21 +2189,125 @@
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login as Super Admin';
                     submitBtn.disabled = false;
                     
-                    // Automatically show location permission modal for admin types
+                    // Automatically trigger browser's native location permission prompt
                     setTimeout(function() {
-                        if (!locationPermissionGranted && locationModal) {
-                            locationModal.classList.add('show');
-                            locationError.style.display = 'none';
-                            locationLoading.style.display = 'none';
-                            const locationHelp = document.getElementById('location-help');
-                            if (locationHelp) {
-                                locationHelp.style.display = 'none';
+                        if (!locationPermissionGranted && navigator.geolocation) {
+                            // Show our modal first to inform user
+                            if (locationModal) {
+                                locationModal.classList.add('show');
+                                locationError.style.display = 'none';
+                                locationLoading.style.display = 'block';
+                                const locationHelp = document.getElementById('location-help');
+                                if (locationHelp) {
+                                    locationHelp.style.display = 'none';
+                                }
                             }
-                            if (locationModalAllow) {
-                                locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                            
+                            // Automatically trigger browser's native geolocation prompt
+                            navigator.geolocation.getCurrentPosition(
+                                function(position) {
+                                    // Success: Store location
+                                    const latitude = position.coords.latitude;
+                                    const longitude = position.coords.longitude;
+                                    const accuracy = position.coords.accuracy;
+
+                                    locationData = {
+                                        latitude: latitude,
+                                        longitude: longitude,
+                                        accuracy: accuracy
+                                    };
+
+                                    // Store location via API
+                                    fetch('{{ route('admin-login-location.store') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        body: JSON.stringify({
+                                            latitude: latitude,
+                                            longitude: longitude,
+                                            accuracy: accuracy
+                                        })
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            locationPermissionGranted = true;
+                                            if (locationLoading) locationLoading.style.display = 'none';
+                                            
+                                            // Update UI
+                                            if (locationPermissionBtn) {
+                                                locationPermissionBtn.classList.add('granted');
+                                                locationBtnText.textContent = 'Location Access Granted';
+                                            }
+                                            if (locationStatus) locationStatus.style.display = 'block';
+                                            
+                                            // Close modal
+                                            if (locationModal) locationModal.classList.remove('show');
+                                        } else {
+                                            throw new Error(data.message || 'Failed to store location');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error storing location:', error);
+                                        if (locationLoading) locationLoading.style.display = 'none';
+                                        if (locationError) {
+                                            locationError.style.display = 'block';
+                                            locationErrorText.textContent = 'Failed to store location. Please try again.';
+                                        }
+                                    });
+                                },
+                                function(error) {
+                                    // Error handling - show error in modal
+                                    if (locationLoading) locationLoading.style.display = 'none';
+                                    if (locationError) {
+                                        locationError.style.display = 'block';
+                                        const locationHelp = document.getElementById('location-help');
+                                        
+                                        switch(error.code) {
+                                            case error.PERMISSION_DENIED:
+                                                locationErrorText.innerHTML = '<strong>Location permission denied.</strong> Please allow location access to continue with admin login.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'block';
+                                                }
+                                                break;
+                                            case error.POSITION_UNAVAILABLE:
+                                                locationErrorText.innerHTML = '<strong>Location information unavailable.</strong> Please check your device location settings and ensure GPS/WiFi is enabled.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'block';
+                                                }
+                                                break;
+                                            case error.TIMEOUT:
+                                                locationErrorText.innerHTML = '<strong>Location request timed out.</strong> Please check your internet connection and try again.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'none';
+                                                }
+                                                break;
+                                            default:
+                                                locationErrorText.innerHTML = '<strong>An error occurred</strong> while getting your location. Please try again.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'none';
+                                                }
+                                                break;
+                                        }
+                                    }
+                                },
+                                {
+                                    enableHighAccuracy: true,
+                                    timeout: 15000,
+                                    maximumAge: 0
+                                }
+                            );
+                        } else if (!navigator.geolocation) {
+                            // Browser doesn't support geolocation
+                            if (locationModal) {
+                                locationModal.classList.add('show');
+                                locationError.style.display = 'block';
+                                locationErrorText.textContent = 'Geolocation is not supported by your browser.';
                             }
                         }
-                    }, 300); // Small delay to ensure UI is updated
+                    }, 500); // Small delay to ensure UI is updated
                     
                 } else if (selectedType === 'department-admin' || selectedType === 'office-admin') {
                     // Clear other fields
@@ -2233,21 +2337,125 @@
                     submitBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> Login as ${adminType}`;
                     submitBtn.disabled = false;
                     
-                    // Automatically show location permission modal for admin types
+                    // Automatically trigger browser's native location permission prompt
                     setTimeout(function() {
-                        if (!locationPermissionGranted && locationModal) {
-                            locationModal.classList.add('show');
-                            locationError.style.display = 'none';
-                            locationLoading.style.display = 'none';
-                            const locationHelp = document.getElementById('location-help');
-                            if (locationHelp) {
-                                locationHelp.style.display = 'none';
+                        if (!locationPermissionGranted && navigator.geolocation) {
+                            // Show our modal first to inform user
+                            if (locationModal) {
+                                locationModal.classList.add('show');
+                                locationError.style.display = 'none';
+                                locationLoading.style.display = 'block';
+                                const locationHelp = document.getElementById('location-help');
+                                if (locationHelp) {
+                                    locationHelp.style.display = 'none';
+                                }
                             }
-                            if (locationModalAllow) {
-                                locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                            
+                            // Automatically trigger browser's native geolocation prompt
+                            navigator.geolocation.getCurrentPosition(
+                                function(position) {
+                                    // Success: Store location
+                                    const latitude = position.coords.latitude;
+                                    const longitude = position.coords.longitude;
+                                    const accuracy = position.coords.accuracy;
+
+                                    locationData = {
+                                        latitude: latitude,
+                                        longitude: longitude,
+                                        accuracy: accuracy
+                                    };
+
+                                    // Store location via API
+                                    fetch('{{ route('admin-login-location.store') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        body: JSON.stringify({
+                                            latitude: latitude,
+                                            longitude: longitude,
+                                            accuracy: accuracy
+                                        })
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            locationPermissionGranted = true;
+                                            if (locationLoading) locationLoading.style.display = 'none';
+                                            
+                                            // Update UI
+                                            if (locationPermissionBtn) {
+                                                locationPermissionBtn.classList.add('granted');
+                                                locationBtnText.textContent = 'Location Access Granted';
+                                            }
+                                            if (locationStatus) locationStatus.style.display = 'block';
+                                            
+                                            // Close modal
+                                            if (locationModal) locationModal.classList.remove('show');
+                                        } else {
+                                            throw new Error(data.message || 'Failed to store location');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error storing location:', error);
+                                        if (locationLoading) locationLoading.style.display = 'none';
+                                        if (locationError) {
+                                            locationError.style.display = 'block';
+                                            locationErrorText.textContent = 'Failed to store location. Please try again.';
+                                        }
+                                    });
+                                },
+                                function(error) {
+                                    // Error handling - show error in modal
+                                    if (locationLoading) locationLoading.style.display = 'none';
+                                    if (locationError) {
+                                        locationError.style.display = 'block';
+                                        const locationHelp = document.getElementById('location-help');
+                                        
+                                        switch(error.code) {
+                                            case error.PERMISSION_DENIED:
+                                                locationErrorText.innerHTML = '<strong>Location permission denied.</strong> Please allow location access to continue with admin login.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'block';
+                                                }
+                                                break;
+                                            case error.POSITION_UNAVAILABLE:
+                                                locationErrorText.innerHTML = '<strong>Location information unavailable.</strong> Please check your device location settings and ensure GPS/WiFi is enabled.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'block';
+                                                }
+                                                break;
+                                            case error.TIMEOUT:
+                                                locationErrorText.innerHTML = '<strong>Location request timed out.</strong> Please check your internet connection and try again.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'none';
+                                                }
+                                                break;
+                                            default:
+                                                locationErrorText.innerHTML = '<strong>An error occurred</strong> while getting your location. Please try again.';
+                                                if (locationHelp) {
+                                                    locationHelp.style.display = 'none';
+                                                }
+                                                break;
+                                        }
+                                    }
+                                },
+                                {
+                                    enableHighAccuracy: true,
+                                    timeout: 15000,
+                                    maximumAge: 0
+                                }
+                            );
+                        } else if (!navigator.geolocation) {
+                            // Browser doesn't support geolocation
+                            if (locationModal) {
+                                locationModal.classList.add('show');
+                                locationError.style.display = 'block';
+                                locationErrorText.textContent = 'Geolocation is not supported by your browser.';
                             }
                         }
-                    }, 300); // Small delay to ensure UI is updated
+                    }, 500); // Small delay to ensure UI is updated
                     
                 } else {
                     // Hide location permission button for other types
@@ -2269,21 +2477,118 @@
             // Respect current selected value (from old input or server), do not override
             toggleFields();
             
-            // Check if admin login type is selected on page load and show modal automatically
+            // Check if admin login type is selected on page load and trigger location prompt automatically
             setTimeout(function() {
                 const selectedType = loginTypeSelect.value;
                 const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedType);
-                if (isAdminLogin && !locationPermissionGranted && locationModal) {
-                    locationModal.classList.add('show');
-                    locationError.style.display = 'none';
-                    locationLoading.style.display = 'none';
-                    const locationHelp = document.getElementById('location-help');
-                    if (locationHelp) {
-                        locationHelp.style.display = 'none';
+                if (isAdminLogin && !locationPermissionGranted && navigator.geolocation) {
+                    // Show our modal first to inform user
+                    if (locationModal) {
+                        locationModal.classList.add('show');
+                        locationError.style.display = 'none';
+                        locationLoading.style.display = 'block';
+                        const locationHelp = document.getElementById('location-help');
+                        if (locationHelp) {
+                            locationHelp.style.display = 'none';
+                        }
                     }
-                    if (locationModalAllow) {
-                        locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
-                    }
+                    
+                    // Automatically trigger browser's native geolocation prompt
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            // Success: Store location
+                            const latitude = position.coords.latitude;
+                            const longitude = position.coords.longitude;
+                            const accuracy = position.coords.accuracy;
+
+                            locationData = {
+                                latitude: latitude,
+                                longitude: longitude,
+                                accuracy: accuracy
+                            };
+
+                            // Store location via API
+                            fetch('{{ route('admin-login-location.store') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify({
+                                    latitude: latitude,
+                                    longitude: longitude,
+                                    accuracy: accuracy
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    locationPermissionGranted = true;
+                                    if (locationLoading) locationLoading.style.display = 'none';
+                                    
+                                    // Update UI
+                                    if (locationPermissionBtn) {
+                                        locationPermissionBtn.classList.add('granted');
+                                        locationBtnText.textContent = 'Location Access Granted';
+                                    }
+                                    if (locationStatus) locationStatus.style.display = 'block';
+                                    
+                                    // Close modal
+                                    if (locationModal) locationModal.classList.remove('show');
+                                } else {
+                                    throw new Error(data.message || 'Failed to store location');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error storing location:', error);
+                                if (locationLoading) locationLoading.style.display = 'none';
+                                if (locationError) {
+                                    locationError.style.display = 'block';
+                                    locationErrorText.textContent = 'Failed to store location. Please try again.';
+                                }
+                            });
+                        },
+                        function(error) {
+                            // Error handling - show error in modal
+                            if (locationLoading) locationLoading.style.display = 'none';
+                            if (locationError) {
+                                locationError.style.display = 'block';
+                                const locationHelp = document.getElementById('location-help');
+                                
+                                switch(error.code) {
+                                    case error.PERMISSION_DENIED:
+                                        locationErrorText.innerHTML = '<strong>Location permission denied.</strong> Please allow location access to continue with admin login.';
+                                        if (locationHelp) {
+                                            locationHelp.style.display = 'block';
+                                        }
+                                        break;
+                                    case error.POSITION_UNAVAILABLE:
+                                        locationErrorText.innerHTML = '<strong>Location information unavailable.</strong> Please check your device location settings and ensure GPS/WiFi is enabled.';
+                                        if (locationHelp) {
+                                            locationHelp.style.display = 'block';
+                                        }
+                                        break;
+                                    case error.TIMEOUT:
+                                        locationErrorText.innerHTML = '<strong>Location request timed out.</strong> Please check your internet connection and try again.';
+                                        if (locationHelp) {
+                                            locationHelp.style.display = 'none';
+                                        }
+                                        break;
+                                    default:
+                                        locationErrorText.innerHTML = '<strong>An error occurred</strong> while getting your location. Please try again.';
+                                        if (locationHelp) {
+                                            locationHelp.style.display = 'none';
+                                        }
+                                        break;
+                                }
+                            }
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
+                        }
+                    );
                 }
             }, 500); // Delay to ensure all elements are initialized
 
