@@ -40,6 +40,29 @@
             min-height: 100vh;
         }
 
+        /* Mobile Sidebar Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            background: linear-gradient(135deg, #000000, #1a1a1a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mobile-menu-toggle:active {
+            transform: scale(0.95);
+        }
+
         .sidebar {
             width: 320px;
             background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #2d2d2d 100%);
@@ -168,6 +191,7 @@
             margin: 0.25rem 0;
             overflow: hidden;
             letter-spacing: 0.3px;
+            min-height: 44px;
         }
 
         .sidebar-menu a::before {
@@ -304,6 +328,8 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            min-height: 44px;
+            touch-action: manipulation;
         }
 
         .logout-btn:hover {
@@ -455,6 +481,11 @@
             color: #333;
             transition: all 0.3s ease;
             text-align: center;
+            min-height: 44px;
+            touch-action: manipulation;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .quick-action-card:hover {
@@ -521,9 +552,17 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
+        /* Mobile Responsiveness */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 280px;
+            }
+            
+            .main-content {
+                margin-left: 280px;
+            }
+        }
 
-
-        /* Enhanced Mobile Responsiveness */
         @media (max-width: 992px) {
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -535,25 +574,33 @@
         }
 
         @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
             .sidebar {
+                transform: translateX(-100%);
                 width: 280px;
             }
-
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
             .main-content {
-                margin-left: 280px;
+                margin-left: 0;
                 padding: 1rem;
+                padding-top: 5rem;
             }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
+            
             .header {
                 flex-direction: column;
                 gap: 1rem;
                 text-align: center;
                 padding: 1.25rem 1.5rem;
+                margin-top: 1rem;
             }
 
             .header h1 {
@@ -565,14 +612,19 @@
             }
 
             .logout-btn {
-                min-height: 44px;
+                width: 100%;
+                justify-content: center;
                 padding: 0.75rem 1.25rem;
                 font-size: 0.95rem;
-                touch-action: manipulation;
             }
 
             .logout-btn:active {
                 transform: scale(0.98);
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
             }
 
             .stat-card {
@@ -594,8 +646,6 @@
 
             .quick-action-card {
                 padding: 1.25rem;
-                min-height: 44px;
-                touch-action: manipulation;
             }
 
             .quick-action-card:active {
@@ -605,13 +655,25 @@
             .department-badge {
                 font-size: 1rem;
                 padding: 0.625rem 1.25rem;
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+            
+            .chart-container {
+                padding: 1.25rem;
+            }
+            
+            .chart-container h2 {
+                font-size: 1.2rem;
+                margin-bottom: 1.25rem;
             }
         }
 
         @media (max-width: 576px) {
             .main-content {
                 padding: 0.75rem;
-                padding-top: 3.5rem;
+                padding-top: 5rem;
             }
 
             .header {
@@ -696,7 +758,7 @@
         @media (max-width: 480px) {
             .main-content {
                 padding: 0.5rem;
-                padding-top: 3.25rem;
+                padding-top: 4.5rem;
             }
 
             .header {
@@ -790,7 +852,7 @@
         @media (max-width: 360px) {
             .main-content {
                 padding: 0.375rem;
-                padding-top: 3rem;
+                padding-top: 4rem;
             }
 
             .header {
@@ -884,7 +946,7 @@
         /* Landscape Mobile Optimization */
         @media (max-width: 768px) and (orientation: landscape) {
             .main-content {
-                padding-top: 3rem;
+                padding-top: 4rem;
             }
 
             .header {
@@ -893,6 +955,10 @@
 
             .chart-wrapper {
                 height: 240px;
+            }
+            
+            .sidebar {
+                overflow-y: auto;
             }
         }
 
@@ -909,6 +975,19 @@
 
             .sidebar-menu a:hover {
                 transform: none;
+            }
+            
+            .stat-card:active,
+            .quick-action-card:active {
+                transform: scale(0.98);
+            }
+            
+            .logout-btn:active {
+                transform: scale(0.98);
+            }
+            
+            .sidebar-menu a:active {
+                transform: translateX(4px);
             }
         }
 
@@ -1088,11 +1167,36 @@
         .sidebar::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #f3f4f6, #9ca3af);
         }
+        
+        /* Mobile overlay for sidebar */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .sidebar-overlay.mobile-open {
+            display: block;
+        }
     </style>
 </head>
 <body>
 
     <div class="dashboard-container">
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle" id="mobileMenuToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Mobile Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3><i class="fas fa-building"></i> Department Admin</h3>
@@ -1231,6 +1335,40 @@
     </div>
 
     <script>
+        // Mobile sidebar toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('mobile-open');
+                sidebarOverlay.classList.toggle('mobile-open');
+            }
+            
+            mobileMenuToggle.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+            
+            // Close sidebar when clicking on a menu item on mobile
+            if (window.innerWidth <= 768) {
+                const menuLinks = document.querySelectorAll('.sidebar-menu a');
+                menuLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('mobile-open');
+                        sidebarOverlay.classList.remove('mobile-open');
+                    });
+                });
+            }
+            
+            // Close sidebar on window resize if it becomes larger
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('mobile-open');
+                    sidebarOverlay.classList.remove('mobile-open');
+                }
+            });
+        });
+
         // Content Distribution Pie Chart
         document.addEventListener('DOMContentLoaded', function() {
             const ctxPie = document.getElementById('contentDistributionChart').getContext('2d');
@@ -1273,7 +1411,7 @@
                     },
                     plugins: {
                         legend: {
-                            position: 'right',
+                            position: window.innerWidth <= 768 ? 'bottom' : 'right',
                             labels: {
                                 padding: 20,
                                 boxWidth: 15,
@@ -1281,7 +1419,7 @@
                                 pointStyle: 'circle',
                                 font: {
                                     family: 'Inter',
-                                    size: 13,
+                                    size: window.innerWidth <= 768 ? 11 : 13,
                                     weight: '500'
                                 },
                                 color: '#4b5563'
@@ -1296,11 +1434,11 @@
                             cornerRadius: 12,
                             padding: 12,
                             titleFont: {
-                                size: 14,
+                                size: window.innerWidth <= 768 ? 12 : 14,
                                 weight: 'bold'
                             },
                             bodyFont: {
-                                size: 13
+                                size: window.innerWidth <= 768 ? 11 : 13
                             },
                             callbacks: {
                                 label: function(context) {
@@ -1394,12 +1532,12 @@
                 },
                 plugins: {
                     legend: {
-                        position: 'top',
+                        position: window.innerWidth <= 768 ? 'bottom' : 'top',
                         labels: {
                             usePointStyle: true,
                             padding: 20,
                             font: {
-                                size: 12,
+                                size: window.innerWidth <= 768 ? 10 : 12,
                                 weight: '600',
                                 family: 'Inter'
                             },
@@ -1428,11 +1566,11 @@
                         usePointStyle: true,
                         padding: 12,
                         titleFont: {
-                            size: 14,
+                            size: window.innerWidth <= 768 ? 12 : 14,
                             weight: 'bold'
                         },
                         bodyFont: {
-                            size: 13
+                            size: window.innerWidth <= 768 ? 11 : 13
                         },
                         callbacks: {
                             title: function(tooltipItems) {
@@ -1453,7 +1591,7 @@
                         ticks: {
                             color: '#6b7280',
                             font: {
-                                size: 11,
+                                size: window.innerWidth <= 768 ? 9 : 11,
                                 weight: '500'
                             },
                             padding: 10
@@ -1468,7 +1606,7 @@
                         ticks: {
                             color: '#6b7280',
                             font: {
-                                size: 11,
+                                size: window.innerWidth <= 768 ? 9 : 11,
                                 weight: '500'
                             },
                             padding: 10,
@@ -1504,17 +1642,33 @@
                 
                 // Update chart options for mobile
                 if (isMobile) {
+                    activityChart.options.plugins.legend.position = 'bottom';
                     activityChart.options.plugins.legend.labels.font.size = 10;
                     activityChart.options.scales.x.ticks.font.size = 9;
                     activityChart.options.scales.y.ticks.font.size = 9;
                     activityChart.options.plugins.tooltip.titleFont.size = 12;
                     activityChart.options.plugins.tooltip.bodyFont.size = 11;
+                    
+                    if (typeof contentDistributionChart !== 'undefined') {
+                        contentDistributionChart.options.plugins.legend.position = 'bottom';
+                        contentDistributionChart.options.plugins.legend.labels.font.size = 11;
+                        contentDistributionChart.options.plugins.tooltip.titleFont.size = 12;
+                        contentDistributionChart.options.plugins.tooltip.bodyFont.size = 11;
+                    }
                 } else {
+                    activityChart.options.plugins.legend.position = 'top';
                     activityChart.options.plugins.legend.labels.font.size = 12;
                     activityChart.options.scales.x.ticks.font.size = 11;
                     activityChart.options.scales.y.ticks.font.size = 11;
                     activityChart.options.plugins.tooltip.titleFont.size = 14;
                     activityChart.options.plugins.tooltip.bodyFont.size = 13;
+                    
+                    if (typeof contentDistributionChart !== 'undefined') {
+                        contentDistributionChart.options.plugins.legend.position = 'right';
+                        contentDistributionChart.options.plugins.legend.labels.font.size = 13;
+                        contentDistributionChart.options.plugins.tooltip.titleFont.size = 14;
+                        contentDistributionChart.options.plugins.tooltip.bodyFont.size = 13;
+                    }
                 }
                 
                 activityChart.resize();
@@ -1523,10 +1677,10 @@
                 // Resize pie chart if it exists
                 if (typeof contentDistributionChart !== 'undefined') {
                     contentDistributionChart.resize();
+                    contentDistributionChart.update('none');
                 }
             }, 250);
         });
-
 
         // Active menu item highlighting
         document.addEventListener('DOMContentLoaded', function() {
