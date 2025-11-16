@@ -1838,10 +1838,15 @@ Route::get('/test-chatbots', function () {
 // Public content routes (no authentication required)
 Route::get('/announcements', [PublicContentController::class, 'announcements'])->name('public.announcements.index');
 Route::get('/announcements/{announcement}', [PublicContentController::class, 'showAnnouncement'])->name('public.announcements.show');
+Route::get('/share/announcement/{token}', [PublicContentController::class, 'shareAnnouncement'])->name('public.announcements.share');
+
 Route::get('/events', [PublicContentController::class, 'events'])->name('public.events.index');
 Route::get('/events/{event}', [PublicContentController::class, 'showEvent'])->name('public.events.show');
+Route::get('/share/event/{token}', [PublicContentController::class, 'shareEvent'])->name('public.events.share');
+
 Route::get('/news', [PublicContentController::class, 'news'])->name('public.news.index');
 Route::get('/news/{news}', [PublicContentController::class, 'showNews'])->name('public.news.show');
+Route::get('/share/news/{token}', [PublicContentController::class, 'shareNews'])->name('public.news.share');
 
 
 

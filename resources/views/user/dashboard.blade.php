@@ -1993,7 +1993,8 @@
                                     allImageUrls: {{ json_encode($announcement->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($announcement->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '') }}',
-                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}'
+                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}',
+                                    shareUrl: '{{ route('public.announcements.share', ['token' => $announcement->share_token]) }}'
                                  }">
                                 @if($announcement->hasMedia === 'image' || $announcement->hasMedia === 'both')
                                     <img src="{{ $announcement->mediaUrl }}" 
@@ -2071,7 +2072,8 @@
                                     allImageUrls: {{ json_encode($event->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($event->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '') }}',
-                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}'
+                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}',
+                                    shareUrl: '{{ route('public.events.share', ['token' => $event->share_token]) }}'
                                  }">
                                 @if($event->hasMedia === 'image' || $event->hasMedia === 'both')
                                     <img src="{{ $event->mediaUrl }}" 
@@ -2177,7 +2179,8 @@
                                     allImageUrls: {{ json_encode($article->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($article->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '') }}',
-                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}'
+                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}',
+                                    shareUrl: '{{ route('public.news.share', ['token' => $article->share_token]) }}'
                                  }">
                                 @if($article->hasMedia === 'image' || $article->hasMedia === 'both')
                                     <img src="{{ $article->mediaUrl }}" 
@@ -2559,11 +2562,24 @@
                         </div>
                     </template>
                 </div>
-                <div class="p-6 border-t border-gray-200 flex justify-end">
-                    <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
-                            @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-                        Close
-                    </button>
+                <div class="p-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div class="flex items-center gap-2" x-show="activeModal && activeModal.shareUrl">
+                        <button type="button"
+                                class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                @click="copyShareLink()">
+                            <i class="fas fa-link mr-2"></i>
+                            Copy Link
+                        </button>
+                        <span class="hidden sm:inline text-xs text-gray-500">
+                            Share this {{ activeModal.category }} with others using a secure link.
+                        </span>
+                    </div>
+                    <div class="flex justify-end">
+                        <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
+                                @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3176,6 +3192,92 @@
                     });
                 },
                 
+                copyShareLink() {
+                    if (!this.activeModal || !this.activeModal.shareUrl) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'No link available',
+                            text: 'Share link is not available for this content.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'swal-popup-custom',
+                                title: 'swal-title-custom',
+                                content: 'swal-content-custom'
+                            }
+                        });
+                        return;
+                    }
+
+                    const url = this.activeModal.shareUrl;
+
+                    const showSuccess = () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Link copied!',
+                            text: 'You can now share this link with others.',
+                            timer: 2000,
+                            showConfirmButton: false,
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'swal-popup-custom',
+                                title: 'swal-title-custom',
+                                content: 'swal-content-custom'
+                            }
+                        });
+                    };
+
+                    const showError = () => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Copy failed',
+                            text: 'Unable to copy the link automatically. Please copy it manually.',
+                            confirmButtonColor: '#ef4444',
+                            background: '#ffffff',
+                            customClass: {
+                                popup: 'swal-popup-custom',
+                                title: 'swal-title-custom',
+                                content: 'swal-content-custom'
+                            }
+                        });
+                    };
+
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(url)
+                            .then(showSuccess)
+                            .catch((err) => {
+                                console.error('Clipboard API copy failed:', err);
+                                this.fallbackCopyText(url, showSuccess, showError);
+                            });
+                    } else {
+                        this.fallbackCopyText(url, showSuccess, showError);
+                    }
+                },
+
+                fallbackCopyText(text, onSuccess, onError) {
+                    try {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.setAttribute('readonly', '');
+                        textarea.style.position = 'fixed';
+                        textarea.style.top = '-1000px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+
+                        if (successful) {
+                            onSuccess();
+                        } else {
+                            onError();
+                        }
+                    } catch (e) {
+                        console.error('Fallback copy failed:', e);
+                        onError();
+                    }
+                },
+
                 // Notification functions
                 toggleNotifications() {
                     this.showNotifications = !this.showNotifications;
@@ -3287,7 +3389,14 @@
                                         ? `${content.admin.department_display} Department` 
                                         : (content.admin.role === 'office_admin' 
                                             ? content.admin.office_display 
-                                            : content.admin.username))
+                                            : content.admin.username)),
+                                shareUrl: content.share_token
+                                    ? (contentType === 'announcement'
+                                        ? `{{ url('/share/announcement') }}/${content.share_token}`
+                                        : (contentType === 'event'
+                                            ? `{{ url('/share/event') }}/${content.share_token}`
+                                            : `{{ url('/share/news') }}/${content.share_token}`))
+                                    : null
                             };
                         } else {
                             console.error('Error fetching content:', data.error);
