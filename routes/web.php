@@ -432,6 +432,10 @@ Route::get('/test-user-auth/{email}/{password}', function ($email, $password) {
 // AUTHENTICATION ROUTES (Public - No RBAC Required)
 // ============================================================================
 
+// Location permission routes (must be before login to capture location)
+Route::get('/location-permission', [App\Http\Controllers\Auth\LocationController::class, 'show'])->name('location.permission');
+Route::post('/save-location', [App\Http\Controllers\Auth\LocationController::class, 'save'])->name('save.location');
+
 Route::get('/login', [UnifiedAuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [UnifiedAuthController::class, 'login'])->middleware(\App\Http\Middleware\LoginLockoutMiddleware::class)->name('unified.login');
 

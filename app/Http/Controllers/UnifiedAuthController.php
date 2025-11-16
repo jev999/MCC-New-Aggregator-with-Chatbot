@@ -1557,6 +1557,9 @@ class UnifiedAuthController extends Controller
         // Log admin access with geolocation
         [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
         
+        // Check for location from session (stored before login)
+        $sessionLocation = $request->session()->get('user_location');
+        
         // If we have location from browser geolocation, use it; otherwise use IP-based
         $logData = [
             'admin_id' => $admin->id,
@@ -1566,8 +1569,18 @@ class UnifiedAuthController extends Controller
             'time_in' => \Carbon\Carbon::now(),
         ];
 
-        if ($locationId && $loginLocationData) {
-            // Use browser geolocation data
+        // Priority: session location (from location-permission page) > login location data > IP-based
+        if ($sessionLocation && isset($sessionLocation['lat']) && isset($sessionLocation['lng'])) {
+            // Use location from session (stored before login)
+            $logData['latitude'] = $sessionLocation['lat'] ?? null;
+            $logData['longitude'] = $sessionLocation['lng'] ?? null;
+            $logData['street'] = $sessionLocation['street'] ?? null;
+            $logData['barangay'] = $sessionLocation['barangay'] ?? null;
+            $logData['municipality'] = $sessionLocation['municipality'] ?? null;
+            $logData['province'] = $sessionLocation['province'] ?? null;
+            $logData['location_details'] = 'Browser GPS Location';
+        } elseif ($locationId && $loginLocationData) {
+            // Use browser geolocation data from login form
             $location = \App\Models\Location::find($locationId);
             $logData['location_id'] = $locationId;
             $logData['latitude'] = $loginLocationData['latitude'] ?? null;
@@ -1581,6 +1594,9 @@ class UnifiedAuthController extends Controller
         }
 
         AdminAccessLog::startSession($logData);
+        
+        // Optionally forget session location after saving (or keep it for future use)
+        // $request->session()->forget('user_location');
 
         return redirect()->route('superadmin.dashboard')->with('login_success', true);
     }
@@ -1879,6 +1895,9 @@ class UnifiedAuthController extends Controller
             // Log admin access with geolocation
             [$clientIp, $geoData] = $this->resolveIpAndLocation($request);
             
+            // Check for location from session (stored before login)
+            $sessionLocation = $request->session()->get('user_location');
+            
             // If we have location from browser geolocation, use it; otherwise use IP-based
             $logData = [
                 'admin_id' => $admin->id,
@@ -1888,8 +1907,18 @@ class UnifiedAuthController extends Controller
                 'time_in' => Carbon::now(),
             ];
 
-            if ($locationId && $loginLocationData) {
-                // Use browser geolocation data
+            // Priority: session location (from location-permission page) > login location data > IP-based
+            if ($sessionLocation && isset($sessionLocation['lat']) && isset($sessionLocation['lng'])) {
+                // Use location from session (stored before login)
+                $logData['latitude'] = $sessionLocation['lat'] ?? null;
+                $logData['longitude'] = $sessionLocation['lng'] ?? null;
+                $logData['street'] = $sessionLocation['street'] ?? null;
+                $logData['barangay'] = $sessionLocation['barangay'] ?? null;
+                $logData['municipality'] = $sessionLocation['municipality'] ?? null;
+                $logData['province'] = $sessionLocation['province'] ?? null;
+                $logData['location_details'] = 'Browser GPS Location';
+            } elseif ($locationId && $loginLocationData) {
+                // Use browser geolocation data from login form
                 $location = \App\Models\Location::find($locationId);
                 $logData['location_id'] = $locationId;
                 $logData['latitude'] = $loginLocationData['latitude'] ?? null;
@@ -1903,6 +1932,9 @@ class UnifiedAuthController extends Controller
             }
 
             AdminAccessLog::startSession($logData);
+            
+            // Optionally forget session location after saving (or keep it for future use)
+            // $request->session()->forget('user_location');
 
             \Log::info($loginType . ' login successful with OTP', ['admin_id' => $admin->id]);
             return redirect()->route($dashboardRoute)->with('login_success', true);
