@@ -1696,11 +1696,8 @@
             });
         });
 
-        // Enhanced Mobile-Responsive SweetAlert logout functionality
+        // SweetAlert logout functionality (aligned with Superadmin dashboard)
         async function handleLogout() {
-            // Detect if device is mobile
-            const isMobile = window.innerWidth <= 768;
-            
             const result = await Swal.fire({
                 title: 'Are you sure?',
                 text: 'You will be logged out of your account.',
@@ -1710,58 +1707,31 @@
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Yes, logout',
                 cancelButtonText: 'Cancel',
-                reverseButtons: true,
-                // Mobile-specific configurations
-                width: isMobile ? '90%' : '32rem',
-                padding: isMobile ? '1.5rem' : '2rem',
-                customClass: {
-                    popup: 'mobile-swal-popup',
-                    title: 'mobile-swal-title',
-                    htmlContainer: 'mobile-swal-text',
-                    confirmButton: 'mobile-swal-confirm',
-                    cancelButton: 'mobile-swal-cancel',
-                    actions: 'mobile-swal-actions'
-                },
-                buttonsStyling: false,
-                focusConfirm: !isMobile, // Disable auto-focus on mobile
-                allowEnterKey: !isMobile, // Disable enter key on mobile to prevent accidental submission
-                backdrop: true,
-                allowOutsideClick: true,
-                allowEscapeKey: true,
-                heightAuto: false, // Better mobile control
-                scrollbarPadding: false
+                reverseButtons: true
             });
-            
+
             if (result.isConfirmed) {
-                // Show mobile-optimized loading
+                // Show loading state
                 Swal.fire({
                     title: 'Logging out...',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     showConfirmButton: false,
-                    width: isMobile ? '80%' : '24rem',
-                    padding: isMobile ? '1.5rem' : '2rem',
-                    customClass: {
-                        popup: 'mobile-swal-loading',
-                        title: 'mobile-swal-loading-title'
-                    },
-                    buttonsStyling: false,
-                    heightAuto: false,
                     didOpen: () => {
                         Swal.showLoading();
                     }
                 });
-                
+
                 // Create and submit logout form
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '{{ route('department-admin.logout') }}';
-                
+
                 const csrfToken = document.createElement('input');
                 csrfToken.type = 'hidden';
                 csrfToken.name = '_token';
                 csrfToken.value = '{{ csrf_token() }}';
-                
+
                 form.appendChild(csrfToken);
                 document.body.appendChild(form);
                 form.submit();
