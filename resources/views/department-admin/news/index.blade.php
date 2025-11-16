@@ -483,6 +483,14 @@
         transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
 
+    .mobile-menu-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        padding: 0.6rem 0.75rem;
+    }
+
     /* Enhanced Page Header */
     .page-header {
         background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -1171,7 +1179,23 @@
     /* Responsive Design */
     @media (max-width: 1024px) {
         .mobile-menu-btn {
-            display: block !important;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem 1.25rem 2rem;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+            width: 260px;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
         }
 
         .page-header {
