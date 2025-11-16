@@ -2570,9 +2570,8 @@
                             <i class="fas fa-link mr-2"></i>
                             Copy Link
                         </button>
-                        <span class="hidden sm:inline text-xs text-gray-500">
-                            Share this {{ activeModal.category }} with others using a secure link.
-                        </span>
+                        <span class="hidden sm:inline text-xs text-gray-500"
+                              x-text="activeModal ? ('Share this ' + activeModal.category + ' with others using a secure link.') : 'Share this content with others using a secure link.'"></span>
                     </div>
                     <div class="flex justify-end">
                         <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
