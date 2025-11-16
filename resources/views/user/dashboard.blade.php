@@ -3006,7 +3006,8 @@
                             this.commentContent = '';
                             this.loadComments();
                         } else {
-                            alert('Error posting comment: ' + (data.error || 'Unknown error'));
+                            console.error('Error response when posting comment:', data);
+                            alert('Error posting comment: ' + (data.error || data.message || 'Unknown error'));
                         }
                     })
                     .catch(error => {
@@ -3068,7 +3069,7 @@
                                 } else {
                                     Swal.fire({
                                         title: 'Error!',
-                                        text: 'Error deleting comment: ' + (data.error || 'Unknown error'),
+                                        text: 'Error deleting comment: ' + (data.error || data.message || 'Unknown error'),
                                         icon: 'error',
                                         confirmButtonColor: '#ef4444',
                                         confirmButtonText: 'OK'
