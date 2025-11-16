@@ -1994,7 +1994,7 @@
                                     allVideoUrls: {{ json_encode($announcement->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '') }}',
                                     publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}',
-                                    shareUrl: '{{ route('public.announcements.share', ['token' => $announcement->share_token]) }}'
+                                    shareUrl: '{{ $announcement->share_token ? route('public.announcements.share', ['token' => $announcement->share_token]) : '' }}'
                                  }">
                                 @if($announcement->hasMedia === 'image' || $announcement->hasMedia === 'both')
                                     <img src="{{ $announcement->mediaUrl }}" 
@@ -2073,7 +2073,7 @@
                                     allVideoUrls: {{ json_encode($event->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '') }}',
                                     publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}',
-                                    shareUrl: '{{ route('public.events.share', ['token' => $event->share_token]) }}'
+                                    shareUrl: '{{ $event->share_token ? route('public.events.share', ['token' => $event->share_token]) : '' }}'
                                  }">
                                 @if($event->hasMedia === 'image' || $event->hasMedia === 'both')
                                     <img src="{{ $event->mediaUrl }}" 
@@ -2180,7 +2180,7 @@
                                     allVideoUrls: {{ json_encode($article->allVideoUrls ?? []) }},
                                     videoUrl: '{{ $article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '') }}',
                                     publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}',
-                                    shareUrl: '{{ route('public.news.share', ['token' => $article->share_token]) }}'
+                                    shareUrl: '{{ $article->share_token ? route('public.news.share', ['token' => $article->share_token]) : '' }}'
                                  }">
                                 @if($article->hasMedia === 'image' || $article->hasMedia === 'both')
                                     <img src="{{ $article->mediaUrl }}" 
