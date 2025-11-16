@@ -1152,48 +1152,40 @@
             }
         }
         
-        /* Location consent styling */
-        .security-consent {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.875rem;
-            padding: 0.875rem 1rem;
-            background: linear-gradient(180deg, #f0f9ff 0%, #eaf6ff 100%);
-            border: 1px solid #bae6fd;
-            border-radius: var(--radius-sm);
-            margin-top: 0.75rem;
-            box-shadow: 0 1px 2px rgba(59, 130, 246, 0.08);
-        }
-
-        .security-consent .consent-checkbox {
-            margin-top: 0.2rem;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: var(--secondary);
-            flex-shrink: 0;
-        }
-
-        .security-consent .consent-text {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-            color: var(--gray-700);
-        }
-
-        .security-consent .consent-title {
+        /* Location permission button styling */
+        .btn-location-permission {
+            background: linear-gradient(135deg, #f0f9ff 0%, #eaf6ff 100%);
+            color: var(--secondary);
+            border: 2px solid #bae6fd;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
-            font-weight: 700;
-            color: var(--secondary);
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
 
-        .security-consent .consent-title i {
-            color: var(--secondary);
+        .btn-location-permission:hover {
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+            border-color: var(--secondary-light);
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
         }
 
-        .security-consent .badge-required {
+        .btn-location-permission:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .btn-location-permission.granted {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .btn-location-permission.granted:hover {
+            background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+        }
+
+        .badge-required {
             background: #fee2e2;
             color: #b91c1c;
             font-weight: 700;
@@ -1204,14 +1196,95 @@
             letter-spacing: 0.02em;
         }
 
-        .security-consent .consent-desc {
-            font-size: 0.85rem;
-            line-height: 1.5;
+        /* Location permission modal */
+        #location-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
         }
 
-        @media (max-width: 480px) {
-            .security-consent { padding: 0.75rem; }
-            .security-consent .consent-desc { font-size: 0.8125rem; }
+        #location-modal.show {
+            display: flex;
+        }
+
+        .location-modal-content {
+            background: #fff;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            position: relative;
+            margin: 20px;
+        }
+
+        .location-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: center;
+            background: linear-gradient(180deg, #f0f9ff 0%, #eaf6ff 100%);
+        }
+
+        .location-modal-header h3 {
+            margin: 0;
+            color: var(--secondary);
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .location-modal-body {
+            padding: 24px;
+        }
+
+        .location-modal-body p {
+            color: var(--gray-700);
+            line-height: 1.6;
+            margin-bottom: 20px;
+            font-size: 0.9375rem;
+        }
+
+        .location-modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .location-modal-actions .btn {
+            flex: 1;
+            margin: 0;
+        }
+
+        .btn-cancel {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-cancel:hover {
+            background: var(--gray-300);
+        }
+
+        .location-loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .location-loading i {
+            font-size: 2rem;
+            color: var(--secondary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         /* OTP Resend Button Styling */
@@ -1413,22 +1486,18 @@
                         <a href="{{ route('password.request') }}">Forgot Password?</a>
                     </div>
 
-                    <!-- Location Permission Checkbox (Only for Admin Types) -->
+                    <!-- Location Permission Button (Only for Admin Types) -->
                     <div class="form-group" id="location-permission-field" style="display: none;">
-                        <div class="security-consent">
-                            <input type="checkbox"
-                                   id="location_permission"
-                                   name="location_permission"
-                                   value="1" {{ old('location_permission') ? 'checked' : '' }}
-                                   class="consent-checkbox">
-                            <label for="location_permission" class="consent-text">
-                                <span class="consent-title">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    Allow location tracking
-                                    <span class="badge-required">Required</span>
-                                </span>
-                                <span class="consent-desc">We record your IP address and approximate location to detect suspicious activity and maintain audit logs. This information is used only for security purposes and handled according to our data retention policy.</span>
-                            </label>
+                        <button type="button" id="location-permission-btn" class="btn btn-location-permission">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span id="location-btn-text">Allow Location Access</span>
+                            <span class="badge-required" style="margin-left: 8px;">Required</span>
+                        </button>
+                        <div id="location-status" style="margin-top: 8px; display: none;">
+                            <div class="success-message" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                <i class="fas fa-check-circle"></i>
+                                Location access granted
+                            </div>
                         </div>
                         @error('location_permission')
                             <div class="error-message" style="margin-top: 8px;">{{ $message }}</div>
@@ -1505,6 +1574,47 @@
                 </form>
                 
                 <div class="text-muted" style="margin-top:8px; text-align: center; font-size: 13px;">Code expires in 10 minutes. Max 5 attempts. Check your Outlook app inbox.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location Permission Modal -->
+    <div id="location-modal">
+        <div class="location-modal-content">
+            <div class="location-modal-header">
+                <h3>
+                    <i class="fas fa-map-marker-alt"></i>
+                    Location Access Required
+                </h3>
+            </div>
+            <div class="location-modal-body">
+                <p>
+                    To continue with admin login, we need to access your device's location. 
+                    This is required for security and audit logging purposes.
+                </p>
+                <p style="font-size: 0.875rem; color: var(--gray-600);">
+                    <i class="fas fa-info-circle"></i>
+                    Your exact location coordinates will be recorded and used only for security purposes.
+                </p>
+                <div id="location-loading" class="location-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p style="margin-top: 12px;">Getting your location...</p>
+                </div>
+                <div id="location-error" style="display: none;">
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="location-error-text"></span>
+                    </div>
+                </div>
+                <div class="location-modal-actions">
+                    <button type="button" class="btn btn-cancel" id="location-modal-cancel">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn" id="location-modal-allow">
+                        <i class="fas fa-check"></i>
+                        Allow Access
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1673,12 +1783,157 @@
             const authLinks = document.getElementById('auth-links');
             const forgotPassword = document.getElementById('forgot-password');
             
+            // Location permission state
+            let locationPermissionGranted = false;
+            let locationData = null;
+            
+            // Location permission modal elements
+            const locationModal = document.getElementById('location-modal');
+            const locationPermissionBtn = document.getElementById('location-permission-btn');
+            const locationStatus = document.getElementById('location-status');
+            const locationBtnText = document.getElementById('location-btn-text');
+            const locationModalAllow = document.getElementById('location-modal-allow');
+            const locationModalCancel = document.getElementById('location-modal-cancel');
+            const locationLoading = document.getElementById('location-loading');
+            const locationError = document.getElementById('location-error');
+            const locationErrorText = document.getElementById('location-error-text');
+            
             // Check if there's an account lockout message
             const hasAccountLockout = document.querySelector('.lockout-message') !== null;
             
             // Initialize lockout countdown if there's an account lockout
             if (hasAccountLockout) {
                 initializeLockoutCountdown();
+            }
+
+            // Location permission button click handler
+            if (locationPermissionBtn) {
+                locationPermissionBtn.addEventListener('click', function() {
+                    if (!locationPermissionGranted) {
+                        locationModal.classList.add('show');
+                        locationError.style.display = 'none';
+                        locationLoading.style.display = 'none';
+                    }
+                });
+            }
+
+            // Location modal cancel button
+            if (locationModalCancel) {
+                locationModalCancel.addEventListener('click', function() {
+                    locationModal.classList.remove('show');
+                });
+            }
+
+            // Location modal allow button
+            if (locationModalAllow) {
+                locationModalAllow.addEventListener('click', function() {
+                    if (!navigator.geolocation) {
+                        locationError.style.display = 'block';
+                        locationErrorText.textContent = 'Geolocation is not supported by your browser.';
+                        return;
+                    }
+
+                    // Show loading state
+                    locationLoading.style.display = 'block';
+                    locationError.style.display = 'none';
+                    locationModalAllow.disabled = true;
+                    locationModalCancel.disabled = true;
+
+                    // Request high accuracy location
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            // Success: Store location
+                            const latitude = position.coords.latitude;
+                            const longitude = position.coords.longitude;
+                            const accuracy = position.coords.accuracy;
+
+                            locationData = {
+                                latitude: latitude,
+                                longitude: longitude,
+                                accuracy: accuracy
+                            };
+
+                            // Store location via API
+                            fetch('{{ route('admin-login-location.store') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify({
+                                    latitude: latitude,
+                                    longitude: longitude,
+                                    accuracy: accuracy
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    locationPermissionGranted = true;
+                                    locationLoading.style.display = 'none';
+                                    
+                                    // Update UI
+                                    locationPermissionBtn.classList.add('granted');
+                                    locationBtnText.textContent = 'Location Access Granted';
+                                    locationStatus.style.display = 'block';
+                                    
+                                    // Close modal
+                                    locationModal.classList.remove('show');
+                                    
+                                    // Re-enable buttons
+                                    locationModalAllow.disabled = false;
+                                    locationModalCancel.disabled = false;
+                                } else {
+                                    throw new Error(data.message || 'Failed to store location');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error storing location:', error);
+                                locationLoading.style.display = 'none';
+                                locationError.style.display = 'block';
+                                locationErrorText.textContent = 'Failed to store location. Please try again.';
+                                locationModalAllow.disabled = false;
+                                locationModalCancel.disabled = false;
+                            });
+                        },
+                        function(error) {
+                            // Error handling
+                            locationLoading.style.display = 'none';
+                            locationError.style.display = 'block';
+                            locationModalAllow.disabled = false;
+                            locationModalCancel.disabled = false;
+
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    locationErrorText.textContent = 'Location permission denied. Please allow location access to continue with admin login.';
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    locationErrorText.textContent = 'Location information unavailable. Please check your device settings.';
+                                    break;
+                                case error.TIMEOUT:
+                                    locationErrorText.textContent = 'Location request timed out. Please try again.';
+                                    break;
+                                default:
+                                    locationErrorText.textContent = 'An error occurred while getting your location. Please try again.';
+                                    break;
+                            }
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
+                        }
+                    );
+                });
+            }
+
+            // Close modal when clicking outside
+            if (locationModal) {
+                locationModal.addEventListener('click', function(e) {
+                    if (e.target === locationModal) {
+                        locationModal.classList.remove('show');
+                    }
+                });
             }
 
             // Add real-time validation to security-checked inputs
@@ -1733,75 +1988,20 @@
 
                 // Enforce location permission for admin login types before proceeding
                 const selectedLoginType = document.getElementById('login_type').value;
-                const locCheckbox = document.getElementById('location_permission');
                 const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedLoginType);
                 
                 if (isAdminLogin) {
-                    if (!locCheckbox || !locCheckbox.checked) {
-                        showSecurityError('You must allow location tracking to continue with admin login.');
-                        if (locCheckbox) {
-                            locCheckbox.classList.add('error');
-                            try { locCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
-                            try { locCheckbox.focus(); } catch (err) {}
+                    if (!locationPermissionGranted) {
+                        showSecurityError('You must allow location access to continue with admin login. Please click the "Allow Location Access" button.');
+                        const locationPermissionField = document.getElementById('location-permission-field');
+                        if (locationPermissionField) {
+                            try { locationPermissionField.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+                        }
+                        // Open the location modal if not already open
+                        if (locationModal && !locationModal.classList.contains('show')) {
+                            locationModal.classList.add('show');
                         }
                         return false;
-                    }
-
-                    // Capture browser geolocation if checkbox is checked
-                    if (locCheckbox && locCheckbox.checked && navigator.geolocation) {
-                        // Disable submit button to prevent double submission
-                        const submitBtn = document.getElementById('submit-btn');
-                        const originalBtnText = submitBtn.innerHTML;
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
-
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                // Success: Store location via API
-                                const latitude = position.coords.latitude;
-                                const longitude = position.coords.longitude;
-                                const accuracy = position.coords.accuracy;
-
-                                fetch('{{ route('admin-login-location.store') }}', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    },
-                                    body: JSON.stringify({
-                                        latitude: latitude,
-                                        longitude: longitude,
-                                        accuracy: accuracy
-                                    })
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        console.log('Location stored successfully:', data.location);
-                                        // Continue with form submission
-                                        proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                                    } else {
-                                        throw new Error(data.message || 'Failed to store location');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error storing location:', error);
-                                    // If storing location fails, continue login using IP-based geolocation fallback
-                                    proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                                });
-                            },
-                            function(error) {
-                                // Error: Location permission denied or unavailable - continue login with IP-based fallback
-                                console.warn('Geolocation error during admin login:', error);
-                                proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 10000,
-                                maximumAge: 0
-                            }
-                        );
-                        return false; // Prevent form submission until location is captured
                     }
                 }
 
@@ -1889,13 +2089,16 @@
                     // Clear admin fields
                     clearGroup(['username-field']);
                     
-                    // Hide location permission checkbox for students/faculty
+                    // Hide location permission button for students/faculty
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
-                    // Ensure not required for non-admin
-                    setRequired('location_permission', false);
-                    // Uncheck if previously checked
-                    const locCb1 = document.getElementById('location_permission');
-                    if (locCb1) { locCb1.checked = false; }
+                    // Reset location permission state
+                    locationPermissionGranted = false;
+                    locationData = null;
+                    if (locationPermissionBtn) {
+                        locationPermissionBtn.classList.remove('granted');
+                        locationBtnText.textContent = 'Allow Location Access';
+                    }
+                    if (locationStatus) locationStatus.style.display = 'none';
                     
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
@@ -1917,9 +2120,16 @@
                     // Clear student/gmail fields
                     clearGroup(['gmail-field', 'username-field']);
                     
-                    // Show location permission checkbox for superadmin
+                    // Show location permission button for superadmin
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    setRequired('location_permission', true);
+                    // Reset location permission state when switching to admin
+                    locationPermissionGranted = false;
+                    locationData = null;
+                    if (locationPermissionBtn) {
+                        locationPermissionBtn.classList.remove('granted');
+                        locationBtnText.textContent = 'Allow Location Access';
+                    }
+                    if (locationStatus) locationStatus.style.display = 'none';
                     
                     // Show MS365 fields for superadmin
                     ms365Field.style.display = 'block';
@@ -1937,9 +2147,16 @@
                     // Clear other fields
                     clearGroup(['username-field', 'gmail-field']);
                     
-                    // Show location permission checkbox for department and office admins
+                    // Show location permission button for department and office admins
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    setRequired('location_permission', true);
+                    // Reset location permission state when switching to admin
+                    locationPermissionGranted = false;
+                    locationData = null;
+                    if (locationPermissionBtn) {
+                        locationPermissionBtn.classList.remove('granted');
+                        locationBtnText.textContent = 'Allow Location Access';
+                    }
+                    if (locationStatus) locationStatus.style.display = 'none';
                     
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
@@ -1955,9 +2172,11 @@
                     submitBtn.disabled = false;
                     
                 } else {
-                    // Hide location permission checkbox for other types
+                    // Hide location permission button for other types
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
-                    setRequired('location_permission', false);
+                    // Reset location permission state
+                    locationPermissionGranted = false;
+                    locationData = null;
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Select Login Type';
                     submitBtn.disabled = true;
                 }
