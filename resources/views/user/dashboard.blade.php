@@ -71,39 +71,6 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
-        
-        /* Modal transitions now handled by Alpine.js */
-        
-        /* Ensure Alpine.js transitions work properly with fixed positioning */
-        .fixed.inset-0[x-show] {
-            will-change: opacity;
-        }
-        
-        .modal-container {
-            will-change: transform, opacity;
-        }
-        
-        /* Force transition properties for Alpine.js modals */
-        [x-show].fixed {
-            transition-property: opacity;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Alpine.js transition support - ensure transforms work */
-        [x-transition] {
-            transition-property: opacity, transform;
-        }
-        
-        .modal-container {
-            transition-property: opacity, transform;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Ensure scale and translate work with transforms */
-        [x-transition] [x-transition] {
-            transition-property: opacity, transform;
-        }
-        
         .item-hover {
             transition: all 0.2s ease;
         }
@@ -2223,23 +2190,11 @@
         <!-- Content Modal -->
         <div x-show="activeModal !== null" 
              x-cloak
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0"
-             x-transition:enter-end="opacity-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100"
-             x-transition:leave-end="opacity-0"
              class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4"
              style="z-index: 9999;"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
             <div class="modal-container overflow-hidden flex flex-col mt-6"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 transform scale-95 -translate-y-4"
-                 x-transition:enter-end="opacity-100 transform scale-100 translate-y-0"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 transform scale-100 translate-y-0"
-                 x-transition:leave-end="opacity-0 transform scale-95 -translate-y-4"
                  @click.stop>
                 <!-- Enhanced Bulletin Board Header -->
                 <div class="bulletin-board-header bg-gradient-to-r from-amber-50 to-yellow-50 border-b-4 border-amber-200 p-6 relative">
