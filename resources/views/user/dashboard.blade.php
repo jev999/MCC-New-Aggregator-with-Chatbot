@@ -2833,6 +2833,8 @@
                 touchStartY: 0,
                 touchCurrentY: 0,
                 isSwiping: false,
+                toastSeenKey: null,
+                seenToastIds: new Set(),
                 
                 // Comments are now always visible, no toggle needed
                 
@@ -2843,6 +2845,21 @@
                             this.loadComments();
                         }
                     });
+                    
+                    // Initialize toast seen storage key and load seen IDs for this user session
+                    try {
+                        this.toastSeenKey = 'user_dashboard_seen_notifications_' + '{{ auth()->id() }}';
+                        const storedSeen = sessionStorage.getItem(this.toastSeenKey);
+                        if (storedSeen) {
+                            const parsed = JSON.parse(storedSeen);
+                            if (Array.isArray(parsed)) {
+                                this.seenToastIds = new Set(parsed);
+                            }
+                        }
+                    } catch (e) {
+                        // If sessionStorage is unavailable, fall back to in-memory tracking only
+                        this.seenToastIds = new Set();
+                    }
                     
                     // Load notifications on page load
                     this.loadNotifications();
@@ -3283,7 +3300,10 @@
                         if (data.success && data.notifications !== undefined) {
                             // Detect new notifications
                             const newNotifications = data.notifications.filter(notification => {
-                                return !this.lastNotificationIds.has(notification.id);
+                                const id = notification.id;
+                                const alreadyInCurrentSession = this.lastNotificationIds.has(id);
+                                const alreadySeenThisLogin = this.seenToastIds && this.seenToastIds.has(id);
+                                return !alreadyInCurrentSession && !alreadySeenThisLogin;
                             });
                             
                             // Update notifications
@@ -3307,6 +3327,20 @@
                 },
                 
                 queueToast(notification) {
+                    // Mark this notification as seen for this browser session/login
+                    try {
+                        if (!this.seenToastIds) {
+                            this.seenToastIds = new Set();
+                        }
+                        this.seenToastIds.add(notification.id);
+                        if (this.toastSeenKey) {
+                            const idsArray = Array.from(this.seenToastIds);
+                            sessionStorage.setItem(this.toastSeenKey, JSON.stringify(idsArray));
+                        }
+                    } catch (e) {
+                        // Ignore storage errors, still show toast
+                    }
+                    
                     // Add to queue
                     this.toastQueue.push(notification);
                     
