@@ -180,13 +180,16 @@
         .modal-content {
             margin-top: 1.25rem;
             padding: 1rem 1.25rem;
-            line-height: 1.8;
+            line-height: 1.9;
             color: #111827;
             background: #fffbeb;
             border-radius: 0.75rem;
             border: 1px dashed #fbbf24;
-            font-size: 0.95rem;
+            font-size: 1rem;
+            font-weight: 400;
+            letter-spacing: 0.01em;
             white-space: pre-line;
+            word-break: break-word;
             box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
             position: relative;
         }
@@ -2391,7 +2394,8 @@
                             <div class="mt-4 pt-4 border-t border-gray-200">
                                 <div class="flex items-center text-sm text-gray-600">
                                     <i class="fas fa-user-shield mr-2"></i>
-                                    <span x-text="activeModal.publisher"></span>
+                                    <span class="font-semibold mr-1">Published by</span>
+                                    <span class="text-gray-800" x-text="activeModal.publisher"></span>
                                 </div>
                             </div>
                             
