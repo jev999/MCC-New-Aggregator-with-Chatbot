@@ -264,6 +264,7 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             transform: scale(0.7);
             transition: transform 0.4s ease;
+<<<<<<< HEAD
         }
 
         .modal-container.active {
@@ -378,6 +379,12 @@
                 height: 20px;
                 top: -12px;
             }
+=======
+        }
+
+        .modal-container.active {
+            transform: scale(1);
+>>>>>>> bb17e02b8192432d084f2f0a213655d879854dbc
         }
 
         @media (min-width: 640px) {
@@ -2153,10 +2160,17 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
+<<<<<<< HEAD
              class="fixed inset-0 bulletin-modal-backdrop flex items-start justify-center overflow-y-auto z-50 p-4"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
             <div class="modal-container overflow-hidden flex flex-col mt-6 active bulletin-modal-container"
+=======
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4"
+             @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
+             @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+            <div class="modal-container overflow-hidden flex flex-col mt-6 active"
+>>>>>>> bb17e02b8192432d084f2f0a213655d879854dbc
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform scale-95"
                  x-transition:enter-end="opacity-100 transform scale-100"
@@ -2164,6 +2178,7 @@
                  x-transition:leave-start="opacity-100 transform scale-100"
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
+<<<<<<< HEAD
                 <div class="p-5 sm:p-6 border-b border-amber-200 flex items-start justify-between modal-header bulletin-modal-header">
                     <div class="flex-1 flex flex-col items-center sm:items-start space-y-2">
                         <span class="modal-category"
@@ -2182,6 +2197,23 @@
                 <div class="p-6 modal-content-area pb-28 bulletin-modal-body">
                     <template x-if="activeModal">
                         <div>
+=======
+                <div class="p-6 border-b border-gray-200 flex items-center justify-between modal-header">
+                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeModal?.title"></h3>
+                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="p-6 modal-content-area pb-28">
+                    <template x-if="activeModal">
+                        <div>
+                            <span class="modal-category" :class="{
+                                'category-announcement': activeModal.category === 'announcement',
+                                'category-event': activeModal.category === 'event',
+                                'category-news': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
+                            
+>>>>>>> bb17e02b8192432d084f2f0a213655d879854dbc
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
                                 <div>
@@ -2440,8 +2472,13 @@
                         </div>
                     </template>
                 </div>
+<<<<<<< HEAD
                 <div class="p-4 sm:p-5 border-t border-amber-300 flex justify-end bulletin-modal-footer">
                     <button class="px-5 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 shadow-md hover:shadow-lg transition-all text-sm font-semibold tracking-wide" 
+=======
+                <div class="p-6 border-t border-gray-200 flex justify-end">
+                    <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
+>>>>>>> bb17e02b8192432d084f2f0a213655d879854dbc
                             @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         Close
                     </button>
