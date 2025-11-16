@@ -19,19 +19,6 @@ class AnnouncementObserver
      */
     public function created(Announcement $announcement): void
     {
-        // Ensure a unique share token exists for this announcement
-        if (empty($announcement->share_token)) {
-            try {
-                $announcement->share_token = bin2hex(random_bytes(16));
-                $announcement->saveQuietly();
-            } catch (\Throwable $e) {
-                \Log::error('Failed to generate share token for announcement', [
-                    'announcement_id' => $announcement->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
         // Create notifications when announcement is published
         if ($announcement->is_published) {
             $this->notificationService->createAnnouncementNotification($announcement);

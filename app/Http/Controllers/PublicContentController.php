@@ -62,25 +62,6 @@ class PublicContentController extends Controller
         return view('public.announcements.show', compact('announcement'));
     }
 
-    public function shareAnnouncement(string $token)
-    {
-        $announcement = Announcement::where('share_token', $token)
-            ->with('admin')
-            ->firstOrFail();
-
-        if (!$announcement->is_published) {
-            abort(404);
-        }
-
-        if ($announcement->visibility_scope !== 'all' && $announcement->visibility_scope !== null && $announcement->visibility_scope !== '') {
-            abort(404);
-        }
-
-        $announcement->load(['comments.user', 'comments.replies.user']);
-
-        return view('public.announcements.show', compact('announcement'));
-    }
-
     /**
      * Display a listing of published events
      */
@@ -134,25 +115,6 @@ class PublicContentController extends Controller
         return view('public.events.show', compact('event'));
     }
 
-    public function shareEvent(string $token)
-    {
-        $event = Event::where('share_token', $token)
-            ->with('admin')
-            ->firstOrFail();
-
-        if (!$event->is_published) {
-            abort(404);
-        }
-
-        if ($event->visibility_scope !== 'all' && $event->visibility_scope !== null && $event->visibility_scope !== '') {
-            abort(404);
-        }
-
-        $event->load(['comments.user', 'comments.replies.user']);
-
-        return view('public.events.show', compact('event'));
-    }
-
     /**
      * Display a listing of published news
      */
@@ -202,25 +164,6 @@ class PublicContentController extends Controller
 
         // Load admin and comments relationships for display
         $news->load(['admin', 'comments.user', 'comments.replies.user']);
-
-        return view('public.news.show', compact('news'));
-    }
-
-    public function shareNews(string $token)
-    {
-        $news = News::where('share_token', $token)
-            ->with('admin')
-            ->firstOrFail();
-
-        if (!$news->is_published) {
-            abort(404);
-        }
-
-        if ($news->visibility_scope !== 'all' && $news->visibility_scope !== null && $news->visibility_scope !== '') {
-            abort(404);
-        }
-
-        $news->load(['comments.user', 'comments.replies.user']);
 
         return view('public.news.show', compact('news'));
     }

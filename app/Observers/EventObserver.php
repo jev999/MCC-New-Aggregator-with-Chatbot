@@ -19,18 +19,6 @@ class EventObserver
      */
     public function created(Event $event): void
     {
-        if (empty($event->share_token)) {
-            try {
-                $event->share_token = bin2hex(random_bytes(16));
-                $event->saveQuietly();
-            } catch (\Throwable $e) {
-                \Log::error('Failed to generate share token for event', [
-                    'event_id' => $event->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
         // Create notifications when event is published
         if ($event->is_published) {
             $this->notificationService->createEventNotification($event);
