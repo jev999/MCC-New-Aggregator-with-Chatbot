@@ -682,7 +682,7 @@
         left: 100%;
     }
 
-    /* For the header actions area */
+    /* For header actions area */
     .header-actions .btn-create-announcement {
         margin-left: auto;
     }

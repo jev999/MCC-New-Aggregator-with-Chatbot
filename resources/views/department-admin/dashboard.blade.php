@@ -521,51 +521,7 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
         }
 
-        /* Mobile Menu Toggle Button */
-        .mobile-menu-toggle {
-            display: none;
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            z-index: 1001;
-            background: linear-gradient(135deg, #000000, #1a1a1a);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 1.2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
 
-        .mobile-menu-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-        }
-
-        .mobile-menu-toggle:active {
-            transform: scale(0.95);
-        }
-
-        /* Mobile Overlay */
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .mobile-overlay.active {
-            opacity: 1;
-        }
 
         /* Enhanced Mobile Responsiveness */
         @media (max-width: 992px) {
@@ -579,28 +535,13 @@
         }
 
         @media (max-width: 768px) {
-            .mobile-menu-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .mobile-overlay {
-                display: block;
-            }
-
             .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.active {
-                transform: translateX(0);
+                width: 280px;
             }
 
             .main-content {
-                margin-left: 0;
+                margin-left: 280px;
                 padding: 1rem;
-                padding-top: 4rem; /* Added top padding to account for fixed menu button */
             }
 
             .stats-grid {
@@ -628,8 +569,6 @@
                 padding: 0.75rem 1.25rem;
                 font-size: 0.95rem;
                 touch-action: manipulation;
-                width: 100%;
-                justify-content: center;
             }
 
             .logout-btn:active {
@@ -672,7 +611,7 @@
         @media (max-width: 576px) {
             .main-content {
                 padding: 0.75rem;
-                padding-top: 4rem; /* Increased to account for fixed menu button */
+                padding-top: 3.5rem;
             }
 
             .header {
@@ -737,7 +676,7 @@
             }
 
             .sidebar {
-                width: 280px;
+                width: 260px;
             }
 
             .sidebar-header {
@@ -757,7 +696,7 @@
         @media (max-width: 480px) {
             .main-content {
                 padding: 0.5rem;
-                padding-top: 3.5rem;
+                padding-top: 3.25rem;
             }
 
             .header {
@@ -827,7 +766,7 @@
             }
 
             .sidebar {
-                width: 260px;
+                width: 240px;
             }
 
             .sidebar-header {
@@ -851,7 +790,7 @@
         @media (max-width: 360px) {
             .main-content {
                 padding: 0.375rem;
-                padding-top: 3.25rem;
+                padding-top: 3rem;
             }
 
             .header {
@@ -921,7 +860,7 @@
             }
 
             .sidebar {
-                width: 240px;
+                width: 220px;
             }
 
             .sidebar-header {
@@ -945,7 +884,7 @@
         /* Landscape Mobile Optimization */
         @media (max-width: 768px) and (orientation: landscape) {
             .main-content {
-                padding-top: 3.5rem;
+                padding-top: 3rem;
             }
 
             .header {
@@ -1154,14 +1093,6 @@
 <body>
 
     <div class="dashboard-container">
-        <!-- Mobile Menu Toggle Button -->
-        <button class="mobile-menu-toggle" id="mobileMenuToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-
-        <!-- Mobile Overlay -->
-        <div class="mobile-overlay" id="mobileOverlay"></div>
-
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3><i class="fas fa-building"></i> Department Admin</h3>
@@ -1300,53 +1231,6 @@
     </div>
 
     <script>
-        // Mobile Menu Toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const sidebar = document.getElementById('sidebar');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-            
-            mobileMenuToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-                mobileOverlay.classList.toggle('active');
-                
-                // Change icon based on menu state
-                const icon = mobileMenuToggle.querySelector('i');
-                if (sidebar.classList.contains('active')) {
-                    icon.classList.remove('fa-bars');
-                    icon.classList.add('fa-times');
-                } else {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            });
-            
-            // Close menu when clicking on overlay
-            mobileOverlay.addEventListener('click', function() {
-                sidebar.classList.remove('active');
-                mobileOverlay.classList.remove('active');
-                
-                // Reset icon
-                const icon = mobileMenuToggle.querySelector('i');
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            });
-            
-            // Close menu when clicking on a menu item
-            const menuLinks = document.querySelectorAll('.sidebar-menu a');
-            menuLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    sidebar.classList.remove('active');
-                    mobileOverlay.classList.remove('active');
-                    
-                    // Reset icon
-                    const icon = mobileMenuToggle.querySelector('i');
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                });
-            });
-        });
-
         // Content Distribution Pie Chart
         document.addEventListener('DOMContentLoaded', function() {
             const ctxPie = document.getElementById('contentDistributionChart').getContext('2d');
@@ -1642,6 +1526,7 @@
                 }
             }, 250);
         });
+
 
         // Active menu item highlighting
         document.addEventListener('DOMContentLoaded', function() {
