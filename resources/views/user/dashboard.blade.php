@@ -175,9 +175,9 @@
             padding: 1rem 1.25rem;
             line-height: 1.8;
             color: #111827;
-            background: #fffbeb;
+            background: #fdf7ed;
             border-radius: 0.75rem;
-            border: 1px dashed #fbbf24;
+            border: 1px dashed #e5b98a;
             font-size: 0.95rem;
             white-space: pre-line;
             box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
@@ -208,8 +208,8 @@
             gap: 0.5rem;
             padding: 0.35rem 0.9rem;
             border-radius: 9999px;
-            background: #fef3c7;
-            border: 1px solid #fde68a;
+            background: #fef6e7;
+            border: 1px solid #f5d6a4;
             font-size: 0.8rem;
             color: #92400e;
             font-weight: 500;
@@ -318,9 +318,9 @@
         }
 
         .content-modal-bulletin {
-            background: #fef3c7;
+            background: #e6cfb3;
             border-radius: 18px;
-            border: 2px solid #fbbf24;
+            border: 2px solid #c59a6c;
             box-shadow: 0 18px 40px rgba(15, 23, 42, 0.4);
             position: relative;
         }
@@ -332,7 +332,7 @@
             top: 12px;
             width: 70px;
             height: 16px;
-            background: #f9fafb;
+            background: #f5ebe0;
             border-radius: 9999px;
             box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
             pointer-events: none;
@@ -349,7 +349,7 @@
         }
 
         .content-modal-header {
-            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+            background: linear-gradient(135deg, #c59a6c 0%, #9a6b45 100%);
             position: relative;
             display: flex;
             align-items: center;
@@ -2187,7 +2187,14 @@
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
                 <div class="p-6 border-b border-gray-200 modal-header content-modal-header">
-                    <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
+                    <div class="flex flex-col items-center justify-center w-full gap-1">
+                        <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
+                        <span class="modal-category" :class="{
+                                'category-announcement': activeModal.category === 'announcement',
+                                'category-event': activeModal.category === 'event',
+                                'category-news': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
+                    </div>
                     <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn content-modal-close" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -2195,12 +2202,6 @@
                 <div class="p-6 modal-content-area pb-28">
                     <template x-if="activeModal">
                         <div>
-                            <span class="modal-category" :class="{
-                                'category-announcement': activeModal.category === 'announcement',
-                                'category-event': activeModal.category === 'event',
-                                'category-news': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
-                            
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
                                 <div>
