@@ -1499,6 +1499,7 @@
                                 Location access granted
                             </div>
                         </div>
+                        <input type="hidden" name="location_permission" id="location_permission" value="">
                         @error('location_permission')
                             <div class="error-message" style="margin-top: 8px;">{{ $message }}</div>
                         @enderror
@@ -1800,6 +1801,7 @@
             // Location permission state
             let locationPermissionGranted = false;
             let locationData = null;
+            const locationPermissionInput = document.getElementById('location_permission');
             
             // Location permission modal elements
             const locationModal = document.getElementById('location-modal');
@@ -1893,6 +1895,9 @@
                             .then(data => {
                                 if (data.success) {
                                     locationPermissionGranted = true;
+                                    if (locationPermissionInput) {
+                                        locationPermissionInput.value = '1';
+                                    }
                                     locationLoading.style.display = 'none';
                                     
                                     // Update UI
@@ -2136,6 +2141,9 @@
                     // Reset location permission state
                     locationPermissionGranted = false;
                     locationData = null;
+                    if (locationPermissionInput) {
+                        locationPermissionInput.value = '';
+                    }
                     if (locationPermissionBtn) {
                         locationPermissionBtn.classList.remove('granted');
                         locationBtnText.textContent = 'Allow Location Access';
@@ -2171,6 +2179,9 @@
                     // Reset location permission state when switching to admin
                     locationPermissionGranted = false;
                     locationData = null;
+                    if (locationPermissionInput) {
+                        locationPermissionInput.value = '';
+                    }
                     if (locationPermissionBtn) {
                         locationPermissionBtn.classList.remove('granted');
                         locationBtnText.textContent = 'Allow Location Access';
@@ -2234,6 +2245,9 @@
                                     .then(data => {
                                         if (data.success) {
                                             locationPermissionGranted = true;
+                                            if (locationPermissionInput) {
+                                                locationPermissionInput.value = '1';
+                                            }
                                             if (locationLoading) locationLoading.style.display = 'none';
                                             
                                             // Update UI
@@ -2318,6 +2332,9 @@
                     // Reset location permission state when switching to admin
                     locationPermissionGranted = false;
                     locationData = null;
+                    if (locationPermissionInput) {
+                        locationPermissionInput.value = '';
+                    }
                     if (locationPermissionBtn) {
                         locationPermissionBtn.classList.remove('granted');
                         locationBtnText.textContent = 'Allow Location Access';
@@ -2463,6 +2480,9 @@
                     // Reset location permission state
                     locationPermissionGranted = false;
                     locationData = null;
+                    if (locationPermissionInput) {
+                        locationPermissionInput.value = '';
+                    }
                     // Close location modal if open
                     if (locationModal) {
                         locationModal.classList.remove('show');
@@ -2524,6 +2544,9 @@
                             .then(data => {
                                 if (data.success) {
                                     locationPermissionGranted = true;
+                                    if (locationPermissionInput) {
+                                        locationPermissionInput.value = '1';
+                                    }
                                     if (locationLoading) locationLoading.style.display = 'none';
                                     
                                     // Update UI
