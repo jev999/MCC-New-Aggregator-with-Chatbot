@@ -270,6 +270,116 @@
             transform: scale(1);
         }
 
+        /* Bulletin board styling for content modal */
+        .bulletin-modal-backdrop {
+            background: radial-gradient(circle at top, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.96) 40%, rgba(15, 23, 42, 0.98) 100%);
+            backdrop-filter: blur(3px);
+        }
+
+        .bulletin-modal-container {
+            background: #f5e9d7;
+            background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.04) 1px, transparent 0);
+            background-size: 6px 6px;
+            border-radius: 22px;
+            border: 1px solid rgba(148, 92, 56, 0.35);
+            box-shadow: 0 22px 40px rgba(15, 23, 42, 0.55);
+            position: relative;
+        }
+
+        .bulletin-modal-header {
+            position: relative;
+            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+            border-bottom: 1px solid rgba(120, 53, 15, 0.35);
+            box-shadow: 0 8px 18px rgba(146, 64, 14, 0.35);
+        }
+
+        .bulletin-modal-header::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 18px;
+            border-radius: 9999px;
+            background: radial-gradient(circle at 30% 30%, #fff7cc, #f59e0b);
+            box-shadow: 0 6px 10px rgba(15, 23, 42, 0.45);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .bulletin-modal-header .modal-category {
+            margin-top: 0.75rem;
+        }
+
+        .bulletin-modal-body {
+            position: relative;
+            margin: 1.75rem 1.5rem 1.5rem;
+            background: #fdfbf5;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 92, 56, 0.25);
+            box-shadow: 0 18px 30px rgba(15, 23, 42, 0.25);
+        }
+
+        .bulletin-modal-body::before,
+        .bulletin-modal-body::after {
+            content: '';
+            position: absolute;
+            top: -14px;
+            width: 70px;
+            height: 24px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(249, 250, 251, 0.9));
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.3);
+            border-radius: 4px;
+            opacity: 0.95;
+        }
+
+        .bulletin-modal-body::before {
+            left: 24px;
+            transform: rotate(-4deg);
+        }
+
+        .bulletin-modal-body::after {
+            right: 24px;
+            transform: rotate(4deg);
+        }
+
+        .bulletin-close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 9999px;
+            border: 1px solid rgba(248, 250, 252, 0.9);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+        }
+
+        .bulletin-close-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .bulletin-close-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+        }
+
+        .bulletin-modal-footer {
+            background: linear-gradient(90deg, rgba(254, 249, 195, 0.9), rgba(254, 243, 199, 0.95));
+        }
+
+        @media (max-width: 768px) {
+            .bulletin-modal-body {
+                margin: 1.25rem 0.75rem 1rem;
+                border-radius: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .bulletin-modal-body::before,
+            .bulletin-modal-body::after {
+                width: 54px;
+                height: 20px;
+                top: -12px;
+            }
+        }
+
         @media (min-width: 640px) {
             .modal-container {
                 max-width: 90vw;
@@ -2043,10 +2153,10 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0"
-             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4"
+             class="fixed inset-0 bulletin-modal-backdrop flex items-start justify-center overflow-y-auto z-50 p-4"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-            <div class="modal-container overflow-hidden flex flex-col mt-6 active"
+            <div class="modal-container overflow-hidden flex flex-col mt-6 active bulletin-modal-container"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform scale-95"
                  x-transition:enter-end="opacity-100 transform scale-100"
@@ -2054,21 +2164,24 @@
                  x-transition:leave-start="opacity-100 transform scale-100"
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
-                <div class="p-6 border-b border-gray-200 flex items-center justify-between modal-header">
-                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeModal?.title"></h3>
-                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                <div class="p-5 sm:p-6 border-b border-amber-200 flex items-start justify-between modal-header bulletin-modal-header">
+                    <div class="flex-1 flex flex-col items-center sm:items-start space-y-2">
+                        <span class="modal-category"
+                              :class="{
+                                  'category-announcement': activeModal && activeModal.category === 'announcement',
+                                  'category-event': activeModal && activeModal.category === 'event',
+                                  'category-news': activeModal && activeModal.category === 'news'
+                              }"
+                              x-text="activeModal ? activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1) : ''"></span>
+                        <h3 class="text-xl sm:text-2xl font-bold text-gray-800 text-center sm:text-left" x-text="activeModal?.title"></h3>
+                    </div>
+                    <button class="text-gray-100 hover:text-white transition-colors modal-close-btn bulletin-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
-                <div class="p-6 modal-content-area pb-28">
+                <div class="p-6 modal-content-area pb-28 bulletin-modal-body">
                     <template x-if="activeModal">
                         <div>
-                            <span class="modal-category" :class="{
-                                'category-announcement': activeModal.category === 'announcement',
-                                'category-event': activeModal.category === 'event',
-                                'category-news': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
-                            
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
                                 <div>
@@ -2327,8 +2440,8 @@
                         </div>
                     </template>
                 </div>
-                <div class="p-6 border-t border-gray-200 flex justify-end">
-                    <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
+                <div class="p-4 sm:p-5 border-t border-amber-300 flex justify-end bulletin-modal-footer">
+                    <button class="px-5 py-2 rounded-lg bg-amber-600 text-white hover:bg-amber-700 shadow-md hover:shadow-lg transition-all text-sm font-semibold tracking-wide" 
                             @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         Close
                     </button>
