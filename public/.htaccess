@@ -62,6 +62,10 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+
+    # 🚫 Block direct /index.php access
+  RewriteCond %{THE_REQUEST} "^[A-Z]{3,}\s/+index\.php[?\s]" [NC]
+  RewriteRule ^index\.php$ - [R=403,L]
 </IfModule>
 
 # -------------------------------------------------------------
