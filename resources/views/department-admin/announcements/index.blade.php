@@ -1202,6 +1202,20 @@
             display: block !important;
         }
 
+        .sidebar {
+            transform: translateX(-100%);
+            width: 280px;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem 1rem 2rem;
+        }
+
         .page-header {
             flex-direction: column;
             gap: 1.5rem;
@@ -1215,6 +1229,12 @@
         .header-actions .btn {
             width: 100%;
             justify-content: center;
+        }
+
+        .header-actions .btn-create-announcement {
+            width: 100%;
+            justify-content: center;
+            margin-left: 0;
         }
 
         .stats-grid {
@@ -1282,7 +1302,27 @@
         .stats-grid {
             grid-template-columns: 1fr;
         }
-        
+
+        .page-header {
+            padding: 1.25rem;
+        }
+
+        .content-header,
+        .data-view {
+            padding: 1.25rem;
+        }
+
+        .announcement-card {
+            padding: 1.25rem;
+        }
+
+        .header-text h1 {
+            font-size: 1.25rem;
+        }
+
+        .header-text p {
+            font-size: 0.875rem;
+        }
     }
 </style>
 
