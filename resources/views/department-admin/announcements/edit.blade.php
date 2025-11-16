@@ -1378,6 +1378,34 @@ use Illuminate\Support\Facades\Storage;
         box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
     }
 
+    .mobile-menu-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        padding: 0.6rem 0.75rem;
+    }
+
+    @media (max-width: 1024px) {
+        .main-content {
+            margin-left: 0;
+            padding: 1.5rem 1.25rem 2rem;
+        }
+
+        .sidebar {
+            transform: translateX(-100%);
+            width: 260px;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .mobile-menu-btn {
+            display: flex !important;
+        }
+    }
+
     @media (max-width: 768px) {
         .header {
             flex-direction: column;
@@ -1388,20 +1416,46 @@ use Illuminate\Support\Facades\Storage;
         .header-actions {
             width: 100%;
             justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .header-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .announcement-info,
+        .form-header,
+        .form-body,
+        .form-actions {
+            padding: 1.25rem;
         }
 
         .form-actions {
             flex-direction: column;
+            align-items: stretch;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .media-grid,
+        .file-preview-grid {
+            grid-template-columns: 1fr;
         }
 
         .file-item {
             flex-direction: column;
-            gap: 1rem;
-            text-align: center;
+            gap: 0.75rem;
+            text-align: left;
+            align-items: flex-start;
         }
 
         .file-actions {
-            justify-content: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
         }
     }
 </style>
