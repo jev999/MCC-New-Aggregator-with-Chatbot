@@ -9,10 +9,7 @@
         <i class="fas fa-bars"></i>
     </button>
 
-    <!-- Mobile Overlay -->
-    <div class="mobile-overlay" id="mobileOverlay" onclick="closeSidebar()"></div>
-
-    <div class="sidebar" id="sidebar">
+    <div class="sidebar">
         <div class="sidebar-header">
             <h3><i class="fas fa-user-shield"></i> Department Admin</h3>
             <div class="dept-info">{{ auth('admin')->user()->department }} Department</div>
@@ -31,9 +28,7 @@
                 <i class="fas fa-newspaper"></i> News
             </a></li>
             <li>
-                <a href="{{ route('department-admin.logout') }}" onclick="event.preventDefault(); handleLogout();">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+                
             </li>
         </ul>
     </div>
@@ -51,15 +46,15 @@
                 </div>
             </div>
             <div class="header-actions">
-                <a href="{{ route('department-admin.announcements.create') }}" class="btn-create-announcement">
-                    <span class="btn-plus-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="btn-text">Create Announcement</span>
-                    <span class="btn-hover-effect"></span>
-                </a>
+            <a href="{{ route('department-admin.announcements.create') }}" class="btn-create-announcement">
+    <span class="btn-plus-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </span>
+    <span class="btn-text">Create Announcement</span>
+    <span class="btn-hover-effect"></span>
+</a>
             </div>
         </div>
 
@@ -238,18 +233,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="empty-state-cell">
-                                        <div class="empty-state">
-                                            <div class="empty-icon">
-                                                <i class="fas fa-bullhorn"></i>
-                                            </div>
-                                            <h3>No announcements yet</h3>
-                                            <p>Create your first announcement to get started.</p>
-                                            <a href="{{ route('department-admin.announcements.create') }}" class="btn btn-primary">
-                                                <i class="fas fa-plus"></i> Create Announcement
-                                            </a>
-                                        </div>
-                                    </td>
+                                    
                                 </tr>
                             @endforelse
                         </tbody>
@@ -330,44 +314,6 @@
 </div>
 
 <style>
-    /* CSS Variables */
-    :root {
-        --primary-color: #3b82f6;
-        --primary-dark: #2563eb;
-        --secondary-color: #64748b;
-        --success-color: #10b981;
-        --warning-color: #f59e0b;
-        --danger-color: #ef4444;
-        --text-primary: #1f2937;
-        --text-secondary: #6b7280;
-        --border-color: #e5e7eb;
-        --background-color: #f9fafb;
-        --radius-sm: 0.375rem;
-        --radius-md: 0.5rem;
-        --radius-lg: 0.75rem;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Mobile Overlay */
-    .mobile-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .mobile-overlay.active {
-        opacity: 1;
-    }
-
     /* Sidebar Styling */
     .sidebar {
         width: 320px;
@@ -625,68 +571,79 @@
         background: rgba(255, 255, 255, 0.3);
         transform: translateY(-2px);
     }
+/* Enhanced Create Announcement Button */
+.btn-create-announcement {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3), 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border: none;
+    cursor: pointer;
+}
 
-    /* Enhanced Create Announcement Button */
+.btn-create-announcement:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4), 0 3px 6px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+.btn-create-announcement:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.4);
+}
+
+.btn-plus-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.btn-create-announcement:hover .btn-plus-icon {
+    transform: rotate(90deg);
+}
+
+.btn-hover-effect {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.7s ease;
+}
+
+.btn-create-announcement:hover .btn-hover-effect {
+    left: 100%;
+}
+
+/* For the header actions area */
+.header-actions .btn-create-announcement {
+    margin-left: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
     .btn-create-announcement {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        padding: 0.875rem 1.5rem;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-        color: white;
-        border-radius: var(--radius-lg);
-        font-weight: 600;
-        text-decoration: none;
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3), 0 1px 3px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-        border: none;
-        cursor: pointer;
+        padding: 0.75rem 1.25rem;
+        font-size: 0.875rem;
     }
-
-    .btn-create-announcement:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4), 0 3px 6px rgba(0, 0, 0, 0.1);
-        color: white;
+    
+    .btn-plus-icon svg {
+        width: 16px;
+        height: 16px;
     }
-
-    .btn-create-announcement:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(37, 99, 235, 0.4);
-    }
-
-    .btn-plus-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.3s ease;
-    }
-
-    .btn-create-announcement:hover .btn-plus-icon {
-        transform: rotate(90deg);
-    }
-
-    .btn-hover-effect {
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.7s ease;
-    }
-
-    .btn-create-announcement:hover .btn-hover-effect {
-        left: 100%;
-    }
-
-    /* For header actions area */
-    .header-actions .btn-create-announcement {
-        margin-left: auto;
-    }
-
+}
     /* Statistics Cards */
     .stats-grid {
         display: grid;
@@ -1183,10 +1140,6 @@
         border: 1px solid var(--border-color);
     }
 
-    .empty-state-cell {
-        padding: 0 !important;
-    }
-
     .empty-icon {
         width: 80px;
         height: 80px;
@@ -1243,40 +1196,15 @@
         margin-top: 0.125rem;
     }
 
-    /* Enhanced Mobile Responsiveness */
+    /* Responsive Design */
     @media (max-width: 1024px) {
         .mobile-menu-btn {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .mobile-overlay {
-            display: block;
-        }
-
-        .sidebar {
-            transform: translateX(-100%);
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .main-content {
-            margin-left: 0;
-            padding: 1rem;
-            padding-top: 4rem; /* Account for fixed menu button */
+            display: block !important;
         }
 
         .page-header {
             flex-direction: column;
             gap: 1.5rem;
-            text-align: center;
-        }
-
-        .header-content {
-            flex-direction: column;
             text-align: center;
         }
 
@@ -1291,16 +1219,10 @@
 
         .stats-grid {
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-        }
-
-        .stat-card {
-            padding: 1rem;
         }
 
         .content-controls {
             flex-direction: column;
-            gap: 0.75rem;
         }
 
         .search-container,
@@ -1326,29 +1248,12 @@
             font-size: 1.5rem;
         }
 
-        .header-icon {
-            width: 50px;
-            height: 50px;
-            font-size: 1.25rem;
-        }
-
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
         }
 
         .stat-card {
-            padding: 0.875rem;
-        }
-
-        .stat-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 1rem;
-        }
-
-        .stat-content h3 {
-            font-size: 1.5rem;
+            padding: 1rem;
         }
 
         .content-header {
@@ -1357,10 +1262,6 @@
 
         .data-view {
             padding: 1.5rem;
-        }
-
-        .announcement-card {
-            padding: 1.25rem;
         }
 
         .card-actions {
@@ -1375,254 +1276,20 @@
             flex-direction: column;
             gap: 0.5rem;
         }
-
-        .btn-create-announcement {
-            padding: 0.75rem 1.25rem;
-            font-size: 0.875rem;
-        }
-
-        .btn-plus-icon svg {
-            width: 16px;
-            height: 16px;
-        }
     }
 
     @media (max-width: 480px) {
-        .main-content {
-            padding: 0.75rem;
-            padding-top: 3.5rem;
-        }
-
-        .page-header {
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .header-text h1 {
-            font-size: 1.25rem;
-        }
-
-        .header-text p {
-            font-size: 0.875rem;
-        }
-
         .stats-grid {
             grid-template-columns: 1fr;
         }
-
-        .stat-card {
-            padding: 0.75rem;
-        }
-
-        .content-header {
-            padding: 1rem;
-        }
-
-        .data-view {
-            padding: 1rem;
-        }
-
-        .announcement-card {
-            padding: 1rem;
-        }
-
-        .card-content h3 {
-            font-size: 1rem;
-        }
-
-        .card-content p {
-            font-size: 0.875rem;
-        }
-
-        .card-meta {
-            font-size: 0.7rem;
-        }
-
-        .btn-create-announcement {
-            padding: 0.625rem 1rem;
-            font-size: 0.8rem;
-        }
-
-        .btn-plus-icon svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        .empty-state {
-            padding: 2rem 1rem;
-        }
-
-        .empty-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 1.5rem;
-        }
-
-        .empty-state h3 {
-            font-size: 1.25rem;
-        }
-
-        .empty-state p {
-            font-size: 0.875rem;
-        }
-    }
-
-    @media (max-width: 360px) {
-        .main-content {
-            padding: 0.5rem;
-            padding-top: 3.25rem;
-        }
-
-        .page-header {
-            padding: 0.875rem;
-        }
-
-        .header-text h1 {
-            font-size: 1.125rem;
-        }
-
-        .header-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 1rem;
-        }
-
-        .stat-card {
-            padding: 0.625rem;
-        }
-
-        .stat-icon {
-            width: 35px;
-            height: 35px;
-            font-size: 0.875rem;
-        }
-
-        .stat-content h3 {
-            font-size: 1.25rem;
-        }
-
-        .stat-content p {
-            font-size: 0.75rem;
-        }
-
-        .content-header {
-            padding: 0.875rem;
-        }
-
-        .data-view {
-            padding: 0.875rem;
-        }
-
-        .announcement-card {
-            padding: 0.875rem;
-        }
-
-        .card-content h3 {
-            font-size: 0.9rem;
-        }
-
-        .card-content p {
-            font-size: 0.8rem;
-        }
-
-        .card-meta {
-            font-size: 0.65rem;
-        }
-
-        .btn-create-announcement {
-            padding: 0.5rem 0.875rem;
-            font-size: 0.75rem;
-        }
-
-        .btn-plus-icon svg {
-            width: 12px;
-            height: 12px;
-        }
-    }
-
-    /* Landscape Mobile Optimization */
-    @media (max-width: 768px) and (orientation: landscape) {
-        .main-content {
-            padding-top: 3.5rem;
-        }
-
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    /* Touch Device Optimizations */
-    @media (hover: none) and (pointer: coarse) {
-        .stat-card:hover,
-        .announcement-card:hover,
-        .btn-action-view:hover,
-        .btn-action-edit:hover,
-        .btn-action-delete:hover {
-            transform: none;
-        }
-
-        .btn-create-announcement:hover {
-            transform: none;
-        }
-
-        .sidebar-menu a:hover {
-            transform: none;
-        }
-    }
-
-    /* High DPI Display Optimizations */
-    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-        body {
-            -webkit-font-smoothing: subpixel-antialiased;
-        }
-    }
-
-    /* Reduced Motion Support */
-    @media (prefers-reduced-motion: reduce) {
-        * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
+        
     }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    // Mobile menu toggle functions
-    function toggleSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        const menuBtn = document.querySelector('.mobile-menu-btn i');
-        
-        sidebar.classList.toggle('open');
-        overlay.classList.toggle('active');
-        
-        // Change icon based on menu state
-        if (sidebar.classList.contains('open')) {
-            menuBtn.classList.remove('fa-bars');
-            menuBtn.classList.add('fa-times');
-        } else {
-            menuBtn.classList.remove('fa-times');
-            menuBtn.classList.add('fa-bars');
-        }
-    }
-
-    function closeSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        const menuBtn = document.querySelector('.mobile-menu-btn i');
-        
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-        menuBtn.classList.remove('fa-times');
-        menuBtn.classList.add('fa-bars');
-    }
-
     // Delete announcement with SweetAlert
     async function deleteAnnouncement(id, title) {
-        const isMobile = window.innerWidth <= 768;
-        
         const result = await Swal.fire({
             title: 'Delete Announcement?',
             text: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
@@ -1632,26 +1299,7 @@
             cancelButtonColor: '#6b7280',
             confirmButtonText: 'Yes, delete it!',
             cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            // Mobile-specific configurations
-            width: isMobile ? '90%' : '32rem',
-            padding: isMobile ? '1.5rem' : '2rem',
-            customClass: {
-                popup: isMobile ? 'mobile-swal-popup' : '',
-                title: isMobile ? 'mobile-swal-title' : '',
-                htmlContainer: isMobile ? 'mobile-swal-text' : '',
-                confirmButton: isMobile ? 'mobile-swal-confirm' : '',
-                cancelButton: isMobile ? 'mobile-swal-cancel' : '',
-                actions: isMobile ? 'mobile-swal-actions' : ''
-            },
-            buttonsStyling: !isMobile,
-            focusConfirm: !isMobile, // Disable auto-focus on mobile
-            allowEnterKey: !isMobile, // Disable enter key on mobile to prevent accidental submission
-            backdrop: true,
-            allowOutsideClick: true,
-            allowEscapeKey: true,
-            heightAuto: false, // Better mobile control
-            scrollbarPadding: false
+            reverseButtons: true
         });
         
         if (result.isConfirmed) {
@@ -1662,14 +1310,6 @@
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 showConfirmButton: false,
-                width: isMobile ? '80%' : '24rem',
-                padding: isMobile ? '1.5rem' : '2rem',
-                customClass: {
-                    popup: isMobile ? 'mobile-swal-loading' : '',
-                    title: isMobile ? 'mobile-swal-loading-title' : ''
-                },
-                buttonsStyling: !isMobile,
-                heightAuto: false,
                 didOpen: () => {
                     Swal.showLoading();
                 }
@@ -1688,6 +1328,12 @@
         }
     }
 
+    // Mobile menu toggle function
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        sidebar.classList.toggle('open');
+    }
+
     // Enhanced filter and search functionality
     function filterAnnouncements() {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -1700,7 +1346,7 @@
         
         // Filter table rows
         tableRows.forEach(row => {
-            if (row.querySelector('.empty-state-cell')) return; // Skip empty state row
+            if (row.querySelector('.empty-state')) return; // Skip empty state row
             
             const titleElement = row.querySelector('.content-preview h4');
             const statusElement = row.querySelector('.status-badge');
@@ -1752,24 +1398,29 @@
         }
     });
 
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+        const sidebar = document.querySelector('.sidebar');
+        const mobileBtn = document.querySelector('.mobile-menu-btn');
+        
+        if (window.innerWidth <= 1024 && 
+            !sidebar.contains(event.target) && 
+            !mobileBtn.contains(event.target) && 
+            sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+        }
+    });
+
     // Handle window resize
     window.addEventListener('resize', function() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('mobileOverlay');
-        const menuBtn = document.querySelector('.mobile-menu-btn i');
-        
+        const sidebar = document.querySelector('.sidebar');
         if (window.innerWidth > 1024) {
             sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-            menuBtn.classList.remove('fa-times');
-            menuBtn.classList.add('fa-bars');
         }
     });
 
     // Handle logout
     function handleLogout() {
-        const isMobile = window.innerWidth <= 768;
-        
         Swal.fire({
             title: 'Are you sure?',
             text: 'You will be logged out of your account.',
@@ -1778,27 +1429,7 @@
             confirmButtonColor: '#ef4444',
             cancelButtonColor: '#6b7280',
             confirmButtonText: 'Yes, logout',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true,
-            // Mobile-specific configurations
-            width: isMobile ? '90%' : '32rem',
-            padding: isMobile ? '1.5rem' : '2rem',
-            customClass: {
-                popup: isMobile ? 'mobile-swal-popup' : '',
-                title: isMobile ? 'mobile-swal-title' : '',
-                htmlContainer: isMobile ? 'mobile-swal-text' : '',
-                confirmButton: isMobile ? 'mobile-swal-confirm' : '',
-                cancelButton: isMobile ? 'mobile-swal-cancel' : '',
-                actions: isMobile ? 'mobile-swal-actions' : ''
-            },
-            buttonsStyling: !isMobile,
-            focusConfirm: !isMobile,
-            allowEnterKey: !isMobile,
-            backdrop: true,
-            allowOutsideClick: true,
-            allowEscapeKey: true,
-            heightAuto: false,
-            scrollbarPadding: false
+            cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
                 Swal.fire({
@@ -1807,111 +1438,15 @@
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     showConfirmButton: false,
-                    width: isMobile ? '80%' : '24rem',
-                    padding: isMobile ? '1.5rem' : '2rem',
-                    customClass: {
-                        popup: isMobile ? 'mobile-swal-loading' : '',
-                        title: isMobile ? 'mobile-swal-loading-title' : ''
-                    },
-                    buttonsStyling: !isMobile,
-                    heightAuto: false,
                     didOpen: () => {
                         Swal.showLoading();
                     }
                 });
                 
-                // Create and submit logout form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '{{ route('department-admin.logout') }}';
-                form.innerHTML = `
-                    @csrf
-                `;
-                document.body.appendChild(form);
-                form.submit();
+                document.getElementById('logout-form').submit();
             }
         });
     }
 </script>
-
-<!-- Mobile-Responsive SweetAlert Styles -->
-<style>
-    .mobile-swal-popup {
-        border-radius: 16px !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
-    }
-
-    .mobile-swal-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: #1f2937 !important;
-        margin-bottom: 1rem !important;
-    }
-
-    .mobile-swal-text {
-        font-size: 1rem !important;
-        color: #6b7280 !important;
-        margin-bottom: 1.5rem !important;
-        line-height: 1.5 !important;
-    }
-
-    .mobile-swal-actions {
-        gap: 0.75rem !important;
-        flex-direction: column-reverse !important;
-    }
-
-    .mobile-swal-confirm,
-    .mobile-swal-cancel {
-        min-height: 44px !important;
-        padding: 0.75rem 1.5rem !important;
-        border-radius: 10px !important;
-        font-weight: 600 !important;
-        font-size: 0.95rem !important;
-        width: 100% !important;
-        border: none !important;
-        cursor: pointer !important;
-        transition: all 0.3s ease !important;
-        touch-action: manipulation !important;
-    }
-
-    .mobile-swal-confirm {
-        background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-        color: white !important;
-    }
-
-    .mobile-swal-confirm:hover {
-        background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    .mobile-swal-confirm:active {
-        transform: scale(0.98) !important;
-    }
-
-    .mobile-swal-cancel {
-        background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
-        color: #374151 !important;
-    }
-
-    .mobile-swal-cancel:hover {
-        background: linear-gradient(135deg, #e5e7eb, #d1d5db) !important;
-        transform: translateY(-1px) !important;
-    }
-
-    .mobile-swal-cancel:active {
-        transform: scale(0.98) !important;
-    }
-
-    .mobile-swal-loading {
-        border-radius: 16px !important;
-        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    .mobile-swal-loading-title {
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        color: #1f2937 !important;
-        margin-bottom: 1rem !important;
-    }
-</style>
 @endsection
+
