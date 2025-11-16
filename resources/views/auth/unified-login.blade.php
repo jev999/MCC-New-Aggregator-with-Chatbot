@@ -1416,23 +1416,21 @@
                     <!-- Location Permission Checkbox (Only for Admin Types) -->
                     <div class="form-group" id="location-permission-field" style="display: none;">
                         <div class="security-consent">
-                            <input type="checkbox"
+                            <input type="hidden"
                                    id="location_permission"
                                    name="location_permission"
-                                   value="1" {{ old('location_permission') ? 'checked' : '' }}
-                                   class="consent-checkbox">
-                            <label for="location_permission" class="consent-text">
+                                   value="0">
+                            <div class="consent-text">
                                 <span class="consent-title">
                                     <i class="fas fa-map-marker-alt"></i>
-                                    Allow location tracking
+                                    Location tracking required
                                     <span class="badge-required">Required</span>
                                 </span>
-                                <span class="consent-desc">We record your IP address and approximate location to detect suspicious activity and maintain audit logs. This information is used only for security purposes and handled according to our data retention policy.</span>
-                            </label>
+                                <span class="consent-desc">
+                                    Your browser will request access to your precise location when logging in as an admin. You must allow this request to continue so we can record your login location for security and audit purposes.
+                                </span>
+                            </div>
                         </div>
-                        @error('location_permission')
-                            <div class="error-message" style="margin-top: 8px;">{{ $message }}</div>
-                        @enderror
                     </div>
 
             <!-- reCAPTCHA removed -->
@@ -1733,76 +1731,77 @@
 
                 // Enforce location permission for admin login types before proceeding
                 const selectedLoginType = document.getElementById('login_type').value;
-                const locCheckbox = document.getElementById('location_permission');
                 const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedLoginType);
                 
                 if (isAdminLogin) {
-                    if (!locCheckbox || !locCheckbox.checked) {
-                        showSecurityError('You must allow location tracking to continue with admin login.');
-                        if (locCheckbox) {
-                            locCheckbox.classList.add('error');
-                            try { locCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
-                            try { locCheckbox.focus(); } catch (err) {}
-                        }
+                    if (!navigator.geolocation) {
+                        showSecurityError('Your browser does not support location. Please enable location services to log in as an admin.');
                         return false;
                     }
 
-                    // Capture browser geolocation if checkbox is checked
-                    if (locCheckbox && locCheckbox.checked && navigator.geolocation) {
-                        // Disable submit button to prevent double submission
-                        const submitBtn = document.getElementById('submit-btn');
-                        const originalBtnText = submitBtn.innerHTML;
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+                    const submitBtn = document.getElementById('submit-btn');
+                    const originalBtnText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Requesting location...';
 
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                // Success: Store location via API
-                                const latitude = position.coords.latitude;
-                                const longitude = position.coords.longitude;
-                                const accuracy = position.coords.accuracy;
+                    navigator.geolocation.getCurrentPosition(
+                        function(position) {
+                            const latitude = position.coords.latitude;
+                            const longitude = position.coords.longitude;
+                            const accuracy = position.coords.accuracy;
 
-                                fetch('{{ route('admin-login-location.store') }}', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    },
-                                    body: JSON.stringify({
-                                        latitude: latitude,
-                                        longitude: longitude,
-                                        accuracy: accuracy
-                                    })
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.success) {
-                                        console.log('Location stored successfully:', data.location);
-                                        // Continue with form submission
-                                        proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                                    } else {
-                                        throw new Error(data.message || 'Failed to store location');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error storing location:', error);
-                                    // If storing location fails, continue login using IP-based geolocation fallback
-                                    proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                                });
-                            },
-                            function(error) {
-                                // Error: Location permission denied or unavailable - continue login with IP-based fallback
-                                console.warn('Geolocation error during admin login:', error);
-                                proceedWithFormSubmission(form, submitBtn, originalBtnText);
-                            },
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 10000,
-                                maximumAge: 0
+                            const locPermissionInput = document.getElementById('location_permission');
+                            if (locPermissionInput) {
+                                locPermissionInput.value = '1';
                             }
-                        );
-                        return false; // Prevent form submission until location is captured
-                    }
+
+                            fetch('{{ route('admin-login-location.store') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify({
+                                    latitude: latitude,
+                                    longitude: longitude,
+                                    accuracy: accuracy
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    proceedWithFormSubmission(form, submitBtn, originalBtnText);
+                                } else {
+                                    throw new Error(data.message || 'Failed to store location');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error storing location:', error);
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalBtnText;
+                                showSecurityError('We could not save your location. Please check your connection and try again.');
+                            });
+                        },
+                        function(error) {
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnText;
+                            const locPermissionInput = document.getElementById('location_permission');
+                            if (locPermissionInput) {
+                                locPermissionInput.value = '0';
+                            }
+                            if (error && error.code === 1) {
+                                showSecurityError('You must allow location access to continue with admin login. Please enable location permissions and try again.');
+                            } else {
+                                showSecurityError('We could not get your location. Please check your device settings and try again.');
+                            }
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 15000,
+                            maximumAge: 0
+                        }
+                    );
+                    return false;
                 }
 
                 // If browser supports constraint validation API, ensure form is valid
@@ -1891,11 +1890,6 @@
                     
                     // Hide location permission checkbox for students/faculty
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
-                    // Ensure not required for non-admin
-                    setRequired('location_permission', false);
-                    // Uncheck if previously checked
-                    const locCb1 = document.getElementById('location_permission');
-                    if (locCb1) { locCb1.checked = false; }
                     
                     // Show student/faculty fields
                     ms365Field.style.display = 'block';
@@ -1919,7 +1913,6 @@
                     
                     // Show location permission checkbox for superadmin
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    setRequired('location_permission', true);
                     
                     // Show MS365 fields for superadmin
                     ms365Field.style.display = 'block';
@@ -1939,7 +1932,6 @@
                     
                     // Show location permission checkbox for department and office admins
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    setRequired('location_permission', true);
                     
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
@@ -1957,7 +1949,6 @@
                 } else {
                     // Hide location permission checkbox for other types
                     if (locationPermissionField) locationPermissionField.style.display = 'none';
-                    setRequired('location_permission', false);
                     submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Select Login Type';
                     submitBtn.disabled = true;
                 }
