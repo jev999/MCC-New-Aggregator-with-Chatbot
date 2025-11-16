@@ -120,16 +120,16 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.3rem 1rem;
+            padding: 0.3rem 1.1rem;
             border-radius: 9999px;
             font-size: 0.7rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(4px);
-            text-shadow: 0 1px 2px rgba(15, 23, 42, 0.25);
+            text-shadow: 0 1px 1px rgba(15, 23, 42, 0.2);
         }
         
         .category-announcement {
@@ -143,7 +143,7 @@
         }
         
         .category-news {
-            background: linear-gradient(135deg, #fecaca 0%, #f87171 100%);
+            background: linear-gradient(135deg, #fecaca 0%, #f97373 100%);
             color: #7f1d1d;
         }
         
@@ -332,6 +332,21 @@
             position: relative;
         }
 
+        .content-modal-bulletin-announcement {
+            background: #eff6ff;
+            border-color: #60a5fa;
+        }
+
+        .content-modal-bulletin-event {
+            background: #ecfdf3;
+            border-color: #34d399;
+        }
+
+        .content-modal-bulletin-news {
+            background: #fef2f2;
+            border-color: #f97373;
+        }
+
         .content-modal-bulletin::before,
         .content-modal-bulletin::after {
             content: '';
@@ -362,6 +377,18 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+        }
+
+        .content-modal-header-announcement {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        }
+
+        .content-modal-header-event {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .content-modal-header-news {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
         }
 
         .content-modal-title {
@@ -2186,6 +2213,11 @@
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
             <div class="modal-container overflow-hidden flex flex-col mt-6 active content-modal-bulletin"
+                 :class="{
+                    'content-modal-bulletin-announcement': activeModal && activeModal.category === 'announcement',
+                    'content-modal-bulletin-event': activeModal && activeModal.category === 'event',
+                    'content-modal-bulletin-news': activeModal && activeModal.category === 'news'
+                 }"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform scale-95"
                  x-transition:enter-end="opacity-100 transform scale-100"
@@ -2193,8 +2225,20 @@
                  x-transition:leave-start="opacity-100 transform scale-100"
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
-                <div class="p-6 border-b border-gray-200 modal-header content-modal-header">
-                    <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
+                <div class="p-6 border-b border-gray-200 modal-header content-modal-header"
+                     :class="{
+                        'content-modal-header-announcement': activeModal && activeModal.category === 'announcement',
+                        'content-modal-header-event': activeModal && activeModal.category === 'event',
+                        'content-modal-header-news': activeModal && activeModal.category === 'news'
+                     }">
+                    <div class="flex flex-col items-center justify-center w-full gap-2">
+                        <span class="modal-category" :class="{
+                                'category-announcement': activeModal.category === 'announcement',
+                                'category-event': activeModal.category === 'event',
+                                'category-news': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
+                        <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
+                    </div>
                     <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn content-modal-close" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -2202,12 +2246,6 @@
                 <div class="p-6 modal-content-area pb-28">
                     <template x-if="activeModal">
                         <div>
-                            <span class="modal-category" :class="{
-                                'category-announcement': activeModal.category === 'announcement',
-                                'category-event': activeModal.category === 'event',
-                                'category-news': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
-                            
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
                                 <div>
