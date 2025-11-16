@@ -5,17 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard - MCC News Aggregator</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/mcc_logo.png') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/mcc_logo.png') }}">
-    <link rel="shortcut icon" href="{{ asset('images/mcc_logo.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style @nonce>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-        
-        [x-cloak] { display: none !important; }
         
         body {
             font-family: 'Poppins', sans-serif;
@@ -70,6 +65,8 @@
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
+        
+        /* Modal transitions now handled by Alpine.js */
         
         .item-hover {
             transition: all 0.2s ease;
@@ -256,127 +253,21 @@
             background-color: #000;
         }
         
-        /* Enhanced Bulletin Board Modal Styles */
+        /* Enhanced Modal Styles with Media Grid Layout */
         .modal-container {
             max-width: 95vw;
             max-height: 95vh;
             width: 100%;
-            background: #fefbf7;
-            border-radius: 16px;
+            background: white;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.3),
-                0 0 0 1px rgba(245, 158, 11, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            border: 3px solid #f5a623;
-            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.7);
+            transition: transform 0.4s ease;
         }
 
-        /* Bulletin Board Header Styling */
-        .bulletin-board-header {
-            background: 
-                linear-gradient(135deg, #fff8e1 0%, #ffecb3 50%, #ffe082 100%),
-                repeating-linear-gradient(
-                    45deg,
-                    transparent,
-                    transparent 2px,
-                    rgba(255, 241, 165, 0.3) 2px,
-                    rgba(255, 241, 165, 0.3) 4px
-                );
-            position: relative;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Category Badge Styling */
-        .bulletin-category-badge {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            box-shadow: 
-                0 4px 8px rgba(0, 0, 0, 0.2),
-                0 2px 4px rgba(0, 0, 0, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease;
-            position: relative;
-        }
-
-        .bulletin-category-badge:hover {
-            transform: rotate(0deg) scale(1.05);
-        }
-
-        /* Enhanced content area */
-        .modal-content-area {
-            background: 
-                radial-gradient(circle at 20% 80%, rgba(255, 248, 225, 0.3) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 236, 179, 0.3) 0%, transparent 50%),
-                linear-gradient(180deg, #fffbf5 0%, #ffffff 100%);
-        }
-
-        /* Bulletin Content Styling */
-        .bulletin-content {
-            position: relative;
-            background: 
-                linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
-            box-shadow: 
-                0 8px 16px rgba(0, 0, 0, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        }
-
-        .bulletin-content::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            right: 10px;
-            width: 20px;
-            height: 20px;
-            background: #f59e0b;
-            border-radius: 50%;
-            box-shadow: 
-                0 2px 4px rgba(0, 0, 0, 0.2),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            border: 2px solid #d97706;
-        }
-
-        /* Enhanced typography for modal content */
-        .modal-content-area h1,
-        .modal-content-area h2,
-        .modal-content-area h3,
-        .modal-content-area h4,
-        .modal-content-area h5,
-        .modal-content-area h6 {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.75rem;
-        }
-
-        .modal-content-area p {
-            font-family: 'Poppins', sans-serif;
-            color: #4b5563;
-            line-height: 1.7;
-            margin-bottom: 1rem;
-        }
-
-        /* Paper texture effect */
-        .bulletin-content::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                repeating-linear-gradient(
-                    0deg,
-                    transparent,
-                    transparent 28px,
-                    rgba(0, 0, 0, 0.02) 28px,
-                    rgba(0, 0, 0, 0.02) 30px
-                );
-            pointer-events: none;
-            border-radius: 0.75rem;
+        .modal-container.active {
+            transform: scale(1);
         }
 
         @media (min-width: 640px) {
@@ -560,49 +451,6 @@
             
             .modal-video-container {
                 height: 180px;
-            }
-            
-            /* Small screen bulletin board adjustments */
-            .modal-container {
-                margin: 0.25rem;
-                border-radius: 10px;
-            }
-            
-            .bulletin-board-header {
-                padding: 0.75rem;
-            }
-            
-            .bulletin-board-header h3 {
-                font-size: 1.25rem;
-            }
-            
-            .bulletin-category-badge {
-                font-size: 0.65rem;
-                padding: 0.4rem 0.8rem;
-            }
-            
-            .bulletin-content {
-                padding: 0.75rem;
-            }
-            
-            .bulletin-content::before {
-                width: 14px;
-                height: 14px;
-                top: -2px;
-                right: 6px;
-            }
-            
-            /* Smaller tape decorations */
-            .bulletin-board-header > div:last-child,
-            .bulletin-board-header > div:nth-last-child(2) {
-                width: 12px;
-                height: 5px;
-            }
-            
-            /* Smaller close button text */
-            .bg-gradient-to-r.from-red-500 {
-                padding: 0.5rem 1.5rem;
-                font-size: 0.875rem;
             }
         }
         
@@ -1803,7 +1651,7 @@
         }
     </style>
 </head>
-<body class="py-8 px-4" x-data="dashboardData()" x-init="init()">
+<body class="py-8 px-4" x-data="dashboardData()">
     <!-- Toast Notification Popup -->
     <div x-show="toastVisible" 
          x-ref="toast"
@@ -1965,19 +1813,19 @@
                     <div class="section-content">
                         @forelse($announcements as $announcement)
                             <div class="announcement-item item-hover announcement-hover p-4 rounded cursor-pointer" 
-                                 @click="openModal({
-                                    title: {{ json_encode($announcement->title) }}, 
-                                    body: {{ json_encode($announcement->content) }},
+                                 @click="activeModal = {
+                                    title: '{{ addslashes($announcement->title) }}', 
+                                    body: '{{ addslashes($announcement->content) }}',
                                     category: 'announcement',
                                     contentId: {{ $announcement->id }},
                                     date: 'Posted: {{ $announcement->created_at->format('M d, Y') }}',
                                     media: '{{ $announcement->hasMedia }}',
-                                    mediaUrl: {{ json_encode($announcement->mediaUrl ?? '') }},
+                                    mediaUrl: '{{ $announcement->mediaUrl ?? '' }}',
                                     allImageUrls: {{ json_encode($announcement->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($announcement->allVideoUrls ?? []) }},
-                                    videoUrl: {{ json_encode($announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '')) }},
-                                    publisher: {{ json_encode($announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username))) }}
-                                 })">
+                                    videoUrl: '{{ $announcement->hasMedia === 'both' && $announcement->allVideoUrls ? $announcement->allVideoUrls[0] : ($announcement->hasMedia === 'video' ? $announcement->mediaUrl : '') }}',
+                                    publisher: '{{ $announcement->admin->role === 'superadmin' ? 'MCC Administration' : ($announcement->admin->role === 'department_admin' ? $announcement->admin->department_display . ' Department' : ($announcement->admin->role === 'office_admin' ? $announcement->admin->office_display : $announcement->admin->username)) }}'
+                                 }">
                                 @if($announcement->hasMedia === 'image' || $announcement->hasMedia === 'both')
                                     <img src="{{ $announcement->mediaUrl }}" 
                                          alt="{{ $announcement->title }}" class="item-media">
@@ -2040,20 +1888,20 @@
                     <div class="section-content">
                         @forelse($events as $event)
                             <div class="announcement-item item-hover event-hover p-4 rounded cursor-pointer" 
-                                 @click="openModal({
-                                    title: {{ json_encode($event->title) }}, 
-                                    body: {{ json_encode($event->description) }},
+                                 @click="activeModal = {
+                                    title: '{{ addslashes($event->title) }}', 
+                                    body: '{{ addslashes($event->description) }}',
                                     category: 'event',
                                     contentId: {{ $event->id }},
                                     date: 'Date: {{ $event->event_date ? $event->event_date->format('M d, Y') : 'TBD' }}',
-                                    location: {{ json_encode($event->location ?? 'No location specified') }},
+                                    location: 'Location: {{ $event->location ?? 'No location specified' }}',
                                     media: '{{ $event->hasMedia }}',
-                                    mediaUrl: {{ json_encode($event->mediaUrl ?? '') }},
+                                    mediaUrl: '{{ $event->mediaUrl ?? '' }}',
                                     allImageUrls: {{ json_encode($event->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($event->allVideoUrls ?? []) }},
-                                    videoUrl: {{ json_encode($event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '')) }},
-                                    publisher: {{ json_encode($event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username))) }}
-                                 })">
+                                    videoUrl: '{{ $event->hasMedia === 'both' && $event->allVideoUrls ? $event->allVideoUrls[0] : ($event->hasMedia === 'video' ? $event->mediaUrl : '') }}',
+                                    publisher: '{{ $event->admin->role === 'superadmin' ? 'MCC Administration' : ($event->admin->role === 'department_admin' ? $event->admin->department_display . ' Department' : ($event->admin->role === 'office_admin' ? $event->admin->office_display : $event->admin->username)) }}'
+                                 }">
                                 @if($event->hasMedia === 'image' || $event->hasMedia === 'both')
                                     <img src="{{ $event->mediaUrl }}" 
                                          alt="{{ $event->title }}" class="item-media">
@@ -2122,19 +1970,19 @@
                     <div class="section-content">
                         @forelse($news as $article)
                             <div class="announcement-item item-hover news-hover p-4 rounded cursor-pointer" 
-                                 @click="openModal({
-                                    title: {{ json_encode($article->title) }}, 
-                                    body: {{ json_encode($article->content) }},
+                                 @click="activeModal = {
+                                    title: '{{ addslashes($article->title) }}', 
+                                    body: '{{ addslashes($article->content) }}',
                                     category: 'news',
                                     contentId: {{ $article->id }},
                                     date: 'Published: {{ $article->created_at->format('M d, Y') }}',
                                     media: '{{ $article->hasMedia }}',
-                                    mediaUrl: {{ json_encode($article->mediaUrl ?? '') }},
+                                    mediaUrl: '{{ $article->mediaUrl ?? '' }}',
                                     allImageUrls: {{ json_encode($article->allImageUrls ?? []) }},
                                     allVideoUrls: {{ json_encode($article->allVideoUrls ?? []) }},
-                                    videoUrl: {{ json_encode($article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '')) }},
-                                    publisher: {{ json_encode($article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username))) }}
-                                 })">
+                                    videoUrl: '{{ $article->hasMedia === 'both' && $article->allVideoUrls ? $article->allVideoUrls[0] : ($article->hasMedia === 'video' ? $article->mediaUrl : '') }}',
+                                    publisher: '{{ $article->admin->role === 'superadmin' ? 'MCC Administration' : ($article->admin->role === 'department_admin' ? $article->admin->department_display . ' Department' : ($article->admin->role === 'office_admin' ? $article->admin->office_display : $article->admin->username)) }}'
+                                 }">
                                 @if($article->hasMedia === 'image' || $article->hasMedia === 'both')
                                     <img src="{{ $article->mediaUrl }}" 
                                          alt="{{ $article->title }}" class="item-media">
@@ -2188,47 +2036,38 @@
         </main>
 
         <!-- Content Modal -->
-        <div x-show="activeModal !== null" 
-             x-cloak
-             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto p-4"
-             style="z-index: 9999;"
+        <div x-show="activeModal" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-            <div class="modal-container overflow-hidden flex flex-col mt-6"
+            <div class="modal-container overflow-hidden flex flex-col mt-6 active"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 transform scale-95"
+                 x-transition:enter-end="opacity-100 transform scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 transform scale-100"
+                 x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
-                <!-- Enhanced Bulletin Board Header -->
-                <div class="bulletin-board-header bg-gradient-to-r from-amber-50 to-yellow-50 border-b-4 border-amber-200 p-6 relative">
-                    <!-- Pin decoration -->
-                    <div class="absolute top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full shadow-lg border-2 border-yellow-300"></div>
-                    
-                    <!-- Category Badge - Top Center -->
-                    <template x-if="activeModal">
-                        <div class="text-center mb-4 pt-3">
-                            <span class="bulletin-category-badge inline-block px-6 py-2 rounded-full font-bold text-sm shadow-lg transform -rotate-1" :class="{
-                                'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-2 border-blue-400': activeModal.category === 'announcement',
-                                'bg-gradient-to-r from-green-500 to-green-600 text-white border-2 border-green-400': activeModal.category === 'event',
-                                'bg-gradient-to-r from-red-500 to-red-600 text-white border-2 border-red-400': activeModal.category === 'news'
-                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
-                        </div>
-                    </template>
-                    
-                    <!-- Title -->
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <h3 class="text-2xl font-bold text-gray-800 text-center leading-tight" x-text="activeModal?.title"></h3>
-                        </div>
-                        <button class="ml-4 w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-110" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-                            <i class="fas fa-times text-sm"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Bulletin board tape effect -->
-                    <div class="absolute -top-1 left-8 w-16 h-6 bg-yellow-300 opacity-70 transform rotate-12 rounded"></div>
-                    <div class="absolute -top-1 right-8 w-16 h-6 bg-yellow-300 opacity-70 transform -rotate-12 rounded"></div>
+                <div class="p-6 border-b border-gray-200 flex items-center justify-between modal-header">
+                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeModal?.title"></h3>
+                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
                 </div>
-                <div class="bg-gradient-to-b from-amber-25 to-white p-6 modal-content-area pb-28">
+                <div class="p-6 modal-content-area pb-28">
                     <template x-if="activeModal">
                         <div>
+                            <span class="modal-category" :class="{
+                                'category-announcement': activeModal.category === 'announcement',
+                                'category-event': activeModal.category === 'event',
+                                'category-news': activeModal.category === 'news'
+                            }" x-text="activeModal.category.charAt(0).toUpperCase() + activeModal.category.slice(1)"></span>
                             
                             <!-- Single or Multiple Images Display -->
                             <template x-if="activeModal.media === 'image'">
@@ -2314,50 +2153,17 @@
                                 </div>
                             </template>
                             
-                            <!-- Enhanced Date Display -->
-                            <div class="mb-4 text-center">
-                                <div class="inline-block bg-white px-4 py-2 rounded-lg shadow-md border-l-4 border-amber-400">
-                                    <i class="fas fa-calendar-alt text-amber-600 mr-2"></i>
-                                    <span class="text-gray-700 font-medium" x-text="activeModal.date"></span>
-                                </div>
-                            </div>
-                            
-                            <!-- Enhanced Location Display -->
+                            <p class="modal-date" x-text="activeModal.date"></p>
                             <template x-if="activeModal.category === 'event' && activeModal.location">
-                                <div class="mb-6">
-                                    <div class="bg-gradient-to-r from-green-50 to-green-100 border-2 border-green-200 rounded-xl p-4 shadow-sm">
-                                        <div class="flex items-center justify-center">
-                                            <div class="bg-green-500 text-white p-2 rounded-full mr-3">
-                                                <i class="fas fa-map-marker-alt"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Event Location</p>
-                                                <p class="text-green-800 font-medium" x-text="activeModal.location"></p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="modal-location-container">
+                                    <p class="modal-location" x-text="activeModal.location"></p>
                                 </div>
                             </template>
-                            
-                            <!-- Enhanced Content Display -->
-                            <div class="bulletin-content bg-white p-6 rounded-xl shadow-lg border-2 border-gray-100 mb-6">
-                                <div class="prose prose-gray max-w-none">
-                                    <div class="text-gray-800 leading-relaxed whitespace-pre-wrap" 
-                                         style="font-family: 'Poppins', sans-serif; font-size: 1rem; line-height: 1.7;"
-                                         x-text="activeModal.body"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Enhanced Publisher Info -->
-                            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 shadow-sm">
-                                <div class="flex items-center">
-                                    <div class="bg-blue-500 text-white p-2 rounded-full mr-3">
-                                        <i class="fas fa-user-shield"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Published by</p>
-                                        <p class="text-blue-800 font-medium" x-text="activeModal.publisher"></p>
-                                    </div>
+                            <div class="modal-content" x-text="activeModal.body"></div>
+                            <div class="mt-4 pt-4 border-t border-gray-200">
+                                <div class="flex items-center text-sm text-gray-600">
+                                    <i class="fas fa-user-shield mr-2"></i>
+                                    <span x-text="activeModal.publisher"></span>
                                 </div>
                             </div>
                             
@@ -2521,21 +2327,11 @@
                         </div>
                     </template>
                 </div>
-                <!-- Enhanced Bulletin Board Footer -->
-                <div class="bg-gradient-to-r from-amber-50 to-yellow-50 border-t-4 border-amber-200 p-6 relative">
-                    <!-- Paper corner curl effect -->
-                    <div class="absolute bottom-0 right-0 w-8 h-8 bg-amber-100 transform rotate-45 translate-x-4 translate-y-4 shadow-lg border-l border-t border-amber-300"></div>
-                    
-                    <div class="flex justify-center">
-                        <button class="px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 border-2 border-red-400" 
-                                @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-                            <i class="fas fa-times mr-2"></i>
-                            Close Notice
-                        </button>
-                    </div>
-                    
-                    <!-- Signature line decoration -->
-                    <div class="absolute bottom-2 left-6 right-6 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent opacity-50"></div>
+                <div class="p-6 border-t border-gray-200 flex justify-end">
+                    <button class="px-6 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors" 
+                            @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -2629,7 +2425,7 @@
                             @endif
                         </div>
                         
-                        <h3 class="font-bold text-2xl text-gray-900 mt-4" x-text="editMode ? 'Edit Profile' : {{ json_encode(auth()->user()->first_name . ' ' . auth()->user()->surname) }}"></h3>
+                        <h3 class="font-bold text-2xl text-gray-900 mt-4" x-text="editMode ? 'Edit Profile' : '{{ auth()->user()->first_name }} {{ auth()->user()->surname }}'"></h3>
                         <p class="text-gray-600 text-sm mt-1" x-show="!editMode">{{ auth()->user()->department }}</p>
                         <div class="mt-2" x-show="!editMode">
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800">
@@ -2829,9 +2625,9 @@
                 profileModal: false,
                 editMode: false,
                 profileForm: {
-                    first_name: @json(auth()->user()->first_name),
-                    middle_name: @json(auth()->user()->middle_name),
-                    surname: @json(auth()->user()->surname),
+                    first_name: '{{ auth()->user()->first_name }}',
+                    middle_name: '{{ auth()->user()->middle_name }}',
+                    surname: '{{ auth()->user()->surname }}',
                     department: '',
                     year_level: ''
                 },
@@ -2857,51 +2653,14 @@
                 toastDismissed: false,
                 toastQueue: [],
                 lastNotificationIds: new Set(),
-                userId: {{ auth()->id() }},
-                lastNotificationStorageKey: 'user_' + {{ auth()->id() }} + '_last_seen_notification_id',
-                lastSeenNotificationId: 0,
-                hasLoadedNotifications: false,
                 touchStartY: 0,
                 touchCurrentY: 0,
                 isSwiping: false,
-                
-                getCsrfToken() {
-                    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-                    return tokenMeta ? tokenMeta.getAttribute('content') : '';
-                },
-                
-                // Safely open modal with content data
-                openModal(data) {
-                    try {
-                        console.log('Opening modal with data:', data);
-                        this.activeModal = data;
-                        console.log('Active modal set to:', this.activeModal);
-                        // Load comments when modal opens
-                        if (data.contentId) {
-                            this.loadComments();
-                        }
-                        // Force a re-render to ensure modal displays
-                        this.$nextTick(() => {
-                            console.log('Modal should be visible now');
-                        });
-                    } catch (error) {
-                        console.error('Error opening modal:', error);
-                        Swal.fire({
-                            title: 'Error!',
-                            text: 'Unable to open content. Please try again.',
-                            icon: 'error',
-                            confirmButtonColor: '#ef4444',
-                            confirmButtonText: 'OK'
-                        });
-                    }
-                },
                 
                 // Comments are now always visible, no toggle needed
                 
                 // Auto-load comments when modal opens and notifications on page load
                 init() {
-                    this.initializeNotificationCache();
-                    
                     this.$watch('activeModal', (newModal) => {
                         if (newModal) {
                             this.loadComments();
@@ -2922,12 +2681,6 @@
                             this.loadNotifications();
                         }
                     });
-                },
-                
-                initializeNotificationCache() {
-                    const storedValue = localStorage.getItem(this.lastNotificationStorageKey);
-                    const parsedValue = storedValue ? parseInt(storedValue, 10) : 0;
-                    this.lastSeenNotificationId = Number.isNaN(parsedValue) ? 0 : parsedValue;
                 },
                 
                 loadComments() {
@@ -3264,60 +3017,6 @@
                     });
                 },
                 
-                // Debug function to test notification deletion
-                testNotificationDelete(notificationId) {
-                    console.log('Testing notification deletion for ID:', notificationId);
-                    
-                    // Test basic connectivity first
-                    fetch('/user/notifications/unread-count', {
-                        method: 'GET',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => {
-                        console.log('Connectivity test response:', response.status);
-                        return response.json();
-                    })
-                    .then(data => {
-                        console.log('Connectivity test success:', data);
-                        
-                        // Now test the delete endpoint
-                        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                        
-                        fetch(`/user/notifications/${notificationId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'X-CSRF-TOKEN': csrfToken
-                            }
-                        })
-                        .then(response => {
-                            console.log('Delete response status:', response.status);
-                            console.log('Delete response headers:', [...response.headers.entries()]);
-                            return response.text(); // Get as text first
-                        })
-                        .then(text => {
-                            console.log('Delete response text:', text);
-                            try {
-                                const data = JSON.parse(text);
-                                console.log('Delete response data:', data);
-                            } catch (e) {
-                                console.error('Failed to parse response as JSON:', e);
-                            }
-                        })
-                        .catch(deleteError => {
-                            console.error('Delete request failed:', deleteError);
-                        });
-                    })
-                    .catch(connectError => {
-                        console.error('Connectivity test failed:', connectError);
-                    });
-                },
-
                 removeNotification(notificationId) {
                     Swal.fire({
                         title: 'Are you sure?',
@@ -3347,83 +3046,33 @@
                                 }
                             });
                             
-                            // Get CSRF token
-                            const csrfToken = document.querySelector('meta[name="csrf-token"]');
-                            if (!csrfToken) {
-                                console.error('CSRF token element not found');
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: 'CSRF token not found. Please refresh the page and try again.',
-                                    icon: 'error',
-                                    confirmButtonColor: '#ef4444',
-                                    confirmButtonText: 'OK'
-                                });
-                                return;
-                            }
-                            
-                            const token = csrfToken.getAttribute('content');
-                            if (!token) {
-                                console.error('CSRF token content is empty');
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: 'CSRF token is invalid. Please refresh the page and try again.',
-                                    icon: 'error',
-                                    confirmButtonColor: '#ef4444',
-                                    confirmButtonText: 'OK'
-                                });
-                                return;
-                            }
-                            
-                            console.log('Attempting to delete notification:', notificationId);
-                            console.log('CSRF Token:', token.substring(0, 10) + '...');
-                            
                             fetch(`/user/notifications/${notificationId}`, {
                                 method: 'DELETE',
                                 headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
                                     'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': token
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                                 }
                             })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error(`HTTP error! status: ${response.status}`);
-                                }
-                                return response.json();
-                            })
+                            .then(response => response.json())
                             .then(data => {
                                 if (data.success) {
                                     // Remove notification from the list
                                     this.notifications = this.notifications.filter(n => n.id !== notificationId);
                                     
-                                    // Update notification count using server value
-                                    if (typeof data.unread_count === 'number') {
-                                        this.notificationCount = Math.max(0, data.unread_count);
-                                    } else {
-                                        this.notificationCount = Math.max(0, this.notificationCount - 1);
-                                    }
-                                    
-                                    // If no notifications left, close the dropdown after showing success
-                                    const shouldCloseDropdown = this.notifications.length === 0;
+                                    // Update notification count
+                                    this.notificationCount = Math.max(0, this.notificationCount - 1);
                                     
                                     Swal.fire({
                                         title: 'Removed!',
                                         text: 'The notification has been removed.',
                                         icon: 'success',
                                         confirmButtonColor: '#10b981',
-                                        confirmButtonText: 'OK',
-                                        timer: 2000,
-                                        timerProgressBar: true
-                                    }).then(() => {
-                                        if (shouldCloseDropdown) {
-                                            this.showNotifications = false;
-                                        }
+                                        confirmButtonText: 'OK'
                                     });
                                 } else {
                                     Swal.fire({
                                         title: 'Error!',
-                                        text: 'Error removing notification: ' + (data.error || data.message || 'Unknown error'),
+                                        text: 'Error removing notification: ' + (data.error || 'Unknown error'),
                                         icon: 'error',
                                         confirmButtonColor: '#ef4444',
                                         confirmButtonText: 'OK'
@@ -3432,32 +3081,9 @@
                             })
                             .catch(error => {
                                 console.error('Error removing notification:', error);
-                                console.error('Error type:', error.constructor.name);
-                                console.error('Error message:', error.message);
-                                console.error('Error stack:', error.stack);
-                                
-                                let errorMessage = 'Error removing notification. Please try again.';
-                                let debugInfo = '';
-                                
-                                if (error.message.includes('403')) {
-                                    errorMessage = 'You do not have permission to remove this notification.';
-                                } else if (error.message.includes('404')) {
-                                    errorMessage = 'Notification not found. It may have already been removed.';
-                                } else if (error.message.includes('500')) {
-                                    errorMessage = 'Server error. Please try again later.';
-                                } else if (error.message.includes('419')) {
-                                    errorMessage = 'Session expired. Please refresh the page and try again.';
-                                } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-                                    errorMessage = 'Network error. Please check your internet connection.';
-                                } else if (!navigator.onLine) {
-                                    errorMessage = 'No internet connection. Please check your connection and try again.';
-                                } else {
-                                    debugInfo = `\n\nDebug Info: ${error.message}`;
-                                }
-                                
                                 Swal.fire({
                                     title: 'Error!',
-                                    text: errorMessage + debugInfo,
+                                    text: 'Error removing notification. Please try again.',
                                     icon: 'error',
                                     confirmButtonColor: '#ef4444',
                                     confirmButtonText: 'OK'
@@ -3478,30 +3104,17 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success && data.notifications !== undefined) {
-                            const previousLastSeen = this.lastSeenNotificationId || 0;
-                            const notifications = Array.isArray(data.notifications) ? data.notifications : [];
-                            
                             // Detect new notifications
-                            const newNotifications = notifications.filter(notification => {
-                                return notification.id > previousLastSeen && !this.lastNotificationIds.has(notification.id);
+                            const newNotifications = data.notifications.filter(notification => {
+                                return !this.lastNotificationIds.has(notification.id);
                             });
                             
                             // Update notifications
-                            this.notifications = notifications;
+                            this.notifications = data.notifications;
                             this.notificationCount = data.unread_count || 0;
                             
                             // Update last notification IDs
-                            this.lastNotificationIds = new Set(notifications.map(n => n.id));
-                            
-                            if (newNotifications.length > 0) {
-                                const highestNewId = Math.max(...newNotifications.map(n => n.id));
-                                this.persistLastSeenNotificationId(Math.max(previousLastSeen, highestNewId));
-                            } else if (!this.hasLoadedNotifications && notifications.length > 0) {
-                                const highestExistingId = Math.max(...notifications.map(n => n.id));
-                                if (highestExistingId > previousLastSeen) {
-                                    this.persistLastSeenNotificationId(highestExistingId);
-                                }
-                            }
+                            this.lastNotificationIds = new Set(data.notifications.map(n => n.id));
                             
                             // Show toast for new notifications
                             if (newNotifications.length > 0) {
@@ -3509,26 +3122,11 @@
                                     this.queueToast(notification);
                                 });
                             }
-
-                            this.hasLoadedNotifications = true;
                         }
                     })
                     .catch(error => {
                         console.error('Error loading notifications:', error);
                     });
-                },
-                
-                persistLastSeenNotificationId(notificationId) {
-                    if (!notificationId || notificationId <= this.lastSeenNotificationId) {
-                        return;
-                    }
-                    
-                    this.lastSeenNotificationId = notificationId;
-                    try {
-                        localStorage.setItem(this.lastNotificationStorageKey, String(notificationId));
-                    } catch (storageError) {
-                        console.warn('Unable to persist last seen notification ID:', storageError);
-                    }
                 },
                 
                 queueToast(notification) {
@@ -3653,7 +3251,7 @@
                 // Profile management functions
                 initializeProfileForm() {
                     // Convert short codes to full department names if needed
-                    let department = @json(auth()->user()->department);
+                    let department = '{{ auth()->user()->department }}';
                     const shortToFullDepartmentMap = {
                         'BSIT': 'Bachelor of Science in Information Technology',
                         'BSBA': 'Bachelor of Science in Business Administration',
@@ -3663,7 +3261,7 @@
                     };
                     
                     // Convert year level to proper case
-                    let yearLevel = @json(auth()->user()->year_level);
+                    let yearLevel = '{{ auth()->user()->year_level }}';
                     const yearLevelMap = {
                         '1st year': '1st Year',
                         '2nd year': '2nd Year',
@@ -3672,9 +3270,9 @@
                     };
                     
                     this.profileForm = {
-                        first_name: @json(auth()->user()->first_name),
-                        middle_name: @json(auth()->user()->middle_name),
-                        surname: @json(auth()->user()->surname),
+                        first_name: '{{ auth()->user()->first_name }}',
+                        middle_name: '{{ auth()->user()->middle_name }}',
+                        surname: '{{ auth()->user()->surname }}',
                         department: shortToFullDepartmentMap[department] || department,
                         year_level: yearLevelMap[yearLevel] || yearLevel
                     };
@@ -3701,17 +3299,13 @@
                     
                     this.updatingProfile = true;
                     
-                    const csrfToken = this.getCsrfToken();
-
                     fetch('/user/profile/update', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json'
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         },
-                        credentials: 'same-origin',
                         body: JSON.stringify(this.profileForm)
                     })
                     .then(response => response.json())
@@ -3811,21 +3405,15 @@
                         }
                     });
                     
-                    const csrfToken = this.getCsrfToken();
                     const formData = new FormData();
                     formData.append('profile_picture', file);
-                    if (csrfToken) {
-                        formData.append('_token', csrfToken);
-                    }
                     
                     fetch('/user/profile/upload-picture', {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Accept': 'application/json'
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         },
-                        credentials: 'same-origin',
                         body: formData
                     })
                     .then(response => response.json())
@@ -3900,16 +3488,12 @@
                                 }
                             });
                             
-                            const csrfToken = this.getCsrfToken();
-
                             fetch('/user/profile/remove-picture', {
                                 method: 'DELETE',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest',
-                                    'X-CSRF-TOKEN': csrfToken,
-                                    'Accept': 'application/json'
-                                },
-                                credentials: 'same-origin'
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                }
                             })
                             .then(response => response.json())
                             .then(data => {
@@ -4197,7 +3781,7 @@
                 }).catch(error => {
                     console.warn('Heartbeat failed:', error);
                 });
-            },
+            }
             
             handleTimeout() {
                 Swal.fire({
@@ -4214,7 +3798,7 @@
                     // Redirect to login
                     window.location.replace('/login');
                 });
-            },
+            }
             
             handleVisibilityChange() {
                 document.addEventListener('visibilitychange', () => {
