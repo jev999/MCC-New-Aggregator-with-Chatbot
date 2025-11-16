@@ -171,9 +171,56 @@
         }
         
         .modal-content {
+            margin-top: 1.25rem;
+            padding: 1rem 1.25rem;
+            line-height: 1.8;
+            color: #111827;
+            background: #fffbeb;
+            border-radius: 0.75rem;
+            border: 1px dashed #fbbf24;
+            font-size: 0.95rem;
+            white-space: pre-line;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            position: relative;
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 10px;
+            background: #f9fafb;
+            border-radius: 9999px;
+            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.18);
+        }
+
+        .modal-content strong {
+            color: #b45309;
+        }
+
+        .modal-date {
             margin-top: 1rem;
-            line-height: 1.6;
-            color: #374151;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 9999px;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            font-size: 0.8rem;
+            color: #92400e;
+            font-weight: 500;
+        }
+
+        .modal-date::before {
+            content: "\f073";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.9rem;
+            color: #f59e0b;
         }
         
         .close-button {
@@ -268,6 +315,91 @@
 
         .modal-container.active {
             transform: scale(1);
+        }
+
+        .content-modal-bulletin {
+            background: #fef3c7;
+            border-radius: 18px;
+            border: 2px solid #fbbf24;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.4);
+            position: relative;
+        }
+
+        .content-modal-bulletin::before,
+        .content-modal-bulletin::after {
+            content: '';
+            position: absolute;
+            top: 12px;
+            width: 70px;
+            height: 16px;
+            background: #f9fafb;
+            border-radius: 9999px;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
+            pointer-events: none;
+        }
+
+        .content-modal-bulletin::before {
+            left: 18%;
+            transform: rotate(-4deg);
+        }
+
+        .content-modal-bulletin::after {
+            right: 18%;
+            transform: rotate(4deg);
+        }
+
+        .content-modal-header {
+            background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
+        }
+
+        .content-modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #1f2937;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(255, 255, 255, 0.6);
+        }
+
+        .content-modal-close {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 9999px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.25);
+        }
+
+        .content-modal-close i {
+            color: #1f2937;
+        }
+
+        .content-modal-close:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .content-modal-title {
+                font-size: 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .content-modal-title {
+                font-size: 1.1rem;
+            }
         }
 
         @media (min-width: 640px) {
@@ -2046,7 +2178,7 @@
              class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center overflow-y-auto z-50 p-4"
              @click.self="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''" 
              @keydown.escape="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
-            <div class="modal-container overflow-hidden flex flex-col mt-6 active"
+            <div class="modal-container overflow-hidden flex flex-col mt-6 active content-modal-bulletin"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 transform scale-95"
                  x-transition:enter-end="opacity-100 transform scale-100"
@@ -2054,9 +2186,9 @@
                  x-transition:leave-start="opacity-100 transform scale-100"
                  x-transition:leave-end="opacity-0 transform scale-95"
                  @click.stop>
-                <div class="p-6 border-b border-gray-200 flex items-center justify-between modal-header">
-                    <h3 class="text-2xl font-bold text-gray-800" x-text="activeModal?.title"></h3>
-                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
+                <div class="p-6 border-b border-gray-200 modal-header content-modal-header">
+                    <h3 class="content-modal-title" x-text="activeModal?.title"></h3>
+                    <button class="text-gray-400 hover:text-gray-600 transition-colors modal-close-btn content-modal-close" @click="activeModal = null; playingVideo = null; comments = []; replyingTo = null; replyContent = ''; commentContent = ''">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
