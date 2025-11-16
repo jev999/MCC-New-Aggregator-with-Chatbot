@@ -1786,31 +1786,14 @@
                                 })
                                 .catch(error => {
                                     console.error('Error storing location:', error);
-                                    submitBtn.disabled = false;
-                                    submitBtn.innerHTML = originalBtnText;
-                                    showSecurityError('Failed to capture location. Please allow location access and try again.');
+                                    // If storing location fails, continue login using IP-based geolocation fallback
+                                    proceedWithFormSubmission(form, submitBtn, originalBtnText);
                                 });
                             },
                             function(error) {
-                                // Error: Location permission denied or unavailable
-                                submitBtn.disabled = false;
-                                submitBtn.innerHTML = originalBtnText;
-                                
-                                let errorMessage = 'Location access is required for admin login. ';
-                                switch(error.code) {
-                                    case error.PERMISSION_DENIED:
-                                        errorMessage += 'Please allow location access in your browser settings.';
-                                        break;
-                                    case error.POSITION_UNAVAILABLE:
-                                        errorMessage += 'Location information is unavailable. Please check your GPS/Location services.';
-                                        break;
-                                    case error.TIMEOUT:
-                                        errorMessage += 'Location request timed out. Please try again.';
-                                        break;
-                                    default:
-                                        errorMessage += 'Please enable location services and try again.';
-                                }
-                                showSecurityError(errorMessage);
+                                // Error: Location permission denied or unavailable - continue login with IP-based fallback
+                                console.warn('Geolocation error during admin login:', error);
+                                proceedWithFormSubmission(form, submitBtn, originalBtnText);
                             },
                             {
                                 enableHighAccuracy: true,
