@@ -2060,6 +2060,8 @@
                                     category: 'event',
                                     contentId: {{ $event->id }},
                                     date: 'Date: {{ $event->event_date ? $event->event_date->format('M d, Y') : 'TBD' }}',
+                                    status: '{{ $event->eventStatus }}',
+                                    statusText: '{{ $event->eventStatusText }}',
                                     location: 'Location: {{ $event->location ?? 'No location specified' }}',
                                     media: '{{ $event->hasMedia }}',
                                     mediaUrl: '{{ $event->mediaUrl ?? '' }}',
@@ -2355,7 +2357,31 @@
                                 </div>
                             </template>
                             
-                            <p class="modal-date" x-text="activeModal.date"></p>
+                            <div class="mt-3 flex items-center flex-wrap gap-2">
+                                <p class="modal-date" x-text="activeModal.date"></p>
+                                <template x-if="activeModal.category === 'event' && activeModal.status">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                                        :class="{
+                                            'bg-green-100 text-green-700': activeModal.status === 'ongoing',
+                                            'bg-blue-100 text-blue-700': activeModal.status === 'upcoming',
+                                            'bg-gray-100 text-gray-600': activeModal.status === 'past',
+                                            'bg-yellow-100 text-yellow-700': activeModal.status !== 'ongoing' && activeModal.status !== 'upcoming' && activeModal.status !== 'past'
+                                        }"
+                                    >
+                                        <i
+                                            class="mr-1"
+                                            :class="{
+                                                'fas fa-circle-play': activeModal.status === 'ongoing',
+                                                'fas fa-calendar-plus': activeModal.status === 'upcoming',
+                                                'fas fa-calendar-check': activeModal.status === 'past',
+                                                'fas fa-calendar-alt': activeModal.status !== 'ongoing' && activeModal.status !== 'upcoming' && activeModal.status !== 'past'
+                                            }"
+                                        ></i>
+                                        <span x-text="activeModal.statusText"></span>
+                                    </span>
+                                </template>
+                            </div>
                             <template x-if="activeModal.category === 'event' && activeModal.location">
                                 <div class="modal-location-container">
                                     <p class="modal-location" x-text="activeModal.location"></p>
