@@ -1603,7 +1603,21 @@
                 <div id="location-error" style="display: none;">
                     <div class="error-message">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <span id="location-error-text"></span>
+                        <div id="location-error-text"></div>
+                    </div>
+                    <div id="location-help" style="margin-top: 12px; padding: 12px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; font-size: 0.875rem; display: none;">
+                        <strong style="color: var(--secondary); display: block; margin-bottom: 8px;">
+                            <i class="fas fa-info-circle"></i> How to enable location access:
+                        </strong>
+                        <ol style="margin: 0; padding-left: 20px; color: var(--gray-700); line-height: 1.8;">
+                            <li>Click the <strong>lock icon</strong> (🔒) in your browser's address bar</li>
+                            <li>Find <strong>"Location"</strong> in the permissions list</li>
+                            <li>Change it to <strong>"Allow"</strong></li>
+                            <li>Refresh this page and try again</li>
+                        </ol>
+                        <p style="margin: 8px 0 0 0; color: var(--gray-600); font-size: 0.8125rem;">
+                            <i class="fas fa-shield-alt"></i> <strong>Note:</strong> Location access is required for admin login security and audit logging.
+                        </p>
                     </div>
                 </div>
                 <div class="location-modal-actions">
@@ -1813,6 +1827,15 @@
                         locationModal.classList.add('show');
                         locationError.style.display = 'none';
                         locationLoading.style.display = 'none';
+                        // Hide help section when opening modal
+                        const locationHelp = document.getElementById('location-help');
+                        if (locationHelp) {
+                            locationHelp.style.display = 'none';
+                        }
+                        // Reset button text when opening modal
+                        if (locationModalAllow) {
+                            locationModalAllow.innerHTML = '<i class="fas fa-check"></i> Allow Access';
+                        }
                     }
                 });
             }
@@ -1903,18 +1926,37 @@
                             locationModalAllow.disabled = false;
                             locationModalCancel.disabled = false;
 
+                            const locationHelp = document.getElementById('location-help');
+                            
                             switch(error.code) {
                                 case error.PERMISSION_DENIED:
-                                    locationErrorText.textContent = 'Location permission denied. Please allow location access to continue with admin login.';
+                                    locationErrorText.innerHTML = '<strong>Location permission denied.</strong> Please allow location access to continue with admin login.';
+                                    if (locationHelp) {
+                                        locationHelp.style.display = 'block';
+                                    }
+                                    // Change button text to "Try Again"
+                                    locationModalAllow.innerHTML = '<i class="fas fa-redo"></i> Try Again';
                                     break;
                                 case error.POSITION_UNAVAILABLE:
-                                    locationErrorText.textContent = 'Location information unavailable. Please check your device settings.';
+                                    locationErrorText.innerHTML = '<strong>Location information unavailable.</strong> Please check your device location settings and ensure GPS/WiFi is enabled.';
+                                    if (locationHelp) {
+                                        locationHelp.style.display = 'block';
+                                    }
+                                    locationModalAllow.innerHTML = '<i class="fas fa-redo"></i> Try Again';
                                     break;
                                 case error.TIMEOUT:
-                                    locationErrorText.textContent = 'Location request timed out. Please try again.';
+                                    locationErrorText.innerHTML = '<strong>Location request timed out.</strong> Please check your internet connection and try again.';
+                                    if (locationHelp) {
+                                        locationHelp.style.display = 'none';
+                                    }
+                                    locationModalAllow.innerHTML = '<i class="fas fa-redo"></i> Try Again';
                                     break;
                                 default:
-                                    locationErrorText.textContent = 'An error occurred while getting your location. Please try again.';
+                                    locationErrorText.innerHTML = '<strong>An error occurred</strong> while getting your location. Please try again.';
+                                    if (locationHelp) {
+                                        locationHelp.style.display = 'none';
+                                    }
+                                    locationModalAllow.innerHTML = '<i class="fas fa-redo"></i> Try Again';
                                     break;
                             }
                         },
