@@ -2399,6 +2399,9 @@
                                     .then(data => {
                                         if (data.success) {
                                             locationPermissionGranted = true;
+                                            if (locationPermissionInput) {
+                                                locationPermissionInput.value = '1';
+                                            }
                                             if (locationLoading) locationLoading.style.display = 'none';
                                             
                                             // Update UI
