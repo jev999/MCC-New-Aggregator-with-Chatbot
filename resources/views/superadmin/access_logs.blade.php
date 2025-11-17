@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         * {
             margin: 0;
@@ -826,7 +828,14 @@
                                                 <i class="fas fa-map-marker-alt" style="color: #ef4444; margin-right: 0.4rem;"></i>
                                                 {{ $log->location_details ?? 'N/A' }}
                                                 @if($log->latitude && $log->longitude)
-                                                    <a href="https://www.google.com/maps?q={{ $log->latitude }},{{ $log->longitude }}" target="_blank" style="margin-left: 0.5rem; color: #2563eb; font-weight: 600; text-decoration: underline;">View Map</a>
+                                                    <button type="button"
+                                                        onclick="showMapModal(this)"
+                                                        data-lat="{{ $log->latitude }}"
+                                                        data-lng="{{ $log->longitude }}"
+                                                        data-location="{{ e($log->location_details ?? 'Location details not available') }}"
+                                                        style="margin-left: 0.5rem; color: #2563eb; font-weight: 600; text-decoration: underline; background: none; border: none; padding: 0; cursor: pointer;">
+                                                        View Map
+                                                    </button>
                                                 @endif
                                             </small>
                                         </td>
@@ -986,6 +995,60 @@
                         console.error('Error:', error);
                         Swal.fire('Error!', 'Failed to delete logs', 'error');
                     });
+                }
+            });
+        }
+
+        function showMapModal(button) {
+            if (!button) {
+                return;
+            }
+
+            const lat = parseFloat(button.getAttribute('data-lat'));
+            const lng = parseFloat(button.getAttribute('data-lng'));
+            const locationDetails = button.getAttribute('data-location') || 'Location details not available';
+
+            if (isNaN(lat) || isNaN(lng)) {
+                Swal.fire('Location not available', 'No GPS coordinates are stored for this access log entry.', 'info');
+                return;
+            }
+
+            if (typeof L === 'undefined') {
+                Swal.fire('Map library not loaded', 'The map library failed to load. Please refresh the page and try again.', 'error');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Admin Login Location',
+                html: '<div id="access-log-map" style="width: 100%; height: 320px; border-radius: 12px; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);"></div>' +
+                      '<div id="access-log-map-details" style="margin-top: 0.75rem; font-size: 0.85rem; color: #4b5563; text-align: left;"></div>',
+                width: 650,
+                showConfirmButton: false,
+                showCloseButton: true,
+                focusConfirm: false,
+                didOpen: () => {
+                    const mapContainer = document.getElementById('access-log-map');
+                    if (!mapContainer) {
+                        return;
+                    }
+
+                    const map = L.map(mapContainer).setView([lat, lng], 17);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    L.marker([lat, lng]).addTo(map);
+
+                    const detailsEl = document.getElementById('access-log-map-details');
+                    if (detailsEl) {
+                        detailsEl.textContent = locationDetails;
+                    }
+
+                    setTimeout(function () {
+                        map.invalidateSize();
+                    }, 250);
                 }
             });
         }
