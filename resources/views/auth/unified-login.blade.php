@@ -1371,20 +1371,17 @@
                             Login Type
                         </label>
                         <div class="login-type-select">
-                            @php
-                                $selectedLoginType = old('login_type', $preselectedType ?? 'ms365');
-                            @endphp
                             <select name="login_type" id="login_type" class="form-control" required>
-                                <option value="ms365" {{ $selectedLoginType == 'ms365' ? 'selected' : '' }}>
+                                <option value="ms365" {{ old('login_type', 'ms365') == 'ms365' ? 'selected' : '' }}>
                                     Student/Faculty (MS365)
                                 </option>
-                                <option value="superadmin" {{ $selectedLoginType == 'superadmin' ? 'selected' : '' }}>
+                                <option value="superadmin" {{ old('login_type') == 'superadmin' ? 'selected' : '' }}>
                                     Super Admin
                                 </option>
-                                <option value="department-admin" {{ $selectedLoginType == 'department-admin' ? 'selected' : '' }}>
+                                <option value="department-admin" {{ old('login_type') == 'department-admin' ? 'selected' : '' }}>
                                     Department Admin
                                 </option>
-                                <option value="office-admin" {{ $selectedLoginType == 'office-admin' ? 'selected' : '' }}>
+                                <option value="office-admin" {{ old('login_type') == 'office-admin' ? 'selected' : '' }}>
                                     Office Admin
                                 </option>
                             </select>
