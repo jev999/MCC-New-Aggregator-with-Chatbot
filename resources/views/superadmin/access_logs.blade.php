@@ -741,6 +741,7 @@
                                     <th>Login Time</th>
                                     <th>Logout Time</th>
                                     <th>Duration</th>
+                                    <th>IP Address</th>
                                     <th>Location</th>
                                     <th>Actions</th>
                                 </tr>
@@ -815,9 +816,18 @@
                                             @endif
                                         </td>
                                         <td>
+                                            <small style="color: #111;">
+                                                <i class="fas fa-network-wired" style="color: #2563eb; margin-right: 0.4rem;"></i>
+                                                {{ $log->ip_address ?? 'N/A' }}
+                                            </small>
+                                        </td>
+                                        <td>
                                             <small style="color: #666;">
                                                 <i class="fas fa-map-marker-alt" style="color: #ef4444; margin-right: 0.4rem;"></i>
                                                 {{ $log->location_details ?? 'N/A' }}
+                                                @if($log->latitude && $log->longitude)
+                                                    <a href="https://www.google.com/maps?q={{ $log->latitude }},{{ $log->longitude }}" target="_blank" style="margin-left: 0.5rem; color: #2563eb; font-weight: 600; text-decoration: underline;">View Map</a>
+                                                @endif
                                             </small>
                                         </td>
                                         <td style="text-align: center;">
