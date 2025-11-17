@@ -478,6 +478,7 @@
                 flex-direction: column;
                 align-items: flex-start;
                 padding: 1.5rem;
+                margin-bottom: 2rem;
             }
 
             .stats-grid {
@@ -504,6 +505,11 @@
 
             .main-content {
                 padding: 1rem;
+            }
+
+            .header {
+                padding: 1.25rem;
+                margin-bottom: 1.75rem;
             }
 
             .header h1 {
@@ -535,6 +541,89 @@
 
             .stat-card .number {
                 font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .header {
+                padding: 1.1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .card-header {
+                padding: 1.25rem;
+                gap: 1rem;
+            }
+
+            .stats-grid {
+                gap: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-card .number {
+                font-size: 1.75rem;
+            }
+
+            .table-wrapper {
+                padding: 0.25rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.6rem;
+            }
+
+            .card {
+                border-radius: 12px;
+            }
+
+            .btn {
+                padding: 0.65rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .pagination {
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .header h1 {
+                font-size: 1.25rem;
+                gap: 0.5rem;
+            }
+
+            .header h1 i {
+                font-size: 1.75rem;
+            }
+
+            .card-header h2 {
+                font-size: 1.25rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pagination {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pagination a,
+            .pagination span {
+                width: 100%;
+                text-align: center;
             }
         }
     </style>
