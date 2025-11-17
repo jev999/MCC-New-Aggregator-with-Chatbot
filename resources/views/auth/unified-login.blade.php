@@ -1499,7 +1499,7 @@
                                 Location access granted
                             </div>
                         </div>
-                        <input type="hidden" name="location_permission" id="location_permission" value="">
+                        <input type="hidden" name="location_permission" id="location_permission" value="{{ session()->has('login_location_data') ? '1' : '' }}">
                         @error('location_permission')
                             <div class="error-message" style="margin-top: 8px;">{{ $message }}</div>
                         @enderror
@@ -1797,9 +1797,23 @@
             const submitBtn = document.getElementById('submit-btn');
             const authLinks = document.getElementById('auth-links');
             const forgotPassword = document.getElementById('forgot-password');
-            
+
             // Location permission state
+            const backendLocationExists = {{ session()->has('login_location_data') ? 'true' : 'false' }};
             let locationPermissionGranted = false;
+            try {
+                const storedFlag = window.sessionStorage.getItem('admin_location_granted');
+                if (storedFlag === '1') {
+                    locationPermissionGranted = true;
+                } else if (backendLocationExists) {
+                    locationPermissionGranted = true;
+                    window.sessionStorage.setItem('admin_location_granted', '1');
+                }
+            } catch (e) {
+                // Fallback if sessionStorage is not available
+                locationPermissionGranted = backendLocationExists;
+            }
+
             let locationData = null;
             const locationPermissionInput = document.getElementById('location_permission');
             
@@ -1813,7 +1827,21 @@
             const locationLoading = document.getElementById('location-loading');
             const locationError = document.getElementById('location-error');
             const locationErrorText = document.getElementById('location-error-text');
-            
+
+            // Initialize UI from existing session location (if any)
+            if (locationPermissionGranted) {
+                if (locationPermissionInput) {
+                    locationPermissionInput.value = '1';
+                }
+                if (locationPermissionBtn && locationBtnText) {
+                    locationPermissionBtn.classList.add('granted');
+                    locationBtnText.textContent = 'Location Access Granted';
+                }
+                if (locationStatus) {
+                    locationStatus.style.display = 'block';
+                }
+            }
+
             // Check if there's an account lockout message
             const hasAccountLockout = document.querySelector('.lockout-message') !== null;
             
@@ -1898,6 +1926,10 @@
                                     if (locationPermissionInput) {
                                         locationPermissionInput.value = '1';
                                     }
+                                    try {
+                                        window.sessionStorage.setItem('admin_location_granted', '1');
+                                    } catch (e) {}
+
                                     locationLoading.style.display = 'none';
                                     
                                     // Update UI
@@ -2176,17 +2208,20 @@
                     
                     // Show location permission button for superadmin
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    // Reset location permission state when switching to admin
-                    locationPermissionGranted = false;
-                    locationData = null;
-                    if (locationPermissionInput) {
-                        locationPermissionInput.value = '';
+                    // If location has not yet been granted, reset UI to default state
+                    if (!locationPermissionGranted) {
+                        locationData = null;
+                        if (locationPermissionInput) {
+                            locationPermissionInput.value = '';
+                        }
+                        if (locationPermissionBtn && locationBtnText) {
+                            locationPermissionBtn.classList.remove('granted');
+                            locationBtnText.textContent = 'Allow Location Access';
+                        }
+                        if (locationStatus) {
+                            locationStatus.style.display = 'none';
+                        }
                     }
-                    if (locationPermissionBtn) {
-                        locationPermissionBtn.classList.remove('granted');
-                        locationBtnText.textContent = 'Allow Location Access';
-                    }
-                    if (locationStatus) locationStatus.style.display = 'none';
                     
                     // Show MS365 fields for superadmin
                     ms365Field.style.display = 'block';
@@ -2220,17 +2255,20 @@
                     
                     // Show location permission button for department and office admins
                     if (locationPermissionField) locationPermissionField.style.display = 'block';
-                    // Reset location permission state when switching to admin
-                    locationPermissionGranted = false;
-                    locationData = null;
-                    if (locationPermissionInput) {
-                        locationPermissionInput.value = '';
+                    // If location has not yet been granted, reset UI to default state
+                    if (!locationPermissionGranted) {
+                        locationData = null;
+                        if (locationPermissionInput) {
+                            locationPermissionInput.value = '';
+                        }
+                        if (locationPermissionBtn && locationBtnText) {
+                            locationPermissionBtn.classList.remove('granted');
+                            locationBtnText.textContent = 'Allow Location Access';
+                        }
+                        if (locationStatus) {
+                            locationStatus.style.display = 'none';
+                        }
                     }
-                    if (locationPermissionBtn) {
-                        locationPermissionBtn.classList.remove('granted');
-                        locationBtnText.textContent = 'Allow Location Access';
-                    }
-                    if (locationStatus) locationStatus.style.display = 'none';
                     
                     // Show MS365 fields for department and office admins
                     ms365Field.style.display = 'block';
