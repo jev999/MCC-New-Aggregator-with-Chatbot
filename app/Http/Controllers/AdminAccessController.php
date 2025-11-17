@@ -165,7 +165,7 @@ class AdminAccessController extends Controller
             $location = \App\Models\Location::create($locationData);
 
             // Build location details string for backward compatibility
-            $locationDetails = $location->formatted_address . ' [WiFi-Based Real-Time Location]';
+            $locationDetails = $location->full_address . ' [WiFi-Based Real-Time Location]';
 
             // Update the access log with GPS coordinates and location_id
             $log->update([

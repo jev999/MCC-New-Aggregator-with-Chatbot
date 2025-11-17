@@ -79,7 +79,7 @@ class AdminLocationController extends Controller
             $location = Location::create($locationData);
 
             // Build location details string for backward compatibility
-            $locationDetails = $location->formatted_address;
+            $locationDetails = $location->full_address;
             $sourceTag = 'Device GPS (Precise)';
             if ($accuracy !== null && $accuracy !== '') {
                 $locationDetails .= ' [' . $sourceTag . ', ±' . (float)$accuracy . 'm]';

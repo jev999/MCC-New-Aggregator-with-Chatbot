@@ -1585,7 +1585,7 @@ class UnifiedAuthController extends Controller
             $logData['location_id'] = $locationId;
             $logData['latitude'] = $loginLocationData['latitude'] ?? null;
             $logData['longitude'] = $loginLocationData['longitude'] ?? null;
-            $logData['location_details'] = $location->formatted_address ?? 'Browser GPS Location';
+            $logData['location_details'] = $location->full_address ?? 'Browser GPS Location';
         } else {
             // Fallback to IP-based geolocation
             $logData['latitude'] = $geoData['latitude'] ?? null;
@@ -1923,7 +1923,7 @@ class UnifiedAuthController extends Controller
                 $logData['location_id'] = $locationId;
                 $logData['latitude'] = $loginLocationData['latitude'] ?? null;
                 $logData['longitude'] = $loginLocationData['longitude'] ?? null;
-                $logData['location_details'] = $location->formatted_address ?? 'Browser GPS Location';
+                $logData['location_details'] = $location->full_address ?? 'Browser GPS Location';
             } else {
                 // Fallback to IP-based geolocation
                 $logData['latitude'] = $geoData['latitude'] ?? null;
