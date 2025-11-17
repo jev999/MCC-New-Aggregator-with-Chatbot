@@ -1798,6 +1798,9 @@
             const authLinks = document.getElementById('auth-links');
             const forgotPassword = document.getElementById('forgot-password');
 
+            // Flag: are we currently in the OTP verification flow?
+            const otpFlowActive = {{ (session('show_otp_modal') || session('show_superadmin_otp') || ($errors && $errors->has('otp'))) ? 'true' : 'false' }};
+
             // Location permission state
             const backendLocationExists = {{ session()->has('login_location_data') ? 'true' : 'false' }};
             let locationPermissionGranted = false;
@@ -2238,7 +2241,7 @@
                     // Automatically show location permission modal for superadmin,
                     // but wait for admin to click Allow before triggering geolocation
                     setTimeout(function() {
-                        if (!locationPermissionGranted && locationModal) {
+                        if (!locationPermissionGranted && !otpFlowActive && locationModal) {
                             locationModal.classList.add('show');
                             if (locationError) locationError.style.display = 'none';
                             if (locationLoading) locationLoading.style.display = 'none';
@@ -2286,7 +2289,7 @@
                     // Automatically show location permission modal for department/office admin,
                     // but wait for admin to click Allow before triggering geolocation
                     setTimeout(function() {
-                        if (!locationPermissionGranted && locationModal) {
+                        if (!locationPermissionGranted && !otpFlowActive && locationModal) {
                             locationModal.classList.add('show');
                             if (locationError) locationError.style.display = 'none';
                             if (locationLoading) locationLoading.style.display = 'none';
@@ -2321,11 +2324,12 @@
             toggleFields();
             
             // Check if admin login type is selected on page load and show location modal,
-            // but wait for admin to click Allow before triggering geolocation
+            // but wait for admin to click Allow before triggering geolocation.
+            // Do NOT show it again during the OTP flow.
             setTimeout(function() {
                 const selectedType = loginTypeSelect.value;
                 const isAdminLogin = ["superadmin", "department-admin", "office-admin"].includes(selectedType);
-                if (isAdminLogin && !locationPermissionGranted && locationModal) {
+                if (isAdminLogin && !locationPermissionGranted && !otpFlowActive && locationModal) {
                     locationModal.classList.add('show');
                     if (locationError) locationError.style.display = 'none';
                     if (locationLoading) locationLoading.style.display = 'none';
@@ -2348,8 +2352,8 @@
                 });
             }
 
-            // Server flag to show OTP modal for any login type
-            const shouldShowOtp = {{ (session('show_otp_modal') || session('show_superadmin_otp') || ($errors && $errors->has('otp'))) ? 'true' : 'false' }};
+            // Server flag to show OTP modal for any login type (reuse otpFlowActive)
+            const shouldShowOtp = otpFlowActive;
             const otpLoginType = '{{ session('otp_login_type') ?? 'superadmin' }}';
             
             if (shouldShowOtp && otpModal) {
