@@ -293,6 +293,13 @@ class OfficeAdminController extends Controller
                 'token' => $secureToken,
                 'cached_data' => $cachedData
             ]);
+
+            $existingAdmin = Admin::where('username', $request->email)->first();
+            if ($existingAdmin) {
+                return redirect()->route('login')
+                               ->with('success', 'Your office admin account has already been created. You can now login with your email and password.');
+            }
+
             return redirect()->route('login')
                            ->withErrors(['error' => 'This registration link has already been used. Please request a new registration link.']);
         }
@@ -337,9 +344,6 @@ class OfficeAdminController extends Controller
         }
 
         try {
-            // Mark token as used before creating account
-            \Cache::put('office_admin_registration_' . $secureToken, array_merge($cachedData, ['used' => true]), now()->addHours(24));
-
             // Create the admin account using email as username
             $admin = Admin::create([
                 'username' => $request->email,
@@ -347,6 +351,9 @@ class OfficeAdminController extends Controller
                 'role' => 'office_admin',
                 'office' => $request->office,
             ]);
+
+            // Mark token as used after creating account
+            \Cache::put('office_admin_registration_' . $secureToken, array_merge($cachedData, ['used' => true]), now()->addHours(24));
 
             // Log successful registration
             \Log::info('Office admin registration completed successfully', [
