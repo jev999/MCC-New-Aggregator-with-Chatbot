@@ -513,7 +513,7 @@ class SuperAdminController extends Controller
             \Cache::forget('admin_registration_' . $secureToken);
 
             return redirect()->route('login')
-                            ->with('success', 'Your department admin account has been created successfully! You can now login with your email and password.');
+                            ->with('success', 'Your department admin account has been registered successfully! You can now login with your email and password.');
         } catch (\Exception $e) {
             \Log::error('Admin registration failed: ' . $e->getMessage(), [
                 'email' => $request->email,
