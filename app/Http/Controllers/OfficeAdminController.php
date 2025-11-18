@@ -199,6 +199,14 @@ class OfficeAdminController extends Controller
                 'token' => $token,
                 'cached_data' => $cachedData
             ]);
+
+            // If the office admin account already exists, guide them to login instead of showing a hard error
+            $existingAdmin = Admin::where('username', $email)->first();
+            if ($existingAdmin) {
+                return redirect()->route('login')
+                               ->with('success', 'Your office admin account has already been created. You can now login with your email and password.');
+            }
+
             return redirect()->route('login')
                            ->withErrors(['error' => 'This registration link has already been used. Please request a new registration link.']);
         }
