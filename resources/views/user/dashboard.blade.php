@@ -1969,6 +1969,32 @@
         </div>
 
         <main class="bulletin-board p-6 md:p-8">
+            <!-- Search Bar for Announcements, Events, and News -->
+            <div class="mt-4 mb-6 max-w-xl mx-auto md:mx-0">
+                <form method="GET" action="{{ route('user.dashboard') }}" autocomplete="off">
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <i class="fas fa-search text-sm"></i>
+                        </span>
+                        <input
+                            type="text"
+                            name="search"
+                            id="searchInput"
+                            value="{{ isset($search) ? $search : request('search') }}"
+                            placeholder="Search announcements, events, news..."
+                            class="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm md:text-base bg-white shadow-sm"
+                            autocomplete="off"
+                        >
+                    </div>
+                </form>
+
+                <!-- Suggestion Box -->
+                <ul
+                    id="suggestions"
+                    class="mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-auto text-sm hidden"
+                ></ul>
+            </div>
+
             <div class="row-layout mt-6">
                 <!-- FIRST ROW: Announcements Section -->
                 <div class="section p-4 md:p-5 pin">
@@ -4125,11 +4151,86 @@
             }
         }
 
-        // Simple video play functionality
+        // Simple video play functionality + live search suggestions
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize session manager
             new SessionManager();
-            
+
+            // Live search suggestions for dashboard content
+            const searchInput = document.getElementById('searchInput');
+            const suggestionBox = document.getElementById('suggestions');
+            const searchSuggestUrl = "{{ route('user.search.suggest') }}";
+
+            if (searchInput && suggestionBox) {
+                let debounceTimer = null;
+
+                searchInput.addEventListener('keyup', function () {
+                    const query = this.value.trim();
+
+                    if (debounceTimer) {
+                        clearTimeout(debounceTimer);
+                    }
+
+                    if (query.length < 1) {
+                        suggestionBox.classList.add('hidden');
+                        suggestionBox.innerHTML = '';
+                        return;
+                    }
+
+                    debounceTimer = setTimeout(() => {
+                        fetch(searchSuggestUrl + '?query=' + encodeURIComponent(query), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                suggestionBox.innerHTML = '';
+
+                                if (!Array.isArray(data) || data.length === 0) {
+                                    suggestionBox.classList.add('hidden');
+                                    return;
+                                }
+
+                                data.forEach(item => {
+                                    const li = document.createElement('li');
+                                    li.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100 flex items-center justify-between';
+                                    const typeLabel = document.createElement('span');
+                                    typeLabel.className = 'text-xs font-semibold mr-2 text-gray-500';
+                                    typeLabel.textContent = item.type + ':';
+                                    const titleSpan = document.createElement('span');
+                                    titleSpan.className = 'flex-1 text-gray-800 truncate';
+                                    titleSpan.textContent = item.title;
+                                    li.appendChild(typeLabel);
+                                    li.appendChild(titleSpan);
+
+                                    li.addEventListener('click', function () {
+                                        searchInput.value = item.title;
+                                        suggestionBox.classList.add('hidden');
+                                        suggestionBox.innerHTML = '';
+                                        // Optionally submit form after selection:
+                                        // if (searchInput.form) searchInput.form.submit();
+                                    });
+
+                                    suggestionBox.appendChild(li);
+                                });
+
+                                suggestionBox.classList.remove('hidden');
+                            })
+                            .catch(() => {
+                                suggestionBox.classList.add('hidden');
+                            });
+                    }, 250);
+                });
+
+                // Hide suggestions when clicking outside
+                document.addEventListener('click', function (event) {
+                    if (!suggestionBox.contains(event.target) && event.target !== searchInput) {
+                        suggestionBox.classList.add('hidden');
+                    }
+                });
+            }
+
             document.querySelectorAll('.play-button').forEach(button => {
                 button.addEventListener('click', function(e) {
                     e.stopPropagation();

@@ -2396,6 +2396,9 @@ Route::prefix('user')->group(function () {
         Route::get('dashboard', [UserDashboardController::class, 'index'])->name('user.dashboard');
         Route::post('logout', [UserAuthController::class, 'logout'])->name('user.logout');
 
+        // AJAX live search suggestions for dashboard content
+        Route::get('search-suggest', [UserDashboardController::class, 'ajaxSearch'])->name('user.search.suggest');
+
         // ====================================================================
         // NOTIFICATION MANAGEMENT (RBAC: view-user-notifications, mark-notifications-read)
         // ====================================================================

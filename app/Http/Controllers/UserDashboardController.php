@@ -16,43 +16,69 @@ class UserDashboardController extends Controller
         $this->notificationService = $notificationService;
     }
 
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
         $user = auth()->user();
-        $userDepartment = $user->department;
 
-        // Get published announcements visible to this user
-        $announcements = Announcement::where('is_published', true)
+        $search = trim((string) $request->input('search'));
+
+        // Base queries: published + visible to user
+        $announcementQuery = Announcement::where('is_published', true)
+            ->visibleToUser($user)
+            ->with('admin');
+
+        $eventQuery = Event::where('is_published', true)
             ->visibleToUser($user)
             ->with('admin')
-            ->latest()
-            ->get();
-
-        // Get published events visible to this user
-        // Show both upcoming and recent past events for better user experience
-        $events = Event::where('is_published', true)
-            ->visibleToUser($user)
-            ->with('admin')
-            ->where(function($query) {
+            ->where(function ($query) {
                 // Show upcoming events and events from the last 90 days
                 $query->where('event_date', '>=', now()->subDays(90))
                       ->orWhereNull('event_date'); // Include TBD events
-            })
+            });
+
+        $newsQuery = News::where('is_published', true)
+            ->visibleToUser($user)
+            ->with('admin');
+
+        // Apply search filter across title and main text fields if provided
+        if ($search !== '') {
+            $announcementQuery->where(function ($query) use ($search) {
+                $query->where('title', 'LIKE', "%{$search}%")
+                      ->orWhere('content', 'LIKE', "%{$search}%");
+            });
+
+            $eventQuery->where(function ($query) use ($search) {
+                $query->where('title', 'LIKE', "%{$search}%")
+                      ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+
+            $newsQuery->where(function ($query) use ($search) {
+                $query->where('title', 'LIKE', "%{$search}%")
+                      ->orWhere('content', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $announcements = $announcementQuery->latest()->get();
+
+        $events = $eventQuery
             ->orderByRaw('CASE WHEN event_date IS NULL THEN 1 ELSE 0 END') // TBD events last
             ->orderBy('event_date', 'asc')
             ->get();
 
-        // Get published news visible to this user
-        $news = News::where('is_published', true)
-            ->visibleToUser($user)
-            ->with('admin')
-            ->latest()
-            ->get();
+        $news = $newsQuery->latest()->get();
 
         // Get statistics for the hero section (content visible to this user)
-        $totalAnnouncements = Announcement::where('is_published', true)->visibleToUser($user)->count();
-        $totalEvents = Event::where('is_published', true)->visibleToUser($user)->count();
-        $totalNews = News::where('is_published', true)->visibleToUser($user)->count();
+        $totalAnnouncements = Announcement::where('is_published', true)
+            ->visibleToUser($user)
+            ->count();
+
+        $totalEvents = Event::where('is_published', true)
+            ->visibleToUser($user)
+            ->count();
+
+        $totalNews = News::where('is_published', true)
+            ->visibleToUser($user)
+            ->count();
 
         // Get notification data for the current user
         $unreadNotificationsCount = $this->notificationService->getUnreadCount($user);
@@ -66,8 +92,72 @@ class UserDashboardController extends Controller
             'totalEvents',
             'totalNews',
             'unreadNotificationsCount',
-            'recentNotifications'
+            'recentNotifications',
+            'search'
         ));
+    }
+
+    /**
+     * AJAX endpoint for live search suggestions on the user dashboard.
+     */
+    public function ajaxSearch(\Illuminate\Http\Request $request)
+    {
+        $user = auth()->user();
+        $term = trim((string) $request->input('query'));
+
+        if ($term === '') {
+            return response()->json([]);
+        }
+
+        $results = [];
+
+        // Limit to a handful of suggestions per type, only published and visible to this user
+        $announce = Announcement::where('is_published', true)
+            ->visibleToUser($user)
+            ->where('title', 'LIKE', "%{$term}%")
+            ->latest()
+            ->take(5)
+            ->get(['id', 'title']);
+
+        $event = Event::where('is_published', true)
+            ->visibleToUser($user)
+            ->where('title', 'LIKE', "%{$term}%")
+            ->latest()
+            ->take(5)
+            ->get(['id', 'title']);
+
+        $newz = News::where('is_published', true)
+            ->visibleToUser($user)
+            ->where('title', 'LIKE', "%{$term}%")
+            ->latest()
+            ->take(5)
+            ->get(['id', 'title']);
+
+        foreach ($announce as $a) {
+            $results[] = [
+                'type' => 'Announcement',
+                'title' => $a->title,
+                'id' => $a->id,
+            ];
+        }
+
+        foreach ($event as $e) {
+            $results[] = [
+                'type' => 'Event',
+                'title' => $e->title,
+                'id' => $e->id,
+            ];
+        }
+
+        foreach ($newz as $n) {
+            $results[] = [
+                'type' => 'News',
+                'title' => $n->title,
+                'id' => $n->id,
+            ];
+        }
+
+        return response()->json($results);
     }
 
     /**
