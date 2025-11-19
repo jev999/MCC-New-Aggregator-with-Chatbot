@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\Event;
 use App\Models\News;
 use App\Services\NotificationService;
+use Illuminate\Support\Str;
 
 class UserDashboardController extends Controller
 {
@@ -42,24 +43,41 @@ class UserDashboardController extends Controller
 
         // Apply search filter across title and main text fields if provided
         if ($search !== '') {
-            $announcementQuery->where(function ($query) use ($search) {
-                $query->where('title', 'LIKE', "%{$search}%")
-                      ->orWhere('content', 'LIKE', "%{$search}%");
-            })
+            $searchLower = Str::lower($search);
+
+            // When the user types a category name like "events" or "news",
+            // keep that section visible even if the word is not in the title/content.
+            $searchAnnouncementsByCategory = in_array($searchLower, ['announcement', 'announcements'], true);
+            $searchEventsByCategory = in_array($searchLower, ['event', 'events'], true);
+            $searchNewsByCategory = in_array($searchLower, ['news'], true);
+
+            // Announcements: filter by text unless searching by category word
+            if (! $searchAnnouncementsByCategory) {
+                $announcementQuery->where(function ($query) use ($search) {
+                    $query->where('title', 'LIKE', "%{$search}%")
+                          ->orWhere('content', 'LIKE', "%{$search}%");
+                });
+            }
             // Prefer titles that start with the search term
-            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
+            $announcementQuery->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
 
-            $eventQuery->where(function ($query) use ($search) {
-                $query->where('title', 'LIKE', "%{$search}%")
-                      ->orWhere('description', 'LIKE', "%{$search}%");
-            })
-            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
+            // Events: filter by text unless searching by category word
+            if (! $searchEventsByCategory) {
+                $eventQuery->where(function ($query) use ($search) {
+                    $query->where('title', 'LIKE', "%{$search}%")
+                          ->orWhere('description', 'LIKE', "%{$search}%");
+                });
+            }
+            $eventQuery->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
 
-            $newsQuery->where(function ($query) use ($search) {
-                $query->where('title', 'LIKE', "%{$search}%")
-                      ->orWhere('content', 'LIKE', "%{$search}%");
-            })
-            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
+            // News: filter by text unless searching by category word
+            if (! $searchNewsByCategory) {
+                $newsQuery->where(function ($query) use ($search) {
+                    $query->where('title', 'LIKE', "%{$search}%")
+                          ->orWhere('content', 'LIKE', "%{$search}%");
+                });
+            }
+            $newsQuery->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
         }
 
         $announcements = $announcementQuery->latest()->get();

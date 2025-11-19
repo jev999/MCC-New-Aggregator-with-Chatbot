@@ -4160,9 +4160,19 @@
             const searchInput = document.getElementById('searchInput');
             const suggestionBox = document.getElementById('suggestions');
             const searchSuggestUrl = "{{ route('user.search.suggest') }}";
+            const dashboardUrl = "{{ route('user.dashboard') }}";
+            const initialSearch = @json($search ?? '');
 
             if (searchInput && suggestionBox) {
                 let debounceTimer = null;
+
+                searchInput.addEventListener('input', function () {
+                    const value = this.value.trim();
+
+                    if (value.length === 0 && initialSearch !== '') {
+                        window.location.href = dashboardUrl;
+                    }
+                });
 
                 searchInput.addEventListener('keyup', function () {
                     const query = this.value.trim();
