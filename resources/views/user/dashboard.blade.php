@@ -1973,7 +1973,10 @@
             <div class="mt-4 mb-6 w-full">
                 <form method="GET" action="{{ route('user.dashboard') }}" autocomplete="off">
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
+                        <span
+                            id="searchIcon"
+                            class="absolute inset-y-0 left-3 flex items-center text-gray-400 cursor-pointer"
+                        >
                             <i class="fas fa-search text-sm"></i>
                         </span>
                         <input
@@ -4159,9 +4162,24 @@
             // Live search suggestions for dashboard content
             const searchInput = document.getElementById('searchInput');
             const suggestionBox = document.getElementById('suggestions');
+            const searchIcon = document.getElementById('searchIcon');
             const searchSuggestUrl = "{{ route('user.search.suggest') }}";
             const dashboardUrl = "{{ route('user.dashboard') }}";
             const initialSearch = @json($search ?? '');
+
+            if (searchIcon && searchInput && searchInput.form) {
+                searchIcon.addEventListener('click', function () {
+                    const value = searchInput.value.trim();
+
+                    // If there is text, run the search; if empty and there was an
+                    // existing search term, go back to the full dashboard.
+                    if (value.length > 0) {
+                        searchInput.form.submit();
+                    } else if (initialSearch !== '') {
+                        window.location.href = dashboardUrl;
+                    }
+                });
+            }
 
             if (searchInput && suggestionBox) {
                 let debounceTimer = null;
