@@ -45,17 +45,21 @@ class UserDashboardController extends Controller
             $announcementQuery->where(function ($query) use ($search) {
                 $query->where('title', 'LIKE', "%{$search}%")
                       ->orWhere('content', 'LIKE', "%{$search}%");
-            });
+            })
+            // Prefer titles that start with the search term
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
 
             $eventQuery->where(function ($query) use ($search) {
                 $query->where('title', 'LIKE', "%{$search}%")
                       ->orWhere('description', 'LIKE', "%{$search}%");
-            });
+            })
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
 
             $newsQuery->where(function ($query) use ($search) {
                 $query->where('title', 'LIKE', "%{$search}%")
                       ->orWhere('content', 'LIKE', "%{$search}%");
-            });
+            })
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$search}%"]);
         }
 
         $announcements = $announcementQuery->latest()->get();
@@ -112,9 +116,11 @@ class UserDashboardController extends Controller
         $results = [];
 
         // Limit to a handful of suggestions per type, only published and visible to this user
+        // Order so titles that start with the term appear first
         $announce = Announcement::where('is_published', true)
             ->visibleToUser($user)
             ->where('title', 'LIKE', "%{$term}%")
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$term}%"])
             ->latest()
             ->take(5)
             ->get(['id', 'title']);
@@ -122,6 +128,7 @@ class UserDashboardController extends Controller
         $event = Event::where('is_published', true)
             ->visibleToUser($user)
             ->where('title', 'LIKE', "%{$term}%")
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$term}%"])
             ->latest()
             ->take(5)
             ->get(['id', 'title']);
@@ -129,6 +136,7 @@ class UserDashboardController extends Controller
         $newz = News::where('is_published', true)
             ->visibleToUser($user)
             ->where('title', 'LIKE', "%{$term}%")
+            ->orderByRaw('CASE WHEN title LIKE ? THEN 0 ELSE 1 END', ["{$term}%"])
             ->latest()
             ->take(5)
             ->get(['id', 'title']);

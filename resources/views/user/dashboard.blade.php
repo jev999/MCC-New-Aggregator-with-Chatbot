@@ -1970,7 +1970,7 @@
 
         <main class="bulletin-board p-6 md:p-8">
             <!-- Search Bar for Announcements, Events, and News -->
-            <div class="mt-4 mb-6 max-w-xl mx-auto md:mx-0">
+            <div class="mt-4 mb-6 w-full">
                 <form method="GET" action="{{ route('user.dashboard') }}" autocomplete="off">
                     <div class="relative">
                         <span class="absolute inset-y-0 left-3 flex items-center text-gray-400">
@@ -4208,8 +4208,11 @@
                                         searchInput.value = item.title;
                                         suggestionBox.classList.add('hidden');
                                         suggestionBox.innerHTML = '';
-                                        // Optionally submit form after selection:
-                                        // if (searchInput.form) searchInput.form.submit();
+
+                                        // Submit the search form so matching content appears first
+                                        if (searchInput.form) {
+                                            searchInput.form.submit();
+                                        }
                                     });
 
                                     suggestionBox.appendChild(li);
