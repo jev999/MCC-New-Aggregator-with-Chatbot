@@ -295,10 +295,23 @@
         }
 
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 1.5rem;
             margin-bottom: 2rem;
+        }
+
+        .stats-row {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .stats-row-top {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .stats-row-bottom {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
 
         .stat-card {
@@ -471,7 +484,7 @@
                 padding: 1rem;
             }
 
-            .stats-grid {
+            .stats-row {
                 grid-template-columns: 1fr;
             }
 
@@ -561,40 +574,44 @@
 
             <!-- Statistics Grid -->
             <div class="stats-grid">
-                <div class="stat-card">
-                    <h3><i class="fas fa-users-cog"></i> Total Admins</h3>
-                    <div class="number">{{ $counts['total_admins'] }}</div>
-                    <div class="change">{{ $counts['super_admins'] }} Super, {{ $counts['department_admins'] }} Dept</div>
+                <div class="stats-row stats-row-top">
+                    <div class="stat-card">
+                        <h3><i class="fas fa-users-cog"></i> Total Admins</h3>
+                        <div class="number">{{ $counts['total_admins'] }}</div>
+                        <div class="change">{{ $counts['super_admins'] }} Super, {{ $counts['department_admins'] }} Dept</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-bullhorn"></i> Announcements</h3>
+                        <div class="number">{{ $counts['announcements'] }}</div>
+                        <div class="change">Published this month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-calendar-alt"></i> Events</h3>
+                        <div class="number">{{ $counts['events'] }}</div>
+                        <div class="change">Active content</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-newspaper"></i> News</h3>
+                        <div class="number">{{ $counts['news'] }}</div>
+                        <div class="change">Published articles</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-bullhorn"></i> Announcements</h3>
-                    <div class="number">{{ $counts['announcements'] }}</div>
-                    <div class="change">Published this month</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-calendar-alt"></i> Events</h3>
-                    <div class="number">{{ $counts['events'] }}</div>
-                    <div class="change">Active content</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-newspaper"></i> News</h3>
-                    <div class="number">{{ $counts['news'] }}</div>
-                    <div class="change">Published articles</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-chalkboard-teacher"></i> Faculty</h3>
-                    <div class="number">{{ $counts['faculty'] }}</div>
-                    <div class="change">Registered faculty</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-user-graduate"></i> Students</h3>
-                    <div class="number">{{ $counts['students'] }}</div>
-                    <div class="change"> Registered Students</div>
-                </div>
-                <div class="stat-card">
-                    <h3><i class="fas fa-layer-group"></i> Total Contents</h3>
-                    <div class="number">{{ $systemStats['total_content'] }}</div>
-                    <div class="change">{{ $systemStats['content_this_month'] }} this month</div>
+                <div class="stats-row stats-row-bottom">
+                    <div class="stat-card">
+                        <h3><i class="fas fa-chalkboard-teacher"></i> Faculty</h3>
+                        <div class="number">{{ $counts['faculty'] }}</div>
+                        <div class="change">Registered faculty</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-user-graduate"></i> Students</h3>
+                        <div class="number">{{ $counts['students'] }}</div>
+                        <div class="change"> Registered Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fas fa-layer-group"></i> Total Contents</h3>
+                        <div class="number">{{ $systemStats['total_content'] }}</div>
+                        <div class="change">{{ $systemStats['content_this_month'] }} this month</div>
+                    </div>
                 </div>
             </div>
 
